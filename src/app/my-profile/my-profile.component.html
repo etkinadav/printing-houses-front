@@ -32,84 +32,13 @@
       *ngIf="!isLoading">
       <span class="profile-img-section-con-spacer d-sm-none"></span>
 
-      <!-- ================= POINTS & ORDERS area -->
+      <!-- ================= POINTS & ORDERS area (reserved layout – empty in printing-houses) -->
       <div id="upperElement" class="w-100 d-flex d-lg-none justify-content-between px-3"
-        [class.height-top]="(user.points && user.points >= 0.1) || numOfPendingOrders > 0"
         style="min-height: 70px; z-index: 2;">
-        <!-- POINTS -->
-        <!-- is points -->
-        <div *ngIf="user.points && user.points >= 0.1" class="d-flex flex-column gap-2">
-          <b class="zx-text-tiny-tiny zx-text-sm-small opacity-75">
-            {{ "my-profile.you-have" | translate }}
-          </b>
-          <span class="zx-text-medium zx-text-sm-big zx-max-w-text-upper opacity-75">
-            <b>
-              {{ user.points }}
-            </b>
-            <b>
-              {{ "my-profile.eazix-points" | translate }}
-            </b>
-          </span>
-          <span class="zx-text-tiny-tiny zx-text-sm-small pb-2 opacity-75">
-            <b>
-              {{ "my-profile.that-equal" | translate }}
-            </b>
-            <b>
-              {{ user.points }}
-            </b>
-            <b>
-              {{ "printing-table.nis" | translate }}
-            </b>
-          </span>
-          <!-- [action btn] -->
-          <button class="print-button print-button-mobile rounded-pill" (click)="goToNewOrder()">
-            <span class="zx-text-tiny text-white">
-              {{ "my-profile.create-order" | translate }}
-            </span>
-          </button>
-        </div>
-        <!-- no points -->
-        <div *ngIf="!(numOfPendingOrders && user.points >= 0.1)"></div>
-        <!-- // POINTS -->
-
-        <!-- ORDERS -->
-        <!-- is orders -->
-        <div *ngIf="numOfPendingOrders > 0" class="d-flex d-lg-none flex-column align-items-end gap-2">
-          <b class="zx-text-tiny-tiny zx-text-sm-small opacity-75">
-            {{ "my-profile.you-have" | translate }}
-          </b>
-          <span *ngIf="numOfPendingOrders === 1" class="zx-text-medium opacity-75">
-            <b>
-              {{ "my-profile.order-one" | translate }}
-            </b>
-          </span>
-          <span *ngIf="numOfPendingOrders > 1" class="zx-text-medium zx-text-sm-big zx-max-w-text-upper opacity-75">
-            <b>
-              {{numOfPendingOrders}}
-            </b>
-            <b>
-              {{ "my-profile.order-many" | translate }}
-            </b>
-          </span>
-          <span class="zx-text-tiny-tiny zx-text-sm-small pb-2 opacity-75">
-            <b>
-              {{ "my-profile.pending-orders" | translate }}
-            </b>
-          </span>
-          <!-- [action btn] -->
-          <button class="print-button print-button-mobile rounded-pill" (click)="goToMyOrders()">
-            <span *ngIf="numOfPendingOrders === 1" class="zx-text-tiny text-white">
-              {{ "my-profile.go-to-order-one" | translate }}
-            </span>
-            <span *ngIf="numOfPendingOrders > 1" class="zx-text-tiny text-white">
-              {{ "my-profile.go-to-order-many" | translate }}
-            </span>
-          </button>
-        </div>
-        <!-- no orders -->
-        <div *ngIf="numOfPendingOrders === 0"></div>
-        <!-- // ORDERS -->
-
+        <!-- POINTS (empty) -->
+        <div></div>
+        <!-- ORDERS (empty) -->
+        <div></div>
       </div>
       <!-- ================= // POINTS & ORDERS area -->
 
@@ -119,7 +48,7 @@
         </div>
         <span class="d-none d-sm-flex d-lg-none" style="min-height: 52px;"></span>
         <form class="d-flex flex-column gap-4 px-3 pt-5 pt-lg-0"
-          [class.pt-lg-3]="(user.points && user.points >= 0.1) || numOfPendingOrders > 0" [formGroup]="form"
+          [class.pt-lg-3]="numOfPendingOrders > 0" [formGroup]="form"
           (submit)="onSaveUser()">
 
           <!-- FIELD ================= - DISPLAY NAME -->
@@ -337,25 +266,6 @@
             <div class="w-100 d-flex mt-2 mb-3 mt-lg-0">
               <span class="w-100 zx-border-top-gray-light-mid"></span>
             </div>
-
-            <!-- POINTS (desktop) -->
-            <div *ngIf="user.points && user.points >= 0.1"
-              class="d-none d-lg-flex justify-content-between w-100 align-items-center gap-2 pb-3">
-              <span>
-                <span>
-                  <b>
-                    {{ "my-profile.points" | translate }}
-                  </b>
-                  <span class="zx-100-opp">--</span>
-                </span>
-              </span>
-              <div class="d-flex align-items-center gap-2 px-2">
-                <span class="zx-text-medium zx-text-sm-big">
-                  {{ user.points }}
-                </span>
-              </div>
-            </div>
-            <!-- // POINTS (desktop) -->
 
             <!-- PROVIDER -->
             <div *ngIf="user.provider" class="d-flex justify-content-between w-100 align-items-center gap-2 pb-3">
