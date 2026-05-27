@@ -1,0 +1,7 @@
+<div class="pull-to-refresh-container">
+  <div class="pull-to-refresh-spinner" *ngIf="isPulling || isRefreshing"
+       [style.top]="(20 + pullDistance) + 'px'">
+    <mat-progress-spinner mode="indeterminate" [diameter]="20" [strokeWidth]="2"></mat-progress-spinner>
+  </div>
+  <app-main-nav></app-main-nav>
+</div>

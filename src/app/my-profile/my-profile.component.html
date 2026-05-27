@@ -1,0 +1,1169 @@
+<article class="fill-height d-flex flex-row-reverse justify-content-center">
+  <!-- PROFILE MODE ========= PROFILE MODE ========= PROFILE MODE ========= PROFILE MODE ========= PROFILE MODE ========= PROFILE MODE ========= -->
+  <article [class.d-none]="isCreditEditMode" #scrollContainer (scroll)="onScrollContainerScroll($event)"
+    class="fill-height d-flex flex-column justify-content-center justify-content-lg-start">
+
+    <!-- spinner (mobile) -->
+    <div *ngIf="isLoading" class="d-flex d-lg-none h-100 align-items-center justify-content-center">
+      <mat-spinner class="zx-small-icon-size zx-medium-big-icon-size-lg"></mat-spinner>
+    </div>
+    <!-- // spinner (mobile) -->
+
+    <!-- PROFILE TOP AREA -------------------------------------------------------------------------------------------------------- -->
+    <article *ngIf="!isLoading" class="profile-img-section-con" style="z-index: 2;"
+      [class.profile-img-section-con-dark]="isDarkMode">
+      <section class="profile-img-section d-lg-none" [class.profile-img-section-darkmode]="isDarkMode"></section>
+
+      <div class="profile-img-inner">
+        <h4 class="profile-img-inner-text p-0 m-0 pt-2 pt-sm-3 pt-lg-0">
+          <span>
+            {{ "my-profile.hello" | translate }}
+          </span>
+          <span>{{ getDisplayName() }}</span>
+        </h4>
+        <img class="prifile-img zx-big-icon-size zx-big-minus-icon-size-lg" [src]="getUserProfileImg()" alt="">
+      </div>
+
+    </article>
+    <!-- // PROFILE TOP AREA -------------------------------------------------------------------------------------------------------- -->
+
+    <!-- main data container -------------------------------------------------------------------------------------------------------- -->
+    <article class="h-100 d-flex flex-column px-2 pt-4 pt-lg-2 gap-2 px-sm-3 gap-sm-3 px-lg-4 flex-grow-1"
+      *ngIf="!isLoading">
+      <span class="profile-img-section-con-spacer d-sm-none"></span>
+
+      <!-- ================= POINTS & ORDERS area -->
+      <div id="upperElement" class="w-100 d-flex d-lg-none justify-content-between px-3"
+        [class.height-top]="(user.points && user.points >= 0.1) || numOfPendingOrders > 0"
+        style="min-height: 70px; z-index: 2;">
+        <!-- POINTS -->
+        <!-- is points -->
+        <div *ngIf="user.points && user.points >= 0.1" class="d-flex flex-column gap-2">
+          <b class="zx-text-tiny-tiny zx-text-sm-small opacity-75">
+            {{ "my-profile.you-have" | translate }}
+          </b>
+          <span class="zx-text-medium zx-text-sm-big zx-max-w-text-upper opacity-75">
+            <b>
+              {{ user.points }}
+            </b>
+            <b>
+              {{ "my-profile.eazix-points" | translate }}
+            </b>
+          </span>
+          <span class="zx-text-tiny-tiny zx-text-sm-small pb-2 opacity-75">
+            <b>
+              {{ "my-profile.that-equal" | translate }}
+            </b>
+            <b>
+              {{ user.points }}
+            </b>
+            <b>
+              {{ "printing-table.nis" | translate }}
+            </b>
+          </span>
+          <!-- [action btn] -->
+          <button class="print-button print-button-mobile rounded-pill" (click)="goToNewOrder()">
+            <span class="zx-text-tiny text-white">
+              {{ "my-profile.create-order" | translate }}
+            </span>
+          </button>
+        </div>
+        <!-- no points -->
+        <div *ngIf="!(numOfPendingOrders && user.points >= 0.1)"></div>
+        <!-- // POINTS -->
+
+        <!-- ORDERS -->
+        <!-- is orders -->
+        <div *ngIf="numOfPendingOrders > 0" class="d-flex d-lg-none flex-column align-items-end gap-2">
+          <b class="zx-text-tiny-tiny zx-text-sm-small opacity-75">
+            {{ "my-profile.you-have" | translate }}
+          </b>
+          <span *ngIf="numOfPendingOrders === 1" class="zx-text-medium opacity-75">
+            <b>
+              {{ "my-profile.order-one" | translate }}
+            </b>
+          </span>
+          <span *ngIf="numOfPendingOrders > 1" class="zx-text-medium zx-text-sm-big zx-max-w-text-upper opacity-75">
+            <b>
+              {{numOfPendingOrders}}
+            </b>
+            <b>
+              {{ "my-profile.order-many" | translate }}
+            </b>
+          </span>
+          <span class="zx-text-tiny-tiny zx-text-sm-small pb-2 opacity-75">
+            <b>
+              {{ "my-profile.pending-orders" | translate }}
+            </b>
+          </span>
+          <!-- [action btn] -->
+          <button class="print-button print-button-mobile rounded-pill" (click)="goToMyOrders()">
+            <span *ngIf="numOfPendingOrders === 1" class="zx-text-tiny text-white">
+              {{ "my-profile.go-to-order-one" | translate }}
+            </span>
+            <span *ngIf="numOfPendingOrders > 1" class="zx-text-tiny text-white">
+              {{ "my-profile.go-to-order-many" | translate }}
+            </span>
+          </button>
+        </div>
+        <!-- no orders -->
+        <div *ngIf="numOfPendingOrders === 0"></div>
+        <!-- // ORDERS -->
+
+      </div>
+      <!-- ================= // POINTS & ORDERS area -->
+
+      <article class="h-100 d-flex flex-column flex-grow-1 zx-max-w-form">
+        <div class="w-100 d-none d-lg-flex mb-2 mb-lg-4 px-3">
+          <span class="w-100 zx-border-top-gray-light-mid"></span>
+        </div>
+        <span class="d-none d-sm-flex d-lg-none" style="min-height: 52px;"></span>
+        <form class="d-flex flex-column gap-4 px-3 pt-5 pt-lg-0"
+          [class.pt-lg-3]="(user.points && user.points >= 0.1) || numOfPendingOrders > 0" [formGroup]="form"
+          (submit)="onSaveUser()">
+
+          <!-- FIELD ================= - DISPLAY NAME -->
+          <div class="d-flex justify-content-between w-100 align-items-center gap-2 gap-lg-3">
+            <span>
+              <span>
+                <b>
+                  {{ "my-profile.username" | translate }}
+                </b>
+                <span class="zx-100-opp">--</span>
+              </span>
+            </span>
+            <div class="profileItem-displayName d-flex align-items-center gap-2 gap-lg-3"
+              (click)="toggleField('displayName')">
+              <span class="zx-text-medium zx-text-sm-big">
+                {{ getDisplayName() }}
+              </span>
+              <!-- etit icon -->
+              <div class="px-2 d-flex justify-content-center c-pointer">
+                <img *ngIf="!isDarkMode" src="assets/images/chainge-icon.svg" class="svg zx-small-icon-size c-pointer">
+                <img *ngIf="isDarkMode" src="assets/images/chainge-icon-green.svg"
+                  class="svg zx-small-icon-size c-pointer">
+              </div>
+            </div>
+            <!-- inner FIELD - displayName -->
+            <mat-form-field class="profileField-displayName d-none flex-grow-1 position-relative zx-z-index-1">
+              <mat-label [class.zx-text-white]="isDarkMode">
+                {{ "my-profile.username" | translate }}
+              </mat-label>
+              <input [class.d-none]="isLoadingUpdates" matInput type="text" formControlName="displayName"
+                [placeholder]="'my-profile.username' | translate" required>
+              <div [class.d-none]="!isLoadingUpdates" class="w-100 d-flex justify-content-center zx-min-h-input-spacer">
+                <mat-spinner class="zx-small-icon-size"></mat-spinner>
+              </div>
+              <mat-error [class.zx-text-white]="isDarkMode" *ngIf="form.get('displayName').invalid">
+                {{ "my-profile.username.error" | translate }}
+              </mat-error>
+              <!-- clear field -->
+              <div class="position-absolute d-flex justify-content-end px-2 zx-pb-12 rounded-pill top-clear-field w-100"
+                [class.top-clear-field-not-rtl]="!isRTL">
+                <div matRipple (click)="toggleField('displayName')"
+                  class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                  <mat-icon class="m-0 p-1 zx-text-medium c-pointer"
+                    [class.zx-text-gray-dark]="isDarkMode">close</mat-icon>
+                </div>
+              </div>
+              <!-- // clear field -->
+              <!-- save btn displayName -->
+              <button type="button" (click)="onSaveUser()"
+                *ngIf="getDisplayName() !== form.get('displayName').value  && !form.get('displayName').invalid"
+                class="w-100 py-1 py-lg-2 rounded-3 mt-2 mt-lg-3" mat-stroked-button color="primary">
+                {{ "my-profile.save-chainges" | translate }}
+              </button>
+              <!-- // save btn displayName -->
+            </mat-form-field>
+            <!-- // inner FIELD - displayName -->
+
+          </div>
+          <!-- // ================= FIELD - DISPLAY NAME -->
+
+          <!-- ================= FIELD - EMAIL -->
+          <div class="d-flex justify-content-between w-100 align-items-center gap-2 gap-lg-3">
+            <span>
+              <span>
+                <b>
+                  {{ "my-profile.email" | translate }}
+                </b>
+                <span class="zx-100-opp">--</span>
+              </span>
+            </span>
+            <div class="profileItem-email d-flex align-items-center gap-2 gap-lg-3">
+              <span class="zx-text-medium zx-text-sm-big">
+                {{ user.email }}
+              </span>
+              <div class="px-2 d-flex justify-content-center opacity-25" (click)="emailCannotBeEdited()">
+                <img *ngIf="!isDarkMode" src="assets/images/chainge-icon.svg" class="svg zx-small-icon-size c-pointer">
+                <img *ngIf="isDarkMode" src="assets/images/chainge-icon-green.svg"
+                  class="svg zx-small-icon-size c-pointer">
+              </div>
+            </div>
+          </div>
+          <!-- // ================= FIELD - EMAIL -->
+
+          <!-- ================= FIELD - PHONE -->
+          <div class="d-flex justify-content-between w-100 align-items-center gap-2 gap-lg-3">
+            <span>
+              <span>
+                <b>
+                  {{ "my-profile.phone" | translate }}
+                </b>
+                <span class="zx-100-opp">--</span>
+              </span>
+            </span>
+            <div class="profileItem-phone d-flex align-items-center gap-2 gap-lg-3" (click)="toggleField('phone')">
+              <div *ngIf="user.phone" class="zx-text-medium zx-text-sm-big d-flex align-items-center"
+                [class.flex-row-reverse]="isRTL">
+                <span>0</span>
+                <span>
+                  {{ ('0' + user.phone.toString()).slice(1, 3) }}
+                </span>
+                <span>-</span>
+                <span>
+                  {{ ('0' + user.phone.toString()).slice(3, 7) }}
+                </span>
+                <span>-</span>
+                <span>
+                  {{ ('0' + user.phone.toString()).slice(7) }}
+                </span>
+              </div>
+              <div *ngIf="!user.phone" class="zx-text-medium zx-text-sm-big d-flex align-items-center"
+                [class.flex-row-reverse]="isRTL">
+                <span [class.text-red]="!isDarkMode">
+                  {{ "my-profile.not-exist" | translate }}
+                </span>
+              </div>
+              <!-- etit icon -->
+              <div class="px-2 d-flex justify-content-center c-pointer">
+                <img *ngIf="!isDarkMode" src="assets/images/chainge-icon.svg" class="svg zx-small-icon-size c-pointer">
+                <img *ngIf="isDarkMode" src="assets/images/chainge-icon-green.svg"
+                  class="svg zx-small-icon-size c-pointer">
+              </div>
+            </div>
+            <!-- inner FIELD - phone -->
+            <mat-form-field class="profileField-phone d-none flex-grow-1 position-relative zx-z-index-1">
+              <mat-label [class.zx-text-white]="isDarkMode">
+                {{ "my-profile.phone" | translate }}
+              </mat-label>
+              <input [class.d-none]="isLoadingUpdates" matInput type="text" formControlName="phone"
+                [placeholder]="'my-profile.phone' | translate" required appPhoneFormat inputmode="numeric"
+                (blur)="onPhoneBlur()">
+              <div [class.d-none]="!isLoadingUpdates" class="w-100 d-flex justify-content-center zx-min-h-input-spacer">
+                <mat-spinner class="zx-small-icon-size"></mat-spinner>
+              </div>
+              <mat-error [class.zx-text-white]="isDarkMode" *ngIf="form.get('phone').invalid && phoneFieldShouldShowError"
+                [ngClass]="isRTL ? 'text-end zx-rtl' : 'text-start zx-ltr'">
+                {{ "my-profile.phone.error" | translate }}
+              </mat-error>
+              <!-- clear field -->
+              <div class="position-absolute d-flex justify-content-end px-2 zx-pb-12 rounded-pill top-clear-field w-100"
+                [class.top-clear-field-not-rtl]="!isRTL">
+                <div matRipple (click)="toggleField('phone')"
+                  class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                  <mat-icon class="m-0 p-1 zx-text-medium c-pointer">close</mat-icon>
+                </div>
+              </div>
+              <!-- // clear field -->
+              <!-- save btn phone -->
+              <button type="button" (click)="onSaveUser()"
+                *ngIf="comperePhoneNumbers(user.phone, form.get('phone').value) && !form.get('phone').invalid"
+                class="w-100 py-1 py-lg-2 rounded-3 mt-2 mt-lg-3" mat-stroked-button color="primary">
+                {{ "my-profile.save-chainges" | translate }}
+              </button>
+              <!-- // save btn phone -->
+            </mat-form-field>
+            <!-- // inner FIELD - phone -->
+          </div>
+          <!-- // ================= FIELD - PHONE -->
+
+          <!-- ================= FIELD - CREADIT -->
+          <div class="d-flex justify-content-between w-100 align-items-center gap-2 gap-lg-3">
+            <span>
+              <span>
+                <b>
+                  {{ "my-profile.credit" | translate }}
+                </b>
+                <span class="zx-100-opp">--</span>
+              </span>
+            </span>
+            <!-- card exist -->
+            <div class="d-flex align-items-center gap-2 gap-lg-3" (click)="toCreditEditMode()">
+              <!-- card exist -->
+              <div *ngIf="user.zCreditInfo && user.zCreditInfo.cardNum"
+                class="zx-text-medium zx-text-sm-big d-flex align-items-center" [class.flex-row-reverse]="!isRTL">
+                <span>
+                  {{ getCCLastDigits(user.zCreditInfo.cardNum) }}
+                </span>
+                <span class="zx-100-opp">_</span>
+                <span>****</span>
+                <span class="zx-100-opp">_</span>
+                <span>****</span>
+                <span class="zx-100-opp">_</span>
+                <span>****</span>
+              </div>
+              <!-- card NOT exist -->
+              <div *ngIf="!(user.zCreditInfo && user.zCreditInfo.cardNum)"
+                class="zx-text-medium zx-text-sm-big d-flex align-items-center" (click)="toCreditEditMode()">
+                <span [class.text-red]="!isDarkMode">
+                  {{ "my-profile.not-exist" | translate }}
+                </span>
+              </div>
+              <!-- etit icon -->
+              <div class="px-2 d-flex justify-content-center c-pointer" (click)="toCreditEditMode()">
+                <img *ngIf="!isDarkMode" src="assets/images/chainge-icon.svg" class="svg zx-small-icon-size c-pointer">
+                <img *ngIf="isDarkMode" src="assets/images/chainge-icon-green.svg"
+                  class="svg zx-small-icon-size c-pointer">
+              </div>
+            </div>
+            <!-- card exist -->
+
+            <!-- // inner FIELD - credit -->
+          </div>
+          <!-- // ================= FIELD - CREADIT -->
+
+          <button #hiddenSubmitBtn type="submit" style="display: none;"></button>
+        </form>
+
+        <!-- ================= UNEDITER FIELDS AREA -->
+        <article class="d-flex flex-column w-100 gap-2 px-3 pt-3 profile-bottom-fields-con">
+
+          <!-- =====--- UP CONTAINRE (mobile + desktop) ---===== -->
+          <article class="d-flex flex-column w-100 gap-2">
+            <span class="d-none d-lg-flex"></span>
+
+
+            <div class="w-100 d-flex mt-2 mb-3 mt-lg-0">
+              <span class="w-100 zx-border-top-gray-light-mid"></span>
+            </div>
+
+            <!-- POINTS (desktop) -->
+            <div *ngIf="user.points && user.points >= 0.1"
+              class="d-none d-lg-flex justify-content-between w-100 align-items-center gap-2 pb-3">
+              <span>
+                <span>
+                  <b>
+                    {{ "my-profile.points" | translate }}
+                  </b>
+                  <span class="zx-100-opp">--</span>
+                </span>
+              </span>
+              <div class="d-flex align-items-center gap-2 px-2">
+                <span class="zx-text-medium zx-text-sm-big">
+                  {{ user.points }}
+                </span>
+              </div>
+            </div>
+            <!-- // POINTS (desktop) -->
+
+            <!-- PROVIDER -->
+            <div *ngIf="user.provider" class="d-flex justify-content-between w-100 align-items-center gap-2 pb-3">
+              <span>
+                <span>
+                  <b>
+                    {{ "my-profile.probider" | translate }}
+                  </b>
+                  <span class="zx-100-opp">--</span>
+                </span>
+              </span>
+              <!-- google -->
+              <div *ngIf="user.provider === 'google'" class="d-flex align-items-center gap-2 px-2">
+                <span class="zx-text-medium zx-text-sm-big">
+                  Google
+                </span>
+                <img class="zx-small-icon-size" src="../../../assets/images/google-icon.svg" alt="Google Logo">
+              </div>
+              <!-- Facebook -->
+              <div *ngIf="user.provider === 'facebook'" class="d-flex align-items-center gap-2 px-2">
+                <span class="zx-text-medium zx-text-sm-big">
+                  Facebook
+                </span>
+                <img class="zx-small-icon-size" src="../../../assets/images/fb-icon.svg" alt="Facebook Logo">
+              </div>
+              <!-- eazix (local) -->
+              <div *ngIf="user.provider !== 'google' && user.provider !== 'facebook'"
+                class="d-flex align-items-center gap-2 px-2">
+                <span class="zx-text-medium zx-text-sm-big">
+                  {{ "my-profile.probider-local" | translate }}
+                </span>
+                <img class="zx-small-icon-size" src="assets/images/eazix-logo-small.svg" alt="Eazix Logo">
+              </div>
+            </div>
+            <!-- // PROVIDER -->
+
+            <!-- DISCOUNT -->
+            <div *ngIf="user.discount && user.discount > 0.1 && user.discount !== 100"
+              class="d-flex justify-content-between w-100 align-items-center gap-2 pb-3">
+              <span>
+                <span>
+                  <b>
+                    {{ "my-profile.permanent-discount" | translate }}
+                  </b>
+                  <span class="zx-100-opp">--</span>
+                </span>
+              </span>
+              <span class="zx-text-medium zx-text-sm-big px-2">
+                <span *ngIf="isRTL">%</span>
+                <span>
+                  {{ user.discount }}
+                </span>
+                <span *ngIf="!isRTL">%</span>
+                <span>
+                  {{ "my-orders.discount" | translate }}
+                </span>
+              </span>
+            </div>
+            <!-- // DISCOUNT -->
+
+            <!-- PAY NOT THROUGH CREADIT (100% discount) -->
+            <div *ngIf="user.discount && user.discount === 100"
+              class="d-flex flex-column w-100 gap-1 pb-3 zx-text-pink">
+              <span>
+                {{ "my-profile.payment-per-lap" | translate }}
+              </span>
+              <span class="zx-text-tiny">
+                {{ "my-profile.payment-per-lap-explain" | translate }}
+              </span>
+            </div>
+            <!-- // PAY NOT THROUGH CREADIT (100% discount) -->
+
+            <!-- SU & BM -->
+            <div *ngIf="user.roles.includes('bm') ||
+                      user.roles.includes('su') ||
+                      user.roles.includes('st')"
+              class="d-flex justify-content-between w-100 align-items-center gap-2 pb-3">
+              <span>
+                <span>
+                  <b>
+                    {{ "my-profile.permissions" | translate }}
+                  </b>
+                  <span class="zx-100-opp">--</span>
+                </span>
+              </span>
+              <span *ngIf="user.roles.includes('su')" class="zx-text-medium zx-text-sm-big px-2">
+                {{ "my-profile.su" | translate }}
+              </span>
+              <span *ngIf="user.roles.includes('bm') && !user.roles.includes('su')"
+                class="zx-text-medium zx-text-sm-big px-2">
+                {{ "my-profile.bm" | translate }}
+              </span>
+              <span *ngIf="user.roles.includes('st') && !user.roles.includes('su') && !user.roles.includes('bm')"
+                class="zx-text-medium zx-text-sm-big px-2">
+                {{ "my-profile.st" | translate }}
+              </span>
+            </div>
+            <!-- // SU & BM -->
+          </article>
+          <!-- // =====--- UP CONTAINRE (mobile + desktop) ---===== -->
+
+          <!-- =====--- DOWN CONTAINRE (mobile) ---===== -->
+          <article class="d-flex flex-column w-100 gap-2">
+
+            <!-- CREATED -->
+            <div *ngIf="user.created" class="d-flex justify-content-between w-100 align-items-center gap-2 pb-3">
+              <span>
+                <span>
+                  <b>
+                    {{ "my-profile.created" | translate }}
+                  </b>
+                  <span class="zx-100-opp">--</span>
+                </span>
+              </span>
+              <!-- date -->
+              <span class="zx-text-medium zx-text-sm-big px-2">
+                <span>
+                  {{ user.created | date:'dd/MM/yy' }}
+                </span>
+                <span class="zx-100-opp">-</span>
+                <span>
+                  {{ "my-orders.at" | translate }}
+                </span>
+                <span class="zx-100-opp">-</span>
+                <span>
+                  {{ user.created | date:'HH:mm' }}
+                </span>
+              </span>
+              <!-- // date -->
+            </div>
+            <!-- // CREATED -->
+
+            <!-- UPDATED -->
+            <div *ngIf="user.updated" class="d-flex justify-content-between w-100 align-items-center gap-2 pb-3">
+              <span>
+                <span>
+                  <b>
+                    {{ "my-profile.updated" | translate }}
+                  </b>
+                  <span class="zx-100-opp">--</span>
+                </span>
+              </span>
+              <!-- date -->
+              <span class="zx-text-medium zx-text-sm-big px-2">
+                <span>
+                  {{ user.updated | date:'dd/MM/yy' }}
+                </span>
+                <span class="zx-100-opp">-</span>
+                <span>
+                  {{ "my-orders.at" | translate }}
+                </span>
+                <span class="zx-100-opp">-</span>
+                <span>
+                  {{ user.updated | date:'HH:mm' }}
+                </span>
+              </span>
+              <!-- // date -->
+            </div>
+            <!-- // UPDATED -->
+
+            <!-- ACTION BTNS -->
+            <div class="d-flex w-100 justify-content-center align-items-center">
+              <div class="w-100 row pb-4">
+                <div class="col-6 col-md-4 px-2 px-sm-3 px-md-2 pt-3 d-lg-none">
+                  <button type="button" mat-stroked-button color="primary" class="zx-small-tiny-btn rounded-pill w-100"
+                    (click)="goToMyOrders()">
+                    <div class="d-flex align-items-center justify-content-center gap-2">
+                      <span>
+                        {{'main-nav.my-orders' | translate }}
+                      </span>
+                      <span class="num-pending-con" *ngIf="numOfPendingOrders > 0">
+                        <span class="num-pending">
+                          {{ numOfPendingOrders }}
+                        </span>
+                      </span>
+                    </div>
+                  </button>
+                </div>
+                <div class="col-5 px-2 px-sm-3 px-md-2 pt-3 d-lg-none">
+                  <button type="button" mat-stroked-button color="warn" class="zx-small-tiny-btn rounded-pill w-100"
+                    [class.text-white]="isDarkMode" (click)="logOut()">
+                    {{ "main-nav.logout" | translate }}
+                  </button>
+                </div>
+                <div class="col-12 px-2 px-sm-3 px-md-2 d-flex justify-content-end">
+                  <div class="position-relative">
+                    <div class="position-absolute zx-delete-user-btn">
+                      <button mat-icon-button color="secondary"
+                        class="rounded-pill zx-text-tiny-tiny small-btn p-0 mx-1 mx-md-4"
+                        [matMenuTriggerFor]="deleteManu"
+                        [matTooltip]="'my-profile.delete-user-for-good' | translate"
+                        [matTooltipPosition]="'below'"
+                        [matTooltipDisabled]="false"
+                        [dir]="tooltipDirection">
+                        <mat-icon class="mx-1 zx-text-medium p-0 m-0 pt-2 zx-pt-small"
+                          [class.zx-text-white]="isDarkMode">delete_outline</mat-icon>
+                      </button>
+                    </div>
+                    <mat-menu #deleteManu="matMenu">
+                      <button class="d-flex align-items-center gap-1 px-2" [class.zx-ltr]="!isRTL" mat-menu-item
+                        (click)="deleteUser()">
+                        <b class="text-red zx-text-small m-0" [class.zx-text-white]="isDarkMode">
+                          {{'my-profile.delete-user-for-good'
+                          | translate}}
+                        </b>
+                        <mat-icon class="text-red mx-1 p-0 m-0 zx-pt-small" alt="Delete User button"
+                          [class.zx-text-white]=" isDarkMode">delete_outline</mat-icon>
+                      </button>
+                    </mat-menu>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- // ACTION BTNS -->
+
+          </article>
+          <!-- // =====--- DOWN CONTAINRE (mobile) ---===== -->
+
+        </article>
+        <!-- // ================= UNEDITER FIELDS AREA -->
+
+      </article>
+    </article>
+    <!-- // main data container -------------------------------------------------------------------------------------------------------- -->
+  </article>
+  <!-- // PROFILE MODE ========= PROFILE MODE ========= PROFILE MODE ========= PROFILE MODE ========= PROFILE MODE ========= PROFILE MODE ========= -->
+
+  <!-- CREADIT MODE ========= CREADIT MODE ========= CREADIT MODE ========= CREADIT MODE ========= CREADIT MODE ========= CREADIT MODE ========= -->
+  <article [class.d-none]="!isCreditEditMode"
+    class="fill-height zx-credit-con d-flex justify-content-center justify-content-lg-start p-3 px-lg-4 py-lg-5">
+    <div class="w-100 d-flex flex-column gap-2 gap-lg-4 zx-max-w-form">
+      <!-- title 1 -->
+      <article class="w-100 d-flex justify-content-between pb-2">
+        <h4 class="py-0 px-1 m-0 d-flex">
+          <b>
+            {{ "my-cc-title" | translate }}
+          </b>
+        </h4>
+        <button style="max-height: 28px; transform: translateY(5px);" type="button" mat-button color="primary"
+          class="d-lg-none px-2 py-0 rounded-3" (click)="toProfileMode()">
+          <div class="d-flex align-items-center gap-1 gap-sm-2">
+            <span class="zx-text-tiny d-flex">
+              {{ "my-profile.title" | translate }}
+            </span>
+            <mat-icon class="zx-text-medium d-flex zx-small-tiny-plus-icon-size">
+              {{ isRTL ? 'arrow_back_ios' : 'arrow_forward_ios' }}
+            </mat-icon>
+          </div>
+        </button>
+      </article>
+      <!-- credit exists -->
+      <article *ngIf="user.zCreditInfo?.token && user.zCreditInfo.token !== ''"
+        class="p-3 rounded-3 shadow-85 d-flex flex-column gap-2 gap-md-3 position-relative"
+        [class.bg-white]="!isDarkMode" [class.zx-bg-dark-light-border]="isDarkMode">
+        <span class="px-2 pt-1">
+          {{ "my-cc-credit-in-use" | translate }}
+        </span>
+        <div class="d-flex align-items-center gap-2">
+          <img class="card-img zx-medium-big-icon-size" src="../../../assets/images/credit-card-icon.svg"
+            alt="Creadit Card Icon">
+          <span class="zx-text-big zx-text-sm-huge">
+            <span> {{ user.zCreditInfo?.cardNum ? getCCLastDigits(user.zCreditInfo.cardNum) : '****' }} </span>
+            <span class="zx-100-opp">-</span>
+            <span>- **** - **** - ****</span>
+          </span>
+        </div>
+        <!-- delete card btn -->
+        <div class="position-absolute d-flex top-0 w-100 px-2 px-lg-3 justify-content-end">
+          <div class="p-3">
+            <div matRipple [matMenuTriggerFor]="deleteManu"
+              class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer rounded-3"
+              [class.zx-bg-light]="!isDarkMode">
+              <mat-icon class="m-0 p-1 zx-text-medium c-pointer" [class.text-red]="!isDarkMode"
+                [class.text-gray]="isDarkMode">delete_outline</mat-icon>
+            </div>
+          </div>
+          <mat-menu #deleteManu="matMenu">
+            <button class="d-flex align-items-center gap-1 px-2" [class.zx-ltr]="!isRTL" mat-menu-item
+              (click)="onDeleteCreditCard()">
+              <b class="text-red zx-text-small m-0" [class.zx-text-white]="isDarkMode">
+                {{ 'my-cc-delete-card-for-good' | translate }}
+              </b>
+              <mat-icon class="text-red m-0 p-0 zx-pt-small flex-shrink-0"
+                [class.zx-text-white]="isDarkMode">delete_outline</mat-icon>
+            </button>
+          </mat-menu>
+        </div>
+        <!-- // delete card btn -->
+      </article>
+      <!-- credit NOT exists -->
+      <article *ngIf="!(user.zCreditInfo?.token && user.zCreditInfo.token !== '')"
+        class="px-3 d-flex flex-column gap-2">
+        <span *ngIf="user.roles && !user.roles.includes('su')">
+          {{ "my-cc-no-credit-info" | translate }}
+        </span>
+        <span *ngIf="user.roles && user.roles.includes('su')">
+          {{ "my-cc-no-credit-info-su" | translate }}
+        </span>
+      </article>
+      <!-- title 2 -->
+      <h4 class="pb-0 pt-2 px-1 m-0 d-flex">
+        <b *ngIf="user.zCreditInfo?.token && user.zCreditInfo.token !== ''">
+          {{ "my-cc-chainge-credit-info" | translate }}
+        </b>
+        <b *ngIf="!(user.zCreditInfo?.token && user.zCreditInfo.token !== '')">
+          {{ "my-cc-set-credit-info" | translate }}
+        </b>
+      </h4>
+
+      <!-- explain 2 con -->
+      <div class="d-flex flex-column flex-lg-row justify-content-lg-between gap-2 gap-lg-0">
+        <!-- explain 2 -->
+        <span class="px-3 px-lg-4 flex-grow-lg-1">
+          <span *ngIf="user.zCreditInfo?.token && user.zCreditInfo.token !== ''">
+            {{ "my-cc-chainge-credit-info-explain" | translate }}
+          </span>
+          <span *ngIf="!(user.zCreditInfo?.token && user.zCreditInfo.token !== '')">
+            {{ "my-cc-set-credit-info-explain" | translate }}
+          </span>
+        </span>
+
+        <div class="zx-required-text-con d-flex">
+          <span class="zx-text-tiny text-green">
+            <b class="zx-text-small">
+              <sup> * </sup>
+            </b>
+            <span class="zx-100-opp">_</span>
+            <span>-</span>
+            <span class="zx-100-opp">_</span>
+            <span>
+              {{ "my-cc-required-exp" | translate }}
+            </span>
+          </span>
+        </div>
+
+      </div>
+      <!-- // explain 2 con -->
+
+      <!-- CREDIT FORM ============ CREDIT FORM ============ CREDIT FORM ============ CREDIT FORM ============ CREDIT FORM  -->
+      <form class="d-flex row pt-lg-2 pt-lg-1 pb-2" [formGroup]="creditForm" (submit)="onSaveCreditCard()">
+
+        <!-- FIELD ================= - Card Number -->
+        <div class="d-flex flex-column gap-2 col-12 col-lg-8 pt-lg-2">
+          <span class="zx-text-tiny zx-text-sm-medium zx-fw-sm-not-bold"
+            [class.text-red-bold]="isCreditCardFieldsEmphasized && !creditForm.get('cardNum').valid">
+            <span>
+              <b class="zx-text-small text-green">
+                <sup> * </sup>
+              </b>
+              <span>
+                {{ "my-cc-card-number" | translate }}
+              </span>
+            </span>
+          </span>
+          <!-- inner FIELD - Card Number -->
+          <mat-form-field class="d-flex flex-grow-1 position-relative zx-z-index-1">
+            <mat-label [class.zx-text-white]="isDarkMode">
+              {{ "my-cc-card-number" | translate }}
+            </mat-label>
+            <input matInput type="text" formControlName="cardNum" [placeholder]="'my-cc-card-number' | translate"
+              required (keypress)="numberOnly($event)" (input)="formatCardNumInput($event)" inputmode="numeric"
+              autocomplete="cc-number">
+            <div [class.d-none]="!isLoadingUpdates" class="w-100 d-flex justify-content-center zx-min-h-input-spacer">
+              <mat-spinner class="zx-small-icon-size"></mat-spinner>
+            </div>
+            <mat-error [class.zx-text-white]="isDarkMode"
+              *ngIf="creditForm.get('cardNum').errors && creditForm.get('cardNum').errors['invalidCreditCard']">
+              {{ "my-cc-card-number.error" | translate }}
+            </mat-error>
+            <!-- clear field -->
+            <div class="position-absolute justify-content-end px-2 zx-pb-12 rounded-pill top-clear-field w-100"
+              [class.d-flex]="creditForm.get('cardNum').value" [class.d-none]="!creditForm.get('cardNum').value"
+              [class.top-clear-field-not-rtl]="!isRTL">
+              <div matRipple (click)="clearCreditField('cardNum')"
+                class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                <mat-icon class="m-0 p-1 zx-text-medium c-pointer"
+                  [class.zx-text-gray-dark]="isDarkMode">close</mat-icon>
+              </div>
+            </div>
+            <!-- // clear field -->
+          </mat-form-field>
+          <!-- // inner FIELD - Card Number -->
+        </div>
+        <!-- // ================= FIELD - Card Number -->
+
+        <!-- FIELD ================= - card validity -->
+        <div class="d-flex flex-column gap-2 col-8 col-lg-4 pt-lg-2">
+          <span class="zx-text-tiny zx-text-sm-medium zx-fw-sm-not-bold" [class.text-start]="!isRTL"
+            [class.text-red-bold]="isCreditCardFieldsEmphasized && !creditForm.get('month').valid">
+            <span>
+              <b class="zx-text-small text-green">
+                <sup> * </sup>
+              </b>
+              <span>
+                {{ "my-cc-card-validity" | translate }}
+              </span>
+            </span>
+          </span>
+          <!-- inner FIELD - validity -->
+          <div class="d-flex" [class.flex-row-reverse]="isRTL">
+            <!-- month -->
+            <mat-form-field class="d-flex flex-grow-1 position-relative zx-z-index-1 zx-rounded-start">
+              <mat-label [class.zx-text-white]="isDarkMode">
+                {{ "my-cc-card-validity.month" | translate }}
+              </mat-label>
+              <input class="text-center" matInput type="text" formControlName="month" [placeholder]="'MM'" required
+                (keypress)="numberOnly($event)" inputmode="numeric" autocomplete="cc-exp-month" #monthInput
+                maxlength="2">
+              <div [class.d-none]="!isLoadingUpdates" class="w-100 d-flex justify-content-center zx-min-h-input-spacer">
+                <mat-spinner class="zx-small-plus-icon-size zx-medium-icon-size-lg"></mat-spinner>
+              </div>
+              <mat-error [class.zx-text-white]="isDarkMode" *ngIf="creditForm.get('month').errors"
+                [class.text-start]="!isRTL">
+                {{ "my-cc-card-month.error" | translate }}
+              </mat-error>
+            </mat-form-field>
+            <!-- year -->
+            <mat-form-field class="d-flex flex-grow-1 position-relative zx-z-index-1 zx-rounded-end">
+              <mat-label [class.zx-text-white]="isDarkMode">
+                {{ "my-cc-card-validity.year" | translate }}
+              </mat-label>
+              <input class="text-center" matInput type="text" formControlName="year" [placeholder]="'YYYY'" required
+                (keypress)="numberOnly($event)" inputmode="numeric" autocomplete="cc-exp-year" #yearInput
+                (focus)="focusMonthIfEmpty()" maxlength="4">
+              <div [class.d-none]="!isLoadingUpdates" class="w-100 d-flex justify-content-center zx-min-h-input-spacer">
+                <mat-spinner class="zx-small-plus-icon-size zx-medium-icon-size-lg"></mat-spinner>
+              </div>
+              <mat-error [class.zx-text-white]="isDarkMode" *ngIf="creditForm.get('year').errors"
+                [class.text-start]="!isRTL">
+                {{ "my-cc-card-year.error" | translate }}
+              </mat-error>
+            </mat-form-field>
+          </div>
+          <!-- // inner FIELD - validity -->
+        </div>
+        <!-- // FIELD ================= - card validity -->
+
+        <!-- FIELD ================= - Card CVV -->
+        <div class="d-flex flex-column gap-2 col-4 col-lg-4 pt-lg-2">
+          <span class="zx-text-tiny zx-text-sm-medium zx-fw-sm-not-bold d-flex gap-2">
+            <span [class.text-red-bold]="isCreditCardFieldsEmphasized && !creditForm.get('cardCvv').valid">
+              <b class="zx-text-small text-green">
+                <sup> * </sup>
+              </b>
+              <span>CVV</span>
+            </span>
+            <div aria-label="CVV Explained" [matTooltip]="'my-cc-card-cvv-explain' | translate"
+              [matTooltipPosition]="'above'" [dir]="tooltipDirection" [matTooltipShowDelay]="0"
+              class="i-explain-icon svg c-pointer zx-small-icon-size p-1 m-0" style="background-image: url('/assets/images/i-explain-icon.svg');
+                     background-repeat: no-repeat;
+                     background-size: cover;
+                     width: 24px;
+                     height: 24px;" (click)="toggleTooltip()">
+            </div>
+          </span>
+          <!-- inner FIELD - Card CVV -->
+          <mat-form-field class="d-flex flex-grow-1 position-relative zx-z-index-1">
+            <mat-label [class.zx-text-white]="isDarkMode">CVV</mat-label>
+            <input matInput type="text" formControlName="cardCvv" [placeholder]="'CVV'" required
+              (keypress)="numberOnly($event)" inputmode="numeric">
+            <div [class.d-none]="!isLoadingUpdates" class="w-100 d-flex justify-content-center zx-min-h-input-spacer">
+              <mat-spinner class="zx-small-icon-size"></mat-spinner>
+            </div>
+            <mat-error [class.zx-text-white]="isDarkMode" *ngIf="creditForm.get('cardCvv').errors">
+              {{ "my-cc-card-cvv.error" | translate }}
+            </mat-error>
+            <!-- clear field -->
+            <div class="position-absolute justify-content-end px-2 zx-pb-12 rounded-pill top-clear-field w-100"
+              [class.d-flex]="creditForm.get('cardCvv').value" [class.d-none]="!creditForm.get('cardCvv').value"
+              [class.top-clear-field-not-rtl]="!isRTL">
+              <div matRipple (click)="clearCreditField('cardCvv')"
+                class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                <mat-icon class="m-0 p-1 zx-text-medium c-pointer"
+                  [class.zx-text-gray-dark]="isDarkMode">close</mat-icon>
+              </div>
+            </div>
+            <!-- // clear field -->
+          </mat-form-field>
+          <!-- // inner FIELD - Card CVV -->
+        </div>
+        <!-- // ================= FIELD - Card CVV -->
+
+        <!-- FIELD ================= - Card Holder Name -->
+        <div class="d-flex flex-column gap-2 col-12 col-lg-8 pt-lg-2">
+          <span class="zx-text-tiny zx-text-sm-medium zx-fw-sm-not-bold"
+            [class.text-red-bold]="isCreditCardFieldsEmphasized && !creditForm.get('cardHolderName').valid">
+            <span>
+              <b class="zx-text-small text-green">
+                <sup> * </sup>
+              </b>
+              <span>
+                {{ "my-cc-card-holder-name" | translate }}
+              </span>
+            </span>
+          </span>
+          <!-- inner FIELD - Card Holder Name -->
+          <mat-form-field class="d-flex flex-grow-1 position-relative zx-z-index-1">
+            <mat-label [class.zx-text-white]="isDarkMode">
+              {{ "my-cc-card-holder-name" | translate }}
+            </mat-label>
+            <input matInput type="text" formControlName="cardHolderName"
+              [placeholder]="'my-cc-card-holder-name' | translate" required>
+            <div [class.d-none]="!isLoadingUpdates" class="w-100 d-flex justify-content-center zx-min-h-input-spacer">
+              <mat-spinner class="zx-small-icon-size"></mat-spinner>
+            </div>
+            <mat-error [class.zx-text-white]="isDarkMode" *ngIf="creditForm.get('cardHolderName').errors">
+              {{ "my-cc-card-holder-name.error" | translate }}
+            </mat-error>
+            <!-- clear field -->
+            <div class="position-absolute justify-content-end px-2 zx-pb-12 rounded-pill top-clear-field w-100"
+              [class.d-flex]="creditForm.get('cardHolderName').value"
+              [class.d-none]="!creditForm.get('cardHolderName').value" [class.top-clear-field-not-rtl]="!isRTL">
+              <div matRipple (click)="clearCreditField('cardHolderName')"
+                class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                <mat-icon class="m-0 p-1 zx-text-medium c-pointer"
+                  [class.zx-text-gray-dark]="isDarkMode">close</mat-icon>
+              </div>
+            </div>
+            <!-- // clear field -->
+          </mat-form-field>
+          <!-- // inner FIELD - Card Holder Name -->
+        </div>
+        <!-- // ================= FIELD - Card Holder Name -->
+
+        <!-- FIELD ================= - Card Holder ID -->
+        <div class="d-flex flex-column gap-2 col-12 col-lg-6 pt-lg-2">
+          <span class="zx-text-tiny zx-text-sm-medium zx-fw-sm-not-bold"
+            [class.text-red-bold]="isCreditCardFieldsEmphasized && !creditForm.get('cardHolderID').valid">
+            <span>
+              <b class="zx-text-small text-green">
+                <sup> * </sup>
+              </b>
+              <span>
+                {{ "my-cc-card-holder-id" | translate }}
+              </span>
+            </span>
+          </span>
+          <!-- inner FIELD - Card Holder ID -->
+          <mat-form-field class="d-flex flex-grow-1 position-relative zx-z-index-1">
+            <mat-label [class.zx-text-white]="isDarkMode">
+              {{ "my-cc-card-holder-id" | translate }}
+            </mat-label>
+            <input matInput type="text" formControlName="cardHolderID"
+              [placeholder]="'my-cc-card-holder-id' | translate" required (keypress)="numberOnly($event)"
+              inputmode="numeric">
+            <div [class.d-none]="!isLoadingUpdates" class="w-100 d-flex justify-content-center zx-min-h-input-spacer">
+              <mat-spinner class="zx-small-icon-size"></mat-spinner>
+            </div>
+            <mat-error [class.zx-text-white]="isDarkMode" *ngIf="creditForm.get('cardHolderID').errors">
+              {{ "my-cc-card-holder-id.error" | translate }}
+            </mat-error>
+            <!-- clear field -->
+            <div class="position-absolute justify-content-end px-2 zx-pb-12 rounded-pill top-clear-field w-100"
+              [class.d-flex]="creditForm.get('cardHolderID').value"
+              [class.d-none]="!creditForm.get('cardHolderID').value" [class.top-clear-field-not-rtl]="!isRTL">
+              <div matRipple (click)="clearCreditField('cardHolderID')"
+                class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                <mat-icon class="m-0 p-1 zx-text-medium c-pointer"
+                  [class.zx-text-gray-dark]="isDarkMode">close</mat-icon>
+              </div>
+            </div>
+            <!-- // clear field -->
+          </mat-form-field>
+          <!-- // inner FIELD - Card Holder ID -->
+        </div>
+        <!-- // ================= FIELD - Card Holder ID -->
+
+        <!-- FIELD ================= - Card Billing Email -->
+        <div class="d-flex flex-column gap-2 col-12 col-lg-6 pt-lg-2">
+          <span class="zx-text-tiny zx-text-sm-medium zx-fw-sm-not-bold">
+            <span>
+              <span>
+                {{ "my-cc-billing-email" | translate }}
+              </span>
+            </span>
+          </span>
+          <!-- inner FIELD - Card Billing Email -->
+          <mat-form-field class="d-flex flex-grow-1 position-relative zx-z-index-1">
+            <mat-label [class.zx-text-white]="isDarkMode">
+              {{ "my-cc-billing-email" | translate }}
+            </mat-label>
+            <input matInput type="text" formControlName="billingEmail"
+              [placeholder]="'my-cc-billing-email' | translate">
+            <div [class.d-none]="!isLoadingUpdates" class="w-100 d-flex justify-content-center zx-min-h-input-spacer">
+              <mat-spinner class="zx-small-icon-size"></mat-spinner>
+            </div>
+            <mat-error [class.zx-text-white]="isDarkMode" *ngIf="creditForm.get('billingEmail').errors">
+              {{ "log-in-dialog-mailexist-mail-not-valid" | translate }}
+            </mat-error>
+            <!-- clear field -->
+            <div class="position-absolute justify-content-end px-2 zx-pb-12 rounded-pill top-clear-field w-100"
+              [class.d-flex]="creditForm.get('billingEmail').value"
+              [class.d-none]="!creditForm.get('billingEmail').value" [class.top-clear-field-not-rtl]="!isRTL">
+              <div matRipple (click)="clearCreditField('billingEmail')"
+                class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                <mat-icon class="m-0 p-1 zx-text-medium c-pointer"
+                  [class.zx-text-gray-dark]="isDarkMode">close</mat-icon>
+              </div>
+            </div>
+            <!-- // clear field -->
+          </mat-form-field>
+          <!-- // inner FIELD - Card Billing Email -->
+        </div>
+        <!-- // ================= FIELD - Card Billing Email -->
+
+        <!-- FIELD ================= - Card Customer Name -->
+        <div class="d-flex flex-column gap-2 col-12 pt-lg-2" [class.col-sm-8]="!isCompanyID"
+          [class.col-sm-6]="isCompanyID">
+          <span class="zx-text-tiny zx-text-sm-medium zx-fw-sm-not-bold">
+            <span>
+              <span>
+                {{ "my-cc-card-customer-name" | translate }}
+              </span>
+            </span>
+          </span>
+          <!-- inner FIELD - Card Customer Name -->
+          <mat-form-field class="d-flex flex-grow-1 position-relative zx-z-index-1">
+            <mat-label [class.zx-text-white]="isDarkMode">
+              {{ "my-cc-card-customer-name" | translate }}
+            </mat-label>
+            <input matInput type="text" formControlName="cardCustomerName"
+              [placeholder]="'my-cc-card-customer-name' | translate">
+            <div [class.d-none]="!isLoadingUpdates" class="w-100 d-flex justify-content-center zx-min-h-input-spacer">
+              <mat-spinner class="zx-small-icon-size"></mat-spinner>
+            </div>
+            <mat-error [class.zx-text-white]="isDarkMode" *ngIf="creditForm.get('cardCustomerName').errors">
+              {{ "my-cc-card-customer-name.error" | translate }}
+            </mat-error>
+            <!-- clear field -->
+            <div class="position-absolute justify-content-end px-2 zx-pb-12 rounded-pill top-clear-field w-100"
+              [class.d-flex]="creditForm.get('cardCustomerName').value"
+              [class.d-none]="!creditForm.get('cardCustomerName').value" [class.top-clear-field-not-rtl]="!isRTL">
+              <div matRipple (click)="clearCreditField('cardCustomerName')"
+                class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                <mat-icon class="m-0 p-1 zx-text-medium c-pointer"
+                  [class.zx-text-gray-dark]="isDarkMode">close</mat-icon>
+              </div>
+            </div>
+            <!-- // clear field -->
+          </mat-form-field>
+          <!-- // inner FIELD - Card Customer Name -->
+        </div>
+        <!-- // ================= FIELD - Card Customer Name -->
+
+        <!-- BTN ================= - Card Company ID - add -->
+        <div *ngIf="!isCompanyID"
+          class="d-flex px-3 col-12 col-sm-4 justify-content-center zx-transform-Company-id-btn">
+          <button type="button" mat-button color="primary" class="px-2 py-1 rounded-3" (click)="toggleCompanyID()">
+            <div class="d-flex align-items-center gap-1 gap-sm-2">
+              <span class="zx-text-tiny d-flex">
+                {{ "my-cc-card-company-id-add" | translate }}
+              </span>
+              <mat-icon class="zx-text-medium d-flex zx-small-tiny-plus-icon-size">add_circle_outline</mat-icon>
+            </div>
+          </button>
+        </div>
+        <!-- // BTN ================= - Card Company ID - add -->
+
+        <!-- FIELD ================= - Card Company ID -->
+        <div [class.d-none]="!isCompanyID" [class.d-flex]="isCompanyID"
+          class="flex-column gap-2 col-12 col-sm-6 pt-lg-2">
+          <span class="zx-text-tiny zx-text-sm-medium zx-fw-sm-not-bold">
+            <span>
+              <span>
+                {{ "my-cc-card-company-id" | translate }}
+              </span>
+            </span>
+          </span>
+          <!-- inner FIELD - Card Company ID -->
+          <mat-form-field class="d-flex flex-grow-1 position-relative zx-z-index-1">
+            <mat-label [class.zx-text-white]="isDarkMode">
+              {{ "my-cc-card-company-id" | translate }}
+            </mat-label>
+            <input matInput type="text" formControlName="cardCompanyID"
+              [placeholder]="'my-cc-card-company-id' | translate" (keypress)="numberOnly($event)" inputmode="numeric">
+            <div [class.d-none]="!isLoadingUpdates" class="w-100 d-flex justify-content-center zx-min-h-input-spacer">
+              <mat-spinner class="zx-small-icon-size"></mat-spinner>
+            </div>
+            <mat-error [class.zx-text-white]="isDarkMode" *ngIf="creditForm.get('cardCompanyID').errors">
+              {{ "my-cc-card-company-id.error" | translate }}
+            </mat-error>
+            <!-- clear field -->
+            <div class="position-absolute justify-content-end px-2 zx-pb-12 rounded-pill top-clear-field w-100"
+              [class.d-flex]="creditForm.get('cardCompanyID').value"
+              [class.d-none]="!creditForm.get('cardCompanyID').value" [class.top-clear-field-not-rtl]="!isRTL">
+              <div matRipple (click)="clearCreditField('cardCompanyID')"
+                class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                <mat-icon class="m-0 p-1 zx-text-medium c-pointer"
+                  [class.zx-text-gray-dark]="isDarkMode">close</mat-icon>
+              </div>
+            </div>
+            <!-- // clear field -->
+          </mat-form-field>
+          <!-- // inner FIELD - Card Company ID -->
+        </div>
+        <!-- // ================= FIELD - Card Company ID -->
+
+        <!-- BTN ================= - Card Company ID - remove -->
+        <div *ngIf="isCompanyID" class="d-none d-sm-flex col-6"></div>
+        <div *ngIf="isCompanyID" class="d-flex px-3 col-12 col-sm-6 justify-content-center">
+          <button class="px-2 py-1 rounded-3" type="button" mat-button color="primary" (click)="toggleCompanyID()">
+            <div class="d-flex align-items-center gap-1 gap-sm-2">
+              <span class="zx-text-tiny d-flex">
+                {{ "my-cc-card-company-id-renove" | translate }}
+              </span>
+              <mat-icon class="zx-text-medium d-flex zx-small-tiny-plus-icon-size">highlight_off</mat-icon>
+            </div>
+          </button>
+        </div>
+        <!-- // BTN ================= - Card Company ID - remove -->
+
+        <!-- BTN ================= - Card SAVE BTN -->
+        <div class="d-flex p-3 col-12 justify-content-center w-100" (click)="emphasizeCreditCardFields()">
+          <button [disabled]="!(creditForm.get('cardNum').valid &&
+          creditForm.get('month').valid &&
+          creditForm.get('year').valid &&
+          creditForm.get('cardCvv').valid &&
+          creditForm.get('cardHolderName').valid &&
+          creditForm.get('cardHolderID').valid)" class="text-white rounded-pill w-100 zx-small-btn" type="button"
+            mat-raised-button color="primary" (click)="onSaveCreditCard()">
+            {{ 'my-cc-save-card' | translate }}
+          </button>
+        </div>
+        <!-- // BTN ================= - Card SAVE BTN -->
+
+      </form>
+      <!-- // CREDIT FORM ============ CREDIT FORM ============ CREDIT FORM ============ CREDIT FORM ============ CREDIT FORM  -->
+
+    </div>
+
+    <!-- lottie -->
+    <div class="justify-content-center align-items-end position-absolute top-0 zx-z-index-2 zx-successfully-lottie-con"
+      [class.d-none]="!(isLottieStart && !isLottieEnd)" [class.d-flex]="isLottieStart && !isLottieEnd"
+      [class.zx-opacity-trans-lottie]="isLottieMiddle && !isLottieEnd">
+      <div class="zx-successfully-lottie" id="animationContainer"></div>
+    </div>
+    <!-- lottie -->
+
+  </article>
+  <!-- // CREADIT MODE ========= CREADIT MODE ========= CREADIT MODE ========= CREADIT MODE ========= CREADIT MODE ========= CREADIT MODE ========= -->
+
+  <!-- =====--- SIDE NAV desktop ---=====  -->
+  <article
+    class="d-none d-lg-flex flex-column fill-height gap-2 zx-manu-other-pages-con position-relative p-3 align-items-end overflow-hidden">
+    <div class="zx-manu-other-pages rounded-3 shadow-85 px-2 zx-z-index-2 mx-3 my-2" [class.bg-white]="!isDarkMode"
+      [class.zx-bg-dark-light-border]="isDarkMode">
+      <mat-nav-list class="d-flex flex-column w-100">
+        <a mat-list-item class="rounded-3" (click)="goToNewOrder()">
+          <div class="d-flex align-items-center gap-2">
+            <mat-icon class="text-green zx-text-big zx-small-tiny-plus-icon-size">add_circle_outline</mat-icon>
+            <span class="mat-list-item-medium fw-bold text-green">
+              {{'main-nav.new-order' | translate}}
+            </span>
+          </div>
+        </a>
+        <a mat-list-item class="rounded-3" (click)="goToMyOrders()">
+          <div class="d-flex align-items-center gap-2">
+            <span class="mat-list-item-medium" [class.zx-text-pink]="numOfPendingOrders > 0 && !isDarkMode"
+              [class.fw-bold]="numOfPendingOrders > 0">
+              {{'main-nav.my-orders' | translate}}
+            </span>
+            <span class="num-pending-con num-pending-con-pink" *ngIf="numOfPendingOrders > 0">
+              <span class="num-pending">
+                {{ numOfPendingOrders }}
+              </span>
+            </span>
+          </div>
+        </a>
+        <a mat-list-item class="rounded-3" [class.zx-choosen-other-page]="!isCreditEditMode" (click)="toProfileMode()">
+          <span class="mat-list-item-medium">
+            {{'main-nav.my-profile' | translate}}
+          </span>
+        </a>
+        <a mat-list-item class="rounded-3" [class.zx-choosen-other-page]="isCreditEditMode"
+          (click)="toCreditEditMode()">
+          <span class="mat-list-item-medium">
+            {{'main-nav.methods-of-payment' | translate}}
+          </span>
+        </a>
+        <a mat-list-item class="rounded-3" (click)="goToQAndA()">
+          <span class="mat-list-item-medium">
+            {{'main-nav.q-and-a' | translate}}
+          </span>
+        </a>
+        <a mat-list-item class="rounded-3">
+          <span class="mat-list-item-medium" (click)="openWhatsApp()">
+            {{'main-nav.contact-us' | translate}}
+          </span>
+        </a>
+        <div class="d-flex w-100 p-2">
+          <span class="w-100 d-flex zx-border-gray-top-25-pr"></span>
+        </div>
+        <a mat-list-item class="rounded-3" (click)="onLogout()">
+          <span class="mat-list-item-medium" [class.text-red]="!isDarkMode">
+            {{'main-nav.logout' | translate}}
+          </span>
+        </a>
+      </mat-nav-list>
+    </div>
+
+    <!-- mountain -->
+    <div class="d-flex w-100 flex-grow-1 justify-content-center align-items-end">
+      <img class="object-fit-contain svg mountain-size pt-5" [src]="'assets/images/mountain-icon.svg'"
+        [class.opacity-50]="isDarkMode">
+    </div>
+    <!-- // mountain -->
+
+  </article>
+
+  <!-- // =====--- SIDE NAV desktop ---=====  -->
+</article>

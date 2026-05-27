@@ -1,0 +1,167 @@
+::ng-deep .dialog-content-wrapper {
+    margin: 0;
+    padding: 0;
+    width: 0;
+}
+
+::ng-deep .log-in-dialog-container {
+    min-width: 300px;
+}
+
+::ng-deep .fill-screen-modal {
+    width: 100%;
+    display: flex;
+    flex-grow: 1;
+}
+
+/* CONTAINERS */
+
+.zx-login-video-container {
+    display: none;
+}
+
+@media only screen and (min-width: 992px) {
+    .zx-login-video-container {
+        display: flex;
+        height: 100%;
+        min-width: 490px;
+        max-width: 490px;
+        justify-content: end;
+    }
+}
+
+@media only screen and (max-width: 991px) {
+    .zx-login-video-container {
+        display: none;
+    }
+}
+
+video {
+    max-height: 490px;
+}
+
+.zx-logo-white {
+    bottom: 20px;
+    left: 20px;
+    width: 130px;
+    height: auto;
+}
+
+.zx-logo-white-rtl {
+    left: unset;
+    right: 20px;
+}
+
+button.mat-stroked-button {
+    min-height: 48px;
+    border: 1px solid var(--zx-dark);
+    border-radius: 5px;
+}
+
+button.mat-stroked-button-dark-mode {
+    border: 1px solid white;
+    background-color: var(--zx-white-20-pr);
+}
+
+@media only screen and (min-width: 992px) {
+    button.mat-stroked-button {
+        border-radius: 24px;
+    }
+}
+
+::ng-deep .mdc-button__label {
+    width: 100%;
+    padding: 0 3px;
+}
+
+.zx-icon-log-in {
+    width: 35px;
+    height: 35px;
+}
+
+.zx-text-link {
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.zx-text-link:hover {
+    color: var(--zx-green);
+    transition: 300ms;
+}
+
+.close-icon {
+    opacity: 50%;
+    outline: none;
+}
+
+@media only screen and (min-width: 992px) {
+    .close-icon {
+        background-color: var(--zx-white-50-pr);
+        z-index: 1;
+        margin: 15px;
+    }
+}
+
+/* make btn not auto focused */
+.close-icon.mat-mdc-icon-button ::ng-deep .mat-mdc-button-persistent-ripple {
+    display: none;
+}
+
+/* make input transperent background and text color mach mode */
+input:-webkit-autofill {
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: var(--mdc-filled-text-field-input-text-color);
+}
+
+.zx-login-content-container {
+    align-self: stretch !important;
+}
+
+@media only screen and (min-width: 992px) {
+    .zx-login-content-container {
+        max-width: 525px;
+    }
+}
+
+div.zx-rtl-container input {
+    text-align: end;
+}
+
+.ltr-content {
+    direction: ltr;
+}
+
+.zx-btn-single {
+    width: 100%;
+}
+
+@media only screen and (min-width: 992px) {
+    .zx-btn-single {
+        width: 270px;
+    }
+}
+
+.zx-eye-icon {
+    position: absolute;
+    right: -10px;
+    top: 5px;
+}
+
+.zx-eye-icon-rtl {
+    position: absolute;
+    left: -10px;
+    top: 5px;
+}
+
+/* Spacers stay in DOM; flex toggles via class — avoids iOS blur when keyboard opens */
+.login-spacer-above-continue,
+.login-spacer-below-continue {
+    flex: 0 0 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.login-spacer-above-continue.login-spacer-active,
+.login-spacer-below-continue.login-spacer-active {
+    flex: 1 1 0;
+}

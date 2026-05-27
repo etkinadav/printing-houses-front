@@ -1,0 +1,7 @@
+# Broader targets so dev bundles downlevel modern syntax (e.g. private class fields #)
+# for BrowserStack / older Mobile Safari. Restart ng serve after changing this file.
+last 2 Chrome versions
+last 2 Firefox versions
+last 2 Edge versions
+Safari >= 14.1
+iOS >= 14.5

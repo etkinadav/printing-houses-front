@@ -1,0 +1,1273 @@
+@use './palette.scss' as palette;
+@use '@angular/material' as mat;
+@import '@angular/material/theming';
+
+$font-family-open-sans: 'Open Sans', sans-serif;
+$my-typography-open-sans: mat.define-typography-config($font-family: $font-family-open-sans);
+
+$light-primary: mat.define-palette(palette.$light-primary);
+$light-accent: mat.define-palette(palette.$light-accent);
+$light-warn: mat.define-palette(palette.$light-warn);
+
+$light-theme: mat.define-light-theme((color: (primary: $light-primary,
+                accent: $light-accent,
+                warn: $light-warn,
+            ),
+        ));
+@include mat.all-component-colors($light-theme);
+@include mat.all-component-typographies($light-theme);
+
+$dark-primary: mat.define-palette(palette.$dark-primary);
+$dark-accent: mat.define-palette(palette.$dark-accent);
+$dark-warn: mat.define-palette(palette.$dark-warn);
+
+.darkTheme {
+    $dark-theme: mat.define-dark-theme((color: (primary: $dark-primary,
+                    accent: $dark-accent,
+                    warn: $dark-warn,
+                ),
+            ));
+    @include mat.all-component-themes($dark-theme);
+}
+
+/* -----------------------------===---------------------------------- EAZIX PALLETE ----===---- */
+
+:root {
+    /* -----------------------------===---------------------------------- DARK */
+    --zx-dark: #262626;
+    --zx-dark-light: #333333;
+    --zx-dark-90-pr: rgba(38, 38, 38, 0.9);
+    --zx-dark-75-pr: rgba(38, 38, 38, 0.75);
+    --zx-dark-50-pr: rgba(38, 38, 38, 0.5);
+    --zx-dark-25-pr: rgba(38, 38, 38, 0.25);
+    --zx-dark-10-pr: rgba(51, 51, 51, 0.1);
+    --zx-dark-light-30-pr: rgba(202, 202, 202, 0.3);
+    --zx-dark-gb: #3c3c3cef;
+    --zx-v-dark-gb: #30302f;
+    --zx-blue-dark: #22313D;
+    /* -----------------------------===---------------------------------- GRAY */
+    --zx-gray-v-light: #E0E0E0;
+    --zx-gray-v-v-light: #F2F2F2;
+    --zx-gray-v-v-v-light: #F8F8F8;
+    --zx-gray-light-opacity: rgba(69, 69, 69, 0.1);
+    --zx-gray-opacity: rgba(55, 14, 36, 0.1);
+    --zx-gray-v-light-opacity: rgba(49, 13, 13, 0.05);
+    --zx-gray-85: rgba(85, 85, 85, 0.3);
+    --zx-gray-85-no-oppacity: rgb(85, 85, 85);
+    --zx-gray-25-pr: rgba(200, 200, 200, 0.25);
+    --zx-gray-mid: #757575;
+    --zx-gray-light-mid: #b1b1b1;
+    --zx-gray-v-light-mid: #d6d6d6;
+    --zx-gray-light-light: #f3f3f3;
+    --zx-gray-light-light-light: #fafafa;
+    --zx-gray-light-light-light-opacity: #fafafae5;
+    --zx-gray-moment: #fafafa; /* אפור רקע */
+    /* -----------------------------===---------------------------------- WHITE */
+    --zx-white-90-pr: rgba(255, 255, 255, 0.9);
+    --zx-white-75-pr: rgba(255, 255, 255, 0.75);
+    --zx-white-50-pr: rgba(255, 255, 255, 0.5);
+    --zx-white-20-pr: rgba(255, 255, 255, 0.2);
+    --zx-white-10-pr: rgba(255, 255, 255, 0.1);
+    --zx-white-5-pr: rgba(255, 255, 255, 0.05);
+    /* -----------------------------===---------------------------------- GREEN */
+    --zx-green: #26a69a;
+    // other option: 305e71
+    --zx-green-vivid-mid: #41d1c3;
+    --zx-green-vivid-light: #56e1d3;
+    --zx-green-vivid-m-light: rgba(72, 161, 148, 0.4);
+    --zx-green-vivid-v-light: rgba(41, 41, 41, 0.2);
+    --zx-green-vivid-v-light-no-oppacity: #b8dfd080;
+    --zx-green-hover: #f1fffd;
+    // --zx-green-shiny: #afffd7;
+    --zx-green-vivid-v-v-light: rgba(70, 162, 148, 0.1);
+    --zx-green-vivid-light-no-oppacity: rgb(179, 216, 211);
+    --zx-green-vivid-light-light-no-oppacity: #dafffa;
+    --zx-green-vivid-light-light: #d1fffa43;
+    --zx-green-vivid-light-darked: #47cbbe2b;
+    --zx-green-slightly-light: rgba(70, 162, 148, 0.15);
+    --zx-green-v-light: rgba(70, 162, 148, 0.07);
+    --zx-green-v-v-light: rgba(70, 162, 148, 0.05);
+    --zx-green-dark: #7DA0A7;
+    --zx-green-dark-light: #94c4ad;
+    /* -----------------------------===---------------------------------- PINK */
+    --zx-pink: #972563;
+    --zx-pink-light: #bc378032;
+    --zx-pink-light-25-pr: rgba(55, 14, 36, 0.25);
+    --zx-pink-light-10-pr: #e8449e10;
+    --zx-pink-v-light: #e53c99;
+    --zx-pink-v-v-light-no-oppacity: #ff6cbd;
+    --zx-pink-v-v-light: rgba(55, 14, 36, 0.5);
+    --zx-pink-slightly-light: #bc3780;
+    --zx-pink-que-oppacity: rgba(182, 38, 116, 0.5);
+    --zx-pink-que-oppacity-low: rgba(182, 38, 116, 0.15);
+    /* -----------------------------===---------------------------------- RED */
+    --zx-red: #b70a0a;
+    --zx-orange: #ff9100;
+    --zx-red-slightly-dark: #9c0707;
+    --zx-red-light-oppacity: #b70a0a92;
+    --zx-red-dark: #b70a0a40;
+    --zx-red-dark-10-pr: #c70b0b10;
+    --zx-red-light: #ffdede;
+    /* -----------------------------===---------------------------------- OTHER */
+    --ez-whatsup-bg: #29A71A;
+    --ez-whatsup-bg-hover: #259618;
+}
+
+/* -----------------------------===---------------------------------- BODY ----===---- */
+
+// html,
+// body {
+//     height: 100vh !important;
+// }
+html {
+    touch-action: pan-y; // Allow vertical scrolling, but prevent pinch zoom
+    -webkit-text-size-adjust: 100%;
+}
+
+
+body {
+    margin: 0;
+    cursor: default;
+    overscroll-behavior-y: contain; // Prevent default pull-to-refresh, we'll implement custom one
+}
+
+.cube-container {
+    touch-action: none !important;
+}
+
+* {
+    font-family: $font-family-open-sans;
+}
+
+/* -----------------------------===---------------------------------- GENERAL USE ----===---- */
+
+.zx-rtl {
+    direction: rtl;
+}
+
+.zx-ltr {
+    direction: ltr;
+}
+
+.spacer {
+    flex: 1 1 0;
+}
+
+.zx-100-opp {
+    opacity: 0 !important;
+}
+
+.zx-low-opp {
+    opacity: .1 !important;
+}
+
+.zx-hidden {
+    opacity: 0;
+}
+
+.full-screen {
+    width: 100%;
+    flex: 1 0 0;
+    display: flex;
+}
+
+.fill-screen {
+    height: calc(var(--vh, 1vh) * 100) !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-grow: 1 !important;
+    overflow-y: hidden !important;
+    flex-direction: column !important;
+}
+
+.fill-screen-home {
+    height: calc(var(--vh, 1vh) * 100) !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-grow: 1 !important;
+    overflow-y: auto !important;
+    flex-direction: column !important;
+}
+
+@supports (height: 100dvh) {
+    .fill-screen {
+        height: 100dvh !important;
+    }
+
+    .fill-screen-home {
+        height: 100dvh !important;
+    }
+}
+
+.home-route .mat-drawer-container {
+    overflow: unset !important;
+}
+
+.svg {
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    flex-shrink: 0;
+}
+
+.c-pointer {
+    cursor: pointer;
+}
+
+.c-default {
+    cursor: default !important;
+}
+
+.text-gray {
+    color: var(--zx-gray-light-mid) !important;
+}
+
+.text-green {
+    color: var(--zx-green) !important;
+}
+
+/* כפתורי "צור הצעת מחיר", "הייצור הסתיים", "המשלוח הגיע" – צבע --zx-green לאייקון ולטקסט (צ'אט, ניהול הזמנות, ההזמנות שלי) */
+.zx-ph-action-green,
+.zx-ph-action-green mat-icon,
+.zx-ph-action-green .flex-grow-1,
+.zx-ph-action-green span {
+    color: var(--zx-green) !important;
+}
+
+.text-orange {
+    color: var(--zx-orange) !important;
+}
+
+.text-red {
+    color: var(--zx-red) !important;
+}
+
+.text-red-bold {
+    color: var(--zx-red) !important;
+    font-weight: bold !important;
+}
+
+.zx-text-pink {
+    color: var(--zx-pink) !important;
+}
+
+.zx-text-white {
+    color: white !important;
+}
+
+.zx-text-gray-darker {
+    color: var(--zx-dark-75-pr) !important;
+}
+
+.zx-text-gray-dark {
+    color: var(--zx-gray-85-no-oppacity) !important;
+}
+
+.zx-text-gray-dark-not-imp {
+    color: var(--zx-gray-85-no-oppacity);
+}
+
+.zx-text-black {
+    color: black !important;
+}
+
+.zx-text-whatsup {
+    color: var(--ez-whatsup-bg) !important;
+}
+
+.zx-fw-sm-not-bold {
+    font-weight: bold;
+}
+
+.text-green-vivid-mid-hover {
+    color: var(--zx-green) !important;
+}
+
+.text-green-vivid-mid-hover:hover {
+    color: var(--zx-green-vivid-mid) !important;
+    cursor: pointer;
+    transition: 200ms;
+}
+
+@media only screen and (min-width: 576px) {
+    .zx-fw-sm-not-bold {
+        font-weight: unset;
+    }
+}
+
+.zx-z-index-1 {
+    z-index: 1 !important;
+}
+
+.zx-z-index-2 {
+    z-index: 2 !important;
+}
+
+.zx-z-index-10 {
+    z-index: 10 !important;
+}
+
+/* MapLibre GL Popup - ensure it appears above all map markers */
+.maplibregl-popup {
+    z-index: 2000 !important;
+}
+
+.zx-p-container {
+    font-size: 0;
+}
+
+.zx-p-container span {
+    display: inline-block;
+}
+
+.zx-text-transparent {
+    color: transparent;
+}
+
+.zx-w-fit-content {
+    width: fit-content
+}
+
+.custom-tooltip {
+    direction: ltr;
+}
+
+body[dir='rtl'] .custom-tooltip {
+    direction: rtl;
+}
+
+@media only screen and (min-width: 992px) {
+    .zx-flex-grow-lg-1 {
+        flex-grow: 1 !important;
+    }
+}
+
+.zx-lh-h3 {
+    line-height: 37px;
+}
+
+.zx-lh-small {
+    line-height: 22px;
+}
+
+.zx-lh-tiny-tiny {
+    line-height: 15px;
+}
+
+@media only screen and (min-width: 992px) {
+    .zx-lh-h3 {
+        line-height: 44px;
+    }
+}
+
+/* -----------------------------===---------------------------------- BTN effects ----===---- */
+
+.zx-main-btn-effects {
+    color: white;
+    text-shadow: 0px 0px 2px rgba(255, 255, 255, 0.4);
+    animation: textGlow 1.2s ease-in-out infinite alternate,
+        boxGlow 1.2s ease-in-out infinite alternate;
+
+    @keyframes textGlow {
+        from {
+            text-shadow: 0 0 3px #ffffff73, 0 0 2px var(--zx-green);
+        }
+
+        to {
+            text-shadow: 0 0 0px #ffffff73, 0 0 0px var(--zx-green);
+        }
+    }
+
+    @keyframes boxGlow {
+
+        0% {
+            box-shadow: 0 0 5px var(--zx-green-vivid-light);
+        }
+
+        100% {
+            box-shadow: 0 0 0px var(--zx-green-vivid-light);
+        }
+
+    }
+}
+
+/* -----------------------------===---------------------------------- BTN whatsup small ----===---- */
+
+
+.whatsup-logo-container-small {
+    background-color: var(--ez-whatsup-bg);
+    border-radius: 50%;
+    width: 27px;
+    height: 27px;
+}
+
+.whatsup-logo-container-small:hover {
+    background-color: var(--ez-whatsup-bg-hover);
+    transition: 150ms;
+}
+
+.whatsup-logo-small {
+    width: 100%;
+    height: 100%;
+    padding: 6px;
+}
+
+.whatsup-logo-text {
+    color: var(--ez-whatsup-bg);
+}
+
+.whatsup-logo-text:hover {
+    transition: color 200ms;
+    color: var(--ez-whatsup-bg-hover);
+}
+
+/* -----------------------------===---------------------------------- main BTN slide in ----===---- */
+
+.hide-main-btn {
+    transform: translateY(100%);
+    transition: transform 0.4s;
+}
+
+.show-main-btn {
+    transform: translateY(0);
+    transition: transform 0.4s;
+}
+
+/* -----------------------------===---------------------------------- SHADOWS ----===---- */
+
+.shadow-85 {
+    box-shadow: 0 0 10px rgba(85, 85, 85, 0.1);
+}
+
+.shadow-85-light {
+    box-shadow: 0 0 5px rgba(85, 85, 85, 0.1);
+    border: 1px solid rgba(85, 85, 85, 0.1);
+}
+
+.shadow-85-strong {
+    box-shadow: 0 0 13px rgba(85, 85, 85, 0.4);
+}
+
+.shadow-85-top-strong {
+    box-shadow: 0 -5px 13px rgba(85, 85, 85, 0.4);
+}
+
+.zx-bg-dark {
+    background-color: var(--zx-dark-light) !important;
+    border: 1px solid var(--zx-white-50-pr) !important;
+}
+
+.zx-bg-dark-light-border {
+    background-color: var(--zx-dark-light) !important;
+    border: 1px solid var(--zx-white-20-pr) !important;
+}
+
+.zx-bg-dark-no-border {
+    background-color: var(--zx-dark-light) !important;
+    border: 1px solid var(--zx-dark-light) !important;
+}
+
+.zx-bg-gray {
+    background-color: var(--zx-gray-light-light-light);
+    border: 1px solid var(--zx-gray-25-pr);
+}
+
+.zx-bg-light {
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+}
+
+.zx-bg-gray-v-light-opacity {
+    background-color: var(--zx-gray-v-light-opacity);
+    border: 1px solid var(--zx-gray-v-v-light);
+}
+
+.bg-light-darkmode {
+    background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.bg-light-darkmode-light {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+}
+
+.bg-white-50-pr {
+    background-color: var(--zx-white-25-pr) !important;
+}
+
+/* -----------------------------===---------------------------------- BORDER ----===---- */
+
+.zx-border-gray-v-light-mid {
+    border: 1px solid var(--zx-gray-v-light-mid);
+}
+
+.zx-border-gray-v-v-light {
+    border: 1px solid var(--zx-gray-v-v-light);
+}
+
+.zx-border-gray-25-pr {
+    border: 1px solid var(--zx-gray-25-pr);
+}
+
+.zx-border-gray-top-v-v-light {
+    border-top: 1px solid var(--zx-gray-v-v-light);
+}
+
+.zx-border-gray-top-25-pr {
+    border-top: 1px solid var(--zx-gray-25-pr);
+}
+
+@media only screen and (min-width: 768px) {
+    .zx-border-gray-left-25-pr-md {
+        border-left: 1px solid var(--zx-gray-25-pr);
+    }
+}
+
+.zx-border-top-gray-25-pr {
+    border-top: 1px solid var(--zx-gray-25-pr);
+}
+
+.zx-border-top-gray-light-mid {
+    border-top: 1px solid var(--zx-gray-light-mid);
+    opacity: 0.5;
+}
+
+.zx-border-bottom-gray-v-light-mid {
+    border-bottom: 1px solid var(--zx-gray-v-light-mid);
+}
+
+.zx-border-pink-slightly-light {
+    border: 1px solid var(--zx-pink-slightly-light);
+}
+
+/* -----------------------------===---------------------------------- SCROLLERS ----===---- */
+
+/* width */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+@media only screen and (min-width: 768px) {
+    ::-webkit-scrollbar {
+        width: 7px;
+        height: 7px;
+    }
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: var(--zx-gray-light-opacity);
+    border-radius: 2.5px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: var(--zx-green-vivid-m-light);
+    cursor: pointer;
+}
+
+/* -----------------------------===---------------------------------- SETTINGS NAV (AREA) ----===---- */
+
+.zx-settings-nav {
+    width: 100%;
+}
+
+@media only screen and (min-width: 768px) {
+    .zx-settings-nav {
+        width: 560px;
+        max-width: 70%;
+        flex-shrink: 0;
+        border: 1px solid var(--zx-gray-v-v-light);
+        background-color: var(--zx-gray-v-v-v-light);
+    }
+}
+
+.zx-settings-nav-dark {
+    border: 1px solid var(--mat-sidenav-content-background-color);
+    background-color: var(--zx-gray-85);
+}
+
+.zx-top-2-px {
+    top: 2px;
+}
+
+/* --------===------------- STEP ITEM ----===---- */
+
+.step-item {
+    background-color: white;
+    border: 1px solid var(--zx-gray-v-light-opacity);
+    min-height: 140px;
+}
+
+.step-item-no-height {
+    background-color: white;
+    border: 1px solid var(--zx-gray-v-light-opacity);
+}
+
+.step-item-dark {
+    background-color: var(--zx-gray-85);
+}
+
+@media only screen and (min-width: 768px) {
+    .step-item-hover:hover {
+        background-color: var(--zx-green-vivid-v-light);
+        box-shadow: 4px 4px 15px var(--zx-gray-85);
+        transition: 300ms;
+        cursor: pointer;
+    }
+}
+
+.zx-step-choosen {
+    background: var(--zx-green-slightly-light);
+    border: 1px solid var(--zx-green-vivid-light);
+    box-shadow: 0 0 10px var(--zx-gray-85);
+}
+
+.zx-step-choosen:hover {
+    background: var(--zx-green-slightly-light);
+    border: 1px solid var(--zx-green-vivid-light);
+    box-shadow: 0 0 10px var(--zx-gray-85);
+}
+
+/* --------===------------- MAIN CANVAS ----===---- */
+
+.zx-canvas {
+    height: 95%;
+    width: 70%;
+    max-width: 570px;
+    background-color: white;
+}
+
+.zx-canvas-dark {
+    background-color: var(--zx-gray-85);
+}
+
+/* --------===------------- MORE SETTINGS NAV (AREA) ----===---- */
+
+.zx-top-container-big {
+    height: 28px;
+}
+
+.zx-top-container-small {
+    height: 16px;
+}
+
+/* --------===------------- BORDER + FIIL ----===---- */
+
+.zx-border-pink-light-25-pr {
+    border: 1px solid var(--zx-pink-light-25-pr);
+}
+
+.zx-border-green {
+    border: 1px solid var(--zx-green) !important;
+    background-color: var(--zx-green-v-light);
+}
+
+.zx-bg-green-border-gray {
+    border: 1px solid var(--zx-gray-25-pr);
+    background-color: var(--zx-green-v-light);
+}
+
+.zx-border-gray-v-light {
+    border: 1px solid var(--zx-gray-v-light);
+}
+
+/* --------===------------- ICON SIZES ----===---- */
+
+.zx-huge-icon-size {
+    width: 150px;
+    height: 150px;
+    min-width: 150px;
+    min-height: 150px;
+    max-width: 150px;
+    max-height: 150px;
+}
+
+.zx-big-icon-size {
+    width: 110px;
+    height: 110px;
+    min-width: 110px;
+    min-height: 110px;
+    max-width: 110px;
+    max-height: 110px;
+}
+
+.zx-big-minus-icon-size {
+    width: 80px;
+    height: 80px;
+    min-width: 80px;
+    min-height: 80px;
+    max-width: 80px;
+    max-height: 80px;
+}
+
+.zx-medium-plus-icon-size {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    min-height: 60px;
+    max-width: 60px;
+    max-height: 60px;
+}
+
+.zx-medium-big-icon-size {
+    width: 55px;
+    height: 55px;
+    min-width: 55px;
+    min-height: 55px;
+    max-width: 55px;
+    max-height: 55px;
+}
+
+.zx-medium-icon-size {
+    width: 45px;
+    height: 45px;
+    min-width: 45px;
+    min-height: 45px;
+    max-width: 45px;
+    max-height: 45px;
+}
+
+.zx-medium-small-icon-size {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    max-width: 40px;
+    max-height: 40px;
+}
+
+.zx-small-plus-icon-size {
+    width: 35px;
+    height: 35px;
+    min-width: 35px;
+    min-height: 35px;
+    max-width: 35px;
+    max-height: 35px;
+}
+
+.zx-small-small-plus-icon-size {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    max-width: 28px;
+    max-height: 28px;
+}
+
+.zx-small-icon-size {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+    max-width: 20px;
+    max-height: 20px;
+}
+
+.zx-small-tiny-plus-icon-size {
+    width: 17px;
+    height: 17px;
+    min-width: 17px;
+    min-height: 17px;
+    max-width: 17px;
+    max-height: 17px;
+}
+
+.zx-small-tiny-icon-size {
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    min-height: 14px;
+    max-width: 14px;
+    max-height: 14px;
+}
+
+.zx-tiny-icon-size {
+    width: 9px;
+    height: 9px;
+    min-width: 9px;
+    min-height: 9px;
+    max-width: 9px;
+    max-height: 9px;
+}
+
+@media only screen and (min-width: 992px) {
+    .zx-huge-icon-size-lg {
+        width: 150px;
+        height: 150px;
+        min-width: 150px;
+        min-height: 150px;
+        max-width: 150px;
+        max-height: 150px;
+    }
+
+    .zx-big-icon-size-lg {
+        width: 110px;
+        height: 110px;
+        min-width: 110px;
+        min-height: 110px;
+        max-width: 110px;
+        max-height: 110px;
+    }
+
+    .zx-big-minus-icon-size-lg {
+        width: 80px;
+        height: 80px;
+        min-width: 80px;
+        min-height: 80px;
+        max-width: 80px;
+        max-height: 80px;
+    }
+
+    .zx-medium-big-icon-size-lg {
+        width: 55px;
+        height: 55px;
+        min-width: 55px;
+        min-height: 55px;
+        max-width: 55px;
+        max-height: 55px;
+    }
+
+    .zx-medium-icon-size-lg {
+        width: 45px;
+        height: 45px;
+        min-width: 45px;
+        min-height: 45px;
+        max-width: 45px;
+        max-height: 45px;
+    }
+
+    .zx-small-plus-icon-size-lg {
+        width: 35px;
+        height: 35px;
+        min-width: 35px;
+        min-height: 35px;
+        max-width: 35px;
+        max-height: 35px;
+    }
+
+    .zx-small-small-plus-icon-size-lg {
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+        min-height: 28px;
+        max-width: 28px;
+        max-height: 28px;
+    }
+
+    .zx-small-icon-size-lg {
+        width: 20px;
+        height: 20px;
+        min-width: 20px;
+        min-height: 20px;
+        max-width: 20px;
+        max-height: 20px;
+    }
+}
+
+/* --------===------------- TYPOLOGY ----===---- */
+
+.zx-text-big {
+    font-size: 18px;
+}
+
+.zx-text-medium {
+    font-size: 16px;
+}
+
+.zx-text-small {
+    font-size: 14px;
+}
+
+.zx-text-tiny {
+    font-size: 12px;
+}
+
+.zx-text-tiny-tiny {
+    font-size: 10px;
+}
+
+@media only screen and (min-width: 576px) {
+    .zx-text-sm-tiny {
+        font-size: 12px;
+    }
+
+    .zx-text-sm-small {
+        font-size: 14px;
+    }
+
+    .zx-text-sm-medium {
+        font-size: 16px;
+    }
+
+    .zx-text-sm-big {
+        font-size: 18px;
+    }
+
+    .zx-text-sm-huge {
+        font-size: 1.5rem;
+    }
+}
+
+@media only screen and (min-width: 992px) {
+    .zx-text-lg-medium {
+        font-size: 16px;
+    }
+}
+
+.no-rap {
+    white-space: nowrap;
+}
+
+/* --------===------------- login dialog ----===---- */
+
+.zx-login-dialog {
+    min-width: 100%;
+    min-height: 80vh;
+    bottom: 0 !important;
+    position: absolute !important;
+}
+
+.zx-rightplace-dialog {
+    min-width: 100%;
+    min-height: 80vh;
+    bottom: 0 !important;
+    position: absolute !important;
+}
+
+.zx-image-preview-dialog {
+    min-width: 100%;
+    min-height: 90vh;
+    bottom: 0 !important;
+    position: absolute !important;
+}
+
+.zx-resize-dialog {
+    min-width: 100%;
+    min-height: 90vh;
+    bottom: 0 !important;
+    position: absolute !important;
+}
+
+.zx-order-summary-dialog {
+    min-width: 100%;
+    min-height: 90vh;
+    bottom: 0 !important;
+    position: absolute !important;
+}
+
+.zx-order-summary-dialog-iphone {
+    min-width: 100%;
+    min-height: 82vh;
+    bottom: 0 !important;
+    position: absolute !important;
+}
+
+.mat-mdc-dialog-surface {
+    border-radius: 0 !important;
+    display: flex !important;
+}
+
+.mat-mdc-dialog-surface {
+    overflow: hidden !important;
+}
+
+.zx-phone-dialog {
+    min-width: 100%;
+    max-height: 80vh;
+    bottom: 0 !important;
+    position: absolute !important;
+}
+
+.zx-scan-copy-dialog {
+    min-width: 100%;
+    max-height: 90vh;
+    min-height: 90vh;
+    bottom: 0 !important;
+    position: absolute !important;
+}
+
+.zx-property-explain-dialog {
+    min-width: 100%;
+    bottom: 0 !important;
+    position: absolute !important;
+}
+
+.zx-printer-number-dialog {
+    min-width: 100%;
+    bottom: 0 !important;
+    position: absolute !important;
+}
+
+.zx-language-chainge-dialog {
+    width: 100%;
+    max-width: 450px !important;
+    bottom: 0 !important;
+    position: absolute !important;
+    padding: 15px;
+    left: 0 !important;
+}
+
+@media only screen and (min-width: 992px) {
+    .zx-login-dialog {
+        min-width: 1015px;
+        min-height: 490px;
+        max-height: 490px;
+        position: static !important;
+    }
+
+    .mat-mdc-dialog-surface {
+        border-radius: 10px !important;
+    }
+
+    .zx-rightplace-dialog {
+        min-width: 800px;
+        min-height: 490px;
+        position: static !important;
+    }
+
+    .zx-image-preview-dialog {
+        min-width: 90vw;
+        max-width: 90vw;
+        position: static !important;
+    }
+
+    .zx-resize-dialog {
+        min-width: 1015px;
+        min-height: 570px;
+        max-height: 65vh;
+        position: static !important;
+    }
+
+    .zx-order-summary-dialog,
+    .zx-order-summary-dialog-iphone {
+        min-width: 800px;
+        min-height: 70vh;
+        max-height: 95vh;
+        position: static !important;
+    }
+
+    .zx-phone-dialog {
+        min-width: 600px;
+        min-height: unset;
+        position: static !important;
+    }
+
+    .zx-scan-copy-dialog {
+        min-width: 650px;
+        max-width: 650px !important;
+        min-height: 700px;
+        max-height: 700px;
+        position: static !important;
+    }
+
+    .zx-property-explain-dialog {
+        bottom: unset !important;
+        min-width: 800px;
+        position: static !important;
+    }
+
+    .zx-printer-number-dialog {
+        bottom: unset !important;
+        min-width: 800px;
+        position: static !important;
+    }
+}
+
+/* דיאלוג הצעת מחיר – מובייל: 90% מגובה המסך */
+@media (max-width: 991.98px) {
+    .create-price-quote-dialog .mat-mdc-dialog-container,
+    .create-price-quote-dialog .mat-mdc-dialog-surface {
+        height: 90vh !important;
+        min-height: 90vh !important;
+        max-height: 90vh !important;
+    }
+}
+
+.cdk-overlay-dark-backdrop {
+    visibility: visible;
+    background-color: var(--mat-sidenav-scrim-color);
+}
+
+h4 {
+    line-height: 37px !important;
+}
+
+/* כותרות עמוד – גודל קטן במסכים שקטנים מ-SM, padding עליון ותחתון במסכים שקטנים מ-MD */
+@media (max-width: 575.98px) {
+    .zx-page-title {
+        font-size: 1rem !important;
+    }
+}
+@media (max-width: 767.98px) {
+    .zx-page-title {
+        padding-top: 0.75rem !important;
+        padding-bottom: 1.25rem !important;
+    }
+}
+
+/* כותרת עמוד – קטנה יותר במסכים < SM (שאלות נפוצות, הוראות עריכת קבצים) */
+@media (max-width: 575.98px) {
+    .zx-page-title {
+        font-size: 1.1rem !important;
+        line-height: 1.4 !important;
+    }
+}
+
+.mat-mdc-raised-button.mat-warn {
+    --mdc-protected-button-container-color: var(--zx-red) !important;
+}
+
+/* כפתורי print-button ו-ph-order-action – מירכוז טקסט (צפה בהצעה, צ'אט וכו') – גלובלי כי Material משנה את ה-DOM */
+a.print-button.mdc-button,
+button.print-button.mdc-button,
+.ph-order-action-buttons .mdc-button {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+a.print-button.mdc-button .mat-mdc-button-touch-target,
+button.print-button.mdc-button .mat-mdc-button-touch-target,
+.ph-order-action-buttons .mat-mdc-button-touch-target {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+a.print-button.mdc-button .mdc-button__label,
+button.print-button.mdc-button .mdc-button__label,
+.ph-order-action-buttons .mdc-button__label {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    text-align: center !important;
+}
+
+.zx-arrow-open-scan {
+    width: 40px;
+    height: 30px;
+    border: 1px solid #259618;
+}
+
+@font-face {
+    font-family: 'OS Aran W FFC';
+    src: url('assets/fonts/OS Aran W FFC 500.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+// נגישות
+
+
+.my-tab-focus:focus-visible {
+    box-shadow: 0 0 5px var(--zx-green-vivid-light) !important;
+    outline: none !important;
+}
+
+.no-mobile-outline:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Hide Material Icons until font is loaded */
+.material-icons-loading mat-icon,
+.material-icons-loading .mat-icon {
+    opacity: 0 !important;
+    transition: opacity 0.2s ease-in-out;
+}
+
+/* Show icons when font is loaded */
+body:not(.material-icons-loading) mat-icon,
+body:not(.material-icons-loading) .mat-icon {
+    opacity: 1;
+    transition: opacity 0.2s ease-in-out;
+}
+
+/* Small tooltip style - similar to printing table tooltips */
+.small-tooltip {
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+    max-width: 250px !important;
+    z-index: 10000 !important;
+}
+
+.mat-mdc-tooltip.small-tooltip .mdc-tooltip__surface {
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+    max-width: 250px !important;
+}
+
+/* Ensure tooltip panel is above dialog overlay */
+.mat-mdc-tooltip-panel.small-tooltip {
+    z-index: 10000 !important;
+}
+
+/* Monitor paper tooltip: one line per row (מגירה, נייר, רוחב, מלאי) */
+.monitor-paper-tooltip .mdc-tooltip__surface,
+.monitor-paper-tooltip {
+    white-space: pre-line;
+}
+
+/* Collect option tooltips in LTR: fix direction and alignment (text was reversed, stuck to right) */
+.collect-option-tooltip-ltr .mdc-tooltip__surface,
+.collect-option-tooltip-ltr {
+    direction: ltr !important;
+    text-align: left !important;
+}
+
+/* MapLibre popup – הסתרת החץ הלבן (/product, /phprint) */
+.maplibregl-popup-tip {
+    display: none !important;
+}
+
+/* תפריט PH הזמנות – אייקון ממורכז בלי margin (דריסת Material) */
+.zx-menu-item-icon {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+}
+
+/* כפתור צ'אט צף משותף (בחירת מוצר / phprint וכו') – רקע לבן, אייקון מותג, ב-hover רק צל */
+.zx-floating-chat-fab-btn {
+    border: none !important;
+    background-color: #fff !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    transition: box-shadow 0.2s ease;
+
+    mat-icon {
+        color: var(--zx-green) !important;
+    }
+}
+
+.zx-floating-chat-fab-btn:hover,
+.zx-floating-chat-fab-btn:focus,
+.zx-floating-chat-fab-btn:focus-visible,
+.zx-floating-chat-fab-btn:active {
+    background-color: #fff !important;
+    border-color: transparent !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.26);
+}
+
+.zx-floating-chat-fab-btn:hover mat-icon,
+.zx-floating-chat-fab-btn:focus mat-icon,
+.zx-floating-chat-fab-btn:focus-visible mat-icon,
+.zx-floating-chat-fab-btn:active mat-icon {
+    color: var(--zx-green) !important;
+}
+
+/* דיאלוג סטטוס PrintNode (צר מ־800px של zx-printer-number-dialog) */
+.zx-printnode-status-dialog .mat-mdc-dialog-container .mdc-dialog__surface {
+    overflow: hidden;
+}
+
+@media only screen and (min-width: 992px) {
+    .zx-printer-number-dialog.zx-printnode-status-dialog {
+        min-width: 480px !important;
+        max-width: 560px !important;
+    }
+}

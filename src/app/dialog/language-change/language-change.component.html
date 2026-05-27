@@ -1,0 +1,38 @@
+<div class="h-100 w-100 d-flex flex-column flex-grow-1 overflow-auto" (click)="closeLanguageChangeDialog()"
+    (mouseenter)="isHover = true" (mouseleave)="isHover = false">
+
+    <div class="position-absolute w-100 d-flex" [class.justify-content-end]="isRTL">
+        <button type="button" mat-icon-button aria-label="Toggle sidenav" (click)="closeLanguageChangeDialog()"
+            class="close-icon d-flex align-items-center justify-content-center" [class.text-white]="isDarkMode">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+
+    <div class="d-flex flex-grow-1 flex-column align-items-center px-3 pt-4 pb-2 gap-1 w-100"
+        [class.zx-text-white]="isDarkMode">
+
+        <span class="text-center m-0 px-4 zx-text-small" [class.zx-ltr]="!isRTL" [class.text-white]="isDarkMode"
+            [class.zx-ltr]="!isRTL">
+            {{ translatedTextTitle }}
+        </span>
+
+        <div class="d-flex w-100 row">
+            <div class="col-6 p-0 d-flex justify-content-center align-items-center">
+                <div class="d-flex row w-100">
+                    <button (click)="chaingeLanguage()" mat-button class="rounded-pill zx-btn-single col-12 my-2">
+                        {{ translatedTextBtn }}
+                    </button>
+                </div>
+            </div>
+            <div class="col-6 p-0 d-flex justify-content-center align-items-center">
+                <div class="d-flex row w-100">
+                    <button (click)="closeLanguageChangeDialog()" color="primary" mat-button
+                        class="text-red rounded-pill zx-btn-single col-12 my-2">
+                        {{ translatedTextClose }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

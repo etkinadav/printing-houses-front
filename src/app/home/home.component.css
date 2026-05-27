@@ -1,0 +1,11 @@
+.home-placeholder {
+    min-height: calc(var(--vh, 1vh) * 100 - 64px);
+    background-color: var(--zx-gray-light-light-light, #fafafa);
+    color: var(--zx-dark, #262626);
+}
+
+@supports (height: 100dvh) {
+    .home-placeholder {
+        min-height: calc(100dvh - 64px);
+    }
+}

@@ -1,0 +1,33 @@
+<div class="d-flex flex-column overflow-auto p-3 p-lg-5">
+
+    <h3 class="py-2 py-md-3">{{ "legal-pp-title" | translate }}</h3>
+
+    <span *ngFor="let item of getPPArray(); let i = index">
+        <h5 *ngIf="item">
+            {{ "legal-pp-" + i + "-t" | translate }}
+        </h5>
+        <p *ngIf="!item">
+            {{ "legal-pp-" + i | translate }}
+        </p>
+    </span>
+
+    <div class="py-4 w-100"></div>
+
+</div>
+
+<div class="position-absolute bottom-0 w-100 d-flex justify-content-between align-items-center p-2 p-sm-3">
+    <button mat-raised-button color="primary" type="submit"
+        class="text-white rounded-pill zx-text-tiny zx-text-sm-small" (click)="navigateHome()">
+        {{ "main-nav.new-order" | translate }}
+    </button>
+    <button mat-raised-button (click)="openWhatsApp()" class="rounded-pill zx-text-tiny zx-text-sm-small">
+        <div class="w-100 h-100 d-flex align-items-center gap-2">
+            <div class="whatsup-logo-container-small">
+                <img src="assets/images/whatsup-logo.svg" alt="WhatsUp Logo" class="whatsup-logo-small">
+            </div>
+            <span>
+                {{'main-nav.contact-us' | translate}}
+            </span>
+        </div>
+    </button>
+</div>

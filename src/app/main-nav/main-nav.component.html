@@ -1,0 +1,260 @@
+<mat-sidenav-container>
+  <mat-sidenav #drawer class="sidenav" mode="over" [(opened)]="isDrawerOpen" style="z-index: 2500 !important;">
+
+    <div class="position-absolute w-100 d-flex justify-content-between align-items-start" [class.flex-row-reverse]="isRTL">
+      <!-- Close button (X) -->
+      <!-- In Hebrew (RTL): top right | In English (LTR): top right -->
+      <button type="button" mat-icon-button aria-label="Toggle sidenav"
+        class="close-icon d-flex align-items-center justify-content-center zx-z-index-2" 
+        (click)="closeDrawer()">
+        <mat-icon>close</mat-icon>
+      </button>
+      
+    </div>
+
+    <mat-nav-list class="d-flex flex-column vh-100 main-nav-list">
+
+      <div class="w-100 d-flex justify-content-center zx-z-index-1 c-pointer" (click)="goToHome()">
+        <img src="assets/images/eazix-logo.png" alt="Eazix Logo" class="eazix-logo c-pointer">
+      </div>
+
+      <a tabindex="0" role="button" class="my-tab-focus" mat-list-item (click)="openWhatsApp()">
+        <div class="w-100 h-100 d-flex align-items-center gap-2">
+          <div class="whatsup-logo-container">
+            <img src="assets/images/whatsup-logo.svg" alt="WhatsUp Logo" class="whatsup-logo">
+          </div>
+          <span class="mat-list-item-small">
+            {{'main-nav.contact-us' | translate}}
+          </span>
+        </div>
+      </a>
+
+      <div class="spacer"></div>
+
+      <!--  Set language  + Set Theme + Terms of Use + Privacy Policy -->
+      <div class="w-100 d-flex flex-column align-items-center px-2 main-nav-footer-actions">
+
+        <!-- Set language -->
+        <button mat-flat-button aria-label="Set language" [matMenuTriggerFor]="menuLanguage"
+          [matTooltip]="tooltipContentLanguage" [matTooltipPosition]="!isRTL ? 'left' : 'right'"
+          class="w-100 d-flex justify-content-center align-items-center">
+          <div class="w-100 d-flex align-items-center justify-content-center gap-2">
+            <mat-icon>language</mat-icon>
+            <span class="zx-text-tiny opacity-75">Language</span>
+          </div>
+        </button>
+        <mat-menu #menuLanguage="matMenu">
+          <button mat-menu-item 
+            (click)="goToLanguage('he')" 
+            [class.justify-content-end]="!isRTL"
+            [class.text-green]="selectedLanguage === 'he'">
+            <div class="d-flex align-items-center gap-2 w-100">
+              <span class="mat-list-item-small" [class.text-green]="selectedLanguage === 'he'">עברית</span>
+              <mat-icon *ngIf="selectedLanguage === 'he'" class="text-green" style="font-size: 18px; width: 18px; height: 18px;">check</mat-icon>
+            </div>
+          </button>
+          <button mat-menu-item 
+            (click)="goToLanguage('en')" 
+            [class.justify-content-end]="!isRTL"
+            [class.text-green]="selectedLanguage === 'en'">
+            <div class="d-flex align-items-center gap-2 w-100">
+              <span class="mat-list-item-small" [class.text-green]="selectedLanguage === 'en'">English</span>
+              <mat-icon *ngIf="selectedLanguage === 'en'" class="text-green" style="font-size: 18px; width: 18px; height: 18px;">check</mat-icon>
+            </div>
+          </button>
+          <button mat-menu-item 
+            (click)="goToLanguage('ar')" 
+            [class.justify-content-end]="!isRTL"
+            [class.text-green]="selectedLanguage === 'ar'">
+            <div class="d-flex align-items-center gap-2 w-100">
+              <span class="mat-list-item-small" [class.text-green]="selectedLanguage === 'ar'">العربية</span>
+              <mat-icon *ngIf="selectedLanguage === 'ar'" class="text-green" style="font-size: 18px; width: 18px; height: 18px;">check</mat-icon>
+            </div>
+          </button>
+        </mat-menu>
+
+        <!-- //  -->
+        <div class="w-75 zx-border-gray-top-v-v-light pt-lg-1" [class.zx-low-opp]="isDarkMode"></div>
+
+        <!-- Set Theme -->
+        <button mat-flat-button aria-label="Set Theme" [matMenuTriggerFor]="menuTheme" [matTooltip]="tooltipContentMode"
+          [matTooltipPosition]="!isRTL ? 'left' : 'right'"
+          class="w-100 d-flex justify-content-center align-items-center">
+          <div class="w-100 d-flex align-items-center justify-content-center gap-2">
+            <mat-icon>
+              {{ isDarkTheme ? 'brightness_7' : 'brightness_4' }}
+            </mat-icon>
+            <span class="zx-text-tiny opacity-75">
+              {{'main-nav.mode' | translate}}
+            </span>
+          </div>
+        </button>
+        <mat-menu #menuTheme="matMenu">
+          <button mat-menu-item (click)="changeTheme('light')" [class.justify-content-end]="!isRTL">
+            <span class="mat-list-item-small">{{'main-nav.light-mode' | translate}}</span>
+          </button>
+          <button mat-menu-item (click)="changeTheme('dark')" [class.justify-content-end]="!isRTL">
+            <span class="mat-list-item-small">{{'main-nav.dark-mode' | translate}}</span>
+          </button>
+        </mat-menu>
+
+        <!-- NEGISUT BTN -->
+        <!-- <button mat-flat-button aria-label="Set Theme" [matTooltip]="'main-nav.negishut' | translate"
+          [matTooltipPosition]="!isRTL ? 'left' : 'right'"
+          class="w-100 d-flex justify-content-center align-items-center" (click)="openNegishut()">
+          <div class="w-100 d-flex align-items-center justify-content-center gap-2">
+            <mat-icon>
+              {{ isDarkTheme ? 'brightness_7' : 'brightness_4' }}
+            </mat-icon>
+            <span class="zx-text-tiny opacity-75">
+              {{'main-nav.negishut' | translate}}
+            </span>
+          </div>
+        </button> -->
+
+        <!-- //  -->
+        <div class="w-75 zx-border-gray-top-v-v-light" [class.zx-low-opp]="isDarkMode"></div>
+
+        <!-- Terms of Use -->
+        <button mat-flat-button aria-label="Terms and Conditions" (click)="goToTandC()"
+          class="w-100 d-flex justify-content-center align-items-center">
+          <div class="w-100 d-flex align-items-center justify-content-center gap-1 gap-sm-2">
+            <span class="zx-text-tiny opacity-75">
+              {{'main-nav.t-and-c' | translate}}
+            </span>
+          </div>
+        </button>
+
+        <!-- //  -->
+        <div class="w-75 zx-border-gray-top-v-v-light" [class.zx-low-opp]="isDarkMode"></div>
+
+        <!-- Privacy Policy + Set Theme -->
+        <button mat-flat-button aria-label="Privite Policy" (click)="goToPP()"
+          class="w-100 d-flex justify-content-center align-items-center">
+          <div class="w-100 d-flex align-items-center justify-content-center gap-1 gap-sm-2">
+            <span class="zx-text-tiny opacity-75">
+              {{'main-nav.p-p' | translate}}
+            </span>
+          </div>
+        </button>
+
+        <span style="height: 10px;"></span>
+        <span *ngIf="isIphone()" style="height: 80px;"></span>
+      </div>
+
+    </mat-nav-list>
+  </mat-sidenav>
+  <mat-sidenav-content [class.zx-no-scroller]="isHomePage()" style="overflow-x: hidden; z-index: 2000 !important;">
+    <mat-toolbar [class.zx-bg-gray-light-light-light]="isHomePage()" [ngClass]="{'transparent-toolbar': isHomePage()}"
+      style="z-index: 1000 !important;" [class.zx-100-opp]="isRootScreen">
+
+      <button class="mat-icon-hanburger-con" mat-icon-button type="button" aria-label="Toggle sidenav"
+        (mousedown)="onHamburgerPressStart($event)"
+        (mouseup)="onHamburgerPressEnd($event)"
+        (mouseleave)="onHamburgerPressEnd($event)"
+        (touchstart)="onHamburgerPressStart($event)"
+        (touchend)="onHamburgerPressEnd($event)"
+        (touchcancel)="onHamburgerPressEnd($event)"
+        (click)="onHamburgerClick($event)">
+        <mat-icon class="mat-icon-hanburger" aria-label="Side nav toggle icon">menu</mat-icon>
+      </button>
+
+      <span class="spacer d-lg-none"></span>
+
+      <div class="d-flex align-items-center gap-2 zx-flex-grow-lg-1 justify-content-lg-center mx-lg-2">
+        <img (click)="goToHome()" *ngIf="userName !== ''" src="assets/images/eazix-logo-small.svg" alt="Eazix Logo"
+          class="d-flex d-md-none small-logo c-pointer mx-2">
+        <img (click)="goToHome()" *ngIf="userName !== ''" src="assets/images/eazix-logo.png" alt="Eazix Logo"
+          class="d-none d-md-flex eazix-logo c-pointer mx-2">
+        <img (click)="goToHome()" *ngIf="userName === ''" src="assets/images/eazix-logo.png" alt="Eazix Logo"
+          class="d-flex eazix-logo c-pointer mx-2">
+
+        <span *ngIf="userName !== ''" class="zx-text-tiny text-green px-lg-3" [class.zx-rtl]="isRTL">
+          <span>{{ 'main-nav.greeting.' + greeting | translate }}, </span>
+          <span class="d-sm-none">
+            <b>
+              {{ userName | slice:0:8 }}
+            </b>
+            <span *ngIf="userName.length > 8">
+              ...
+            </span>
+          </span>
+          <span class="d-none d-sm-inline" 
+                [matTooltip]="userName.length > 30 ? userName : ''"
+                [matTooltipPosition]="'below'"
+                [matTooltipDisabled]="userName.length <= 30"
+                [dir]="isRTL ? 'rtl' : 'ltr'">
+            <b>
+              {{ userName | slice:0:30 }}
+            </b>
+            <span *ngIf="userName.length > 30">
+              ...
+            </span>
+          </span>
+        </span>
+      </div>
+
+      <span class="spacer d-lg-none"></span>
+
+      <div class="d-flex align-items-center gap-2 h-100">
+
+        <div class="h-100 d-flex align-items-center">
+
+          <button *ngIf="userName === '' && !isLoggedOutLoading" type="button" mat-raised-button color="primary"
+            class="zx-small-tiny-btn text-white rounded-3" (click)="openLoginDialog()">
+            {{'main-nav.log-in' | translate}}
+          </button>
+
+          <div *ngIf="userName !== ''" tabindex="0" role="button"
+            class="my-tab-focus h-100 d-flex align-items-center c-pointer position-relative"
+            (click)="toggleProfileManu()">
+            <div class="h-100 d-flex align-items-center c-pointer">
+              <mat-icon *ngIf="!isProManuOpen" class="zx-tiny-arrow-size"
+                (click)="$event.stopPropagation(); toggleProfileManu()">arrow_drop_down</mat-icon>
+              <mat-icon *ngIf="isProManuOpen" class="zx-tiny-arrow-size"
+                (click)="$event.stopPropagation(); toggleProfileManu()">arrow_drop_up</mat-icon>
+
+
+              <div class="position-relative">
+                <img class="rounded-circle svg zx-profile-default" [src]="getUserProfileImg(user)"
+                  alt="Default Profile Image">
+              </div>
+
+            </div>
+            <div class="overlay-manu" *ngIf="isProManuOpen"></div>
+            <div class="position-absolute" *ngIf="isProManuOpen">
+              <div class="position-relative">
+                <div class="zx-profile-manu rounded-3 step-item" [class.zx-profile-manu-rtl]="isRTL"
+                  [class.zx-profile-manu-dark]="isDarkMode">
+
+                  <button class="justify-content-start rounded-top-3" mat-menu-item (click)="goToMyProfile()">
+                    <span class="mat-list-item-small">
+                      {{'main-nav.my-profile' | translate}}
+                    </span>
+                  </button>
+
+                  <button class="justify-content-start" mat-menu-item (click)="goToMyProfileCreditMode()">
+                    <span class="mat-list-item-small">
+                      {{'main-nav.methods-of-payment' | translate}}
+                    </span>
+                  </button>
+
+                  <hr class="m-1">
+
+                  <button class="justify-content-start rounded-bottom-3" mat-menu-item (click)="onLogout()">
+                    <span class="mat-list-item-small" [class.zx-text-warn]="!isDarkMode">
+                      {{'main-nav.logout' | translate}}
+                    </span>
+                  </button>
+
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </mat-toolbar>
+    <router-outlet></router-outlet>
+  </mat-sidenav-content>
+</mat-sidenav-container>

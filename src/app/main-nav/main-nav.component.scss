@@ -1,0 +1,427 @@
+@import '../../assets/typology';
+
+.sidenav {
+  width: 75%;
+  max-width: 250px;
+  height: 100%;
+  container-type: size;
+  container-name: main-nav-sidenav;
+}
+
+.main-nav-list {
+  padding-bottom: 3rem; /* was pb-5 */
+}
+
+.main-nav-footer-actions {
+  gap: 0.5rem; /* gap-2 */
+}
+
+@container main-nav-sidenav (max-height: 599px) {
+  .main-nav-list {
+    padding-bottom: 1.5rem; /* half of pb-5 */
+  }
+
+  .main-nav-footer-actions {
+    gap: 0.25rem; /* gap-1 */
+  }
+}
+
+/* fallback when nav list is vh-100 (same as viewport height) */
+@media (max-height: 599px) {
+  .main-nav-list {
+    padding-bottom: 1.5rem;
+  }
+
+  .main-nav-footer-actions {
+    gap: 0.25rem;
+  }
+}
+
+.sidenav .mat-toolbar {
+  background: inherit;
+}
+
+.mat-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  box-shadow: 0 0 12px rgba(85, 85, 85, 0.2);
+  display: flex;
+  max-height: 45px;
+  min-height: 45px;
+}
+
+@media only screen and (min-width: 576px) {
+  .mat-toolbar {
+    max-height: 52px;
+    min-height: 52px;
+  }
+}
+
+.mat-toolbar button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mat-toolbar mat-icon {
+  font-size: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// button hamburger
+
+button mat-icon {
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+button.mat-icon-hanburger-con mat-icon {
+  font-size: 23px !important;
+}
+
+button.mat-icon-hanburger-con {
+  max-width: 39px !important;
+  max-height: 39px !important;
+}
+
+@media only screen and (min-width: 576px) {
+  button.mat-icon-hanburger-con mat-icon {
+    font-size: 27px !important;
+  }
+
+  button.mat-icon-hanburger-con {
+    max-width: unset !important;
+    max-height: unset !important;
+  }
+}
+
+// // button hamburger
+
+.small-logo {
+  max-width: 20px;
+  min-width: 20px;
+  max-height: 20px;
+  min-height: 20px;
+}
+
+@media only screen and (min-width: 576px) {
+  .small-logo {
+    max-width: 26px;
+    min-width: 26px;
+    max-height: 26px;
+    min-height: 26px;
+  }
+}
+
+.whatsup-logo {
+  width: 100%;
+  height: 100%;
+  padding: 6px;
+}
+
+.whatsup-logo-container {
+  background-color: var(--ez-whatsup-bg);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+}
+
+.whatsup-logo-container:hover {
+  background-color: var(--ez-whatsup-bg-hover);
+  transition: 150ms;
+}
+
+.eazix-logo {
+  width: 76px;
+  height: 50px;
+  object-fit: cover;
+}
+
+mat-sidenav-container {
+  /* Align with global .fill-screen / --vh (keyboard-safe); avoid 100vh vs --vh mismatch on mobile. */
+  height: calc(var(--vh, 1vh) * 100) !important;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+@supports (height: 100dvh) {
+  mat-sidenav-container {
+    height: 100dvh !important;
+  }
+}
+
+mat-sidenav-content {
+  display: flex !important;
+  flex-direction: column;
+}
+
+.close-icon {
+  outline: none;
+}
+
+.close-icon.mat-mdc-icon-button ::ng-deep .mat-mdc-button-persistent-ripple {
+  display: none;
+}
+
+::ng-deep span.mat-list-item-small {
+  font-size: 14px;
+}
+
+span.mat-list-item-small {
+  font-size: 14px;
+}
+
+button.zx-bg-gray-light {
+  background-color: transparent;
+}
+
+.zx-profile-default {
+  height: 36px;
+  width: auto;
+}
+
+@media only screen and (min-width: 576px) {
+  .zx-profile-default {
+    height: 43px;
+    width: auto;
+  }
+}
+
+.zx-tiny-arrow-size {
+  font-size: 18px !important;
+}
+
+
+.zx-profile-manu {
+  position: absolute;
+  top: 20px;
+  left: -174px;
+  width: 240px;
+  box-shadow: 0 0 15px var(--zx-gray-85);
+  z-index: 1;
+}
+
+@media only screen and (min-width: 576px) {
+  .zx-profile-manu {
+    top: 24px;
+    left: -174px;
+  }
+}
+
+.zx-profile-manu-rtl {
+  left: unset;
+  right: -174px;
+}
+
+@media only screen and (min-width: 576px) {
+  .zx-profile-manu-rtl {
+    right: -174px;
+  }
+}
+
+.zx-profile-manu-dark {
+  background-color: var(--zx-gray-85-no-oppacity);
+  border: 1px solid var(--zx-white-25-pr);
+}
+
+.zx-text-warn {
+  color: var(--zx-red);
+}
+
+@media only screen and (min-width: 576px) {
+  .rounded-sm-top-3 {
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+  }
+}
+
+.centered-text {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+::ng-deep .mat-mdc-menu-content {
+  width: 250px !important;
+}
+
+::ng-deep .mat-drawer-inner-container {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+::ng-deep .mat-drawer-backdrop {
+  z-index: 2500 !important;
+}
+
+// num-pending
+.num-pending-con {
+  top: -6px;
+  left: -24px;
+  background-color: var(--zx-pink);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 0 1px 0;
+}
+
+.num-pending-con-not-rtl {
+  right: -24px;
+  left: unset;
+}
+
+.num-pending-profile-con {
+  top: 20px;
+  left: -4px;
+  background-color: var(--zx-pink);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 0 1px 0;
+}
+
+.num-pending-profile-con-not-rtl {
+  right: -4px;
+  left: unset;
+}
+
+.num-pending {
+  display: flex;
+  color: white;
+  font-weight: bold;
+  text-align: center;
+  font-size: 12px;
+}
+
+.num-pending-btn {
+  background-color: var(--zx-pink-light-10-pr) !important;
+  border: 1px solid var(--zx-pink-light) !important;
+}
+
+.num-pending-text {
+  color: var(--zx-pink);
+}
+
+// "איך לערוך להדפסה?" – טקסט בורוד בולד עם פס גוון אלכסוני (30° מוורטיקלי) שנע מצד לצד
+.main-nav-edit-print-shimmer {
+  color: var(--zx-pink);
+  background: linear-gradient(
+    60deg,
+    var(--zx-pink) 0%,
+    var(--zx-pink) 42%,
+    var(--zx-pink-v-v-light-no-oppacity) 50%,
+    var(--zx-pink) 58%,
+    var(--zx-pink) 100%
+  );
+  background-size: 320% 100%;
+  background-position: 0% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: main-nav-edit-print-shimmer 6s ease-in-out infinite;
+}
+
+@keyframes main-nav-edit-print-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  16.67% {
+    background-position: 100% 50%;
+  }
+  33.33% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Dark mode: לבן עם אפקט ברק דומה במקום ורוד */
+:host-context(.darkTheme) .main-nav-edit-print-shimmer {
+  color: #fff;
+  background: linear-gradient(
+    60deg,
+    #fff 0%,
+    #fff 42%,
+    rgba(255, 255, 255, 0.65) 50%,
+    #fff 58%,
+    #fff 100%
+  );
+  background-size: 320% 100%;
+  background-position: 0% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: main-nav-edit-print-shimmer 6s ease-in-out infinite;
+}
+
+.overlay-manu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: transparent;
+  z-index: 1;
+  /* Adjust this value to ensure the overlay is behind the menu but above other elements */
+}
+
+// HOME PAGE
+
+.transparent-toolbar {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* For Webkit browsers like Chrome, Safari */
+.zx-no-scroller::-webkit-scrollbar {
+  display: none;
+  /* This hides the scrollbar */
+}
+
+/* For IE, Edge */
+.zx-no-scroller {
+  -ms-overflow-style: none;
+  /* This hides the scrollbar */
+}
+
+/* For Firefox */
+.zx-no-scroller {
+  scrollbar-width: none;
+  /* This hides the scrollbar */
+}
+
+/* Make sure scrolling is still possible */
+.zx-no-scroller {
+  overflow-y: scroll;
+}
+
+.zx-bg-gray-light-light-light {
+  background-color: var(--zx-gray-light-light-light) !important;
+}
+
+// Language menu - selected language styling (no disabled appearance)
+::ng-deep button.mat-mdc-menu-item.text-green {
+  color: var(--zx-green) !important;
+  
+  .mat-list-item-small {
+    color: var(--zx-green) !important;
+  }
+  
+  mat-icon {
+    color: var(--zx-green) !important;
+  }
+}

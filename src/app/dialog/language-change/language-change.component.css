@@ -1,0 +1,62 @@
+::ng-deep .fill-screen-modal-language-change {
+    width: 100%;
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
+    max-height: 90vh !important;
+}
+
+::ng-deep .mat-mdc-dialog-container,
+::ng-deep .mat-mdc-dialog-surface,
+::ng-deep .mat-mdc-dialog-content {
+    border-radius: 10px !important;
+    overflow: hidden !important;
+}
+
+::ng-deep .mat-mdc-dialog-container {
+    box-shadow: 0 0 25px rgba(85, 85, 85, 0.4);
+}
+
+::ng-deep .mat-mdc-dialog-surface>* {
+    border-radius: 5px !important;
+}
+
+.close-icon {
+    opacity: 50%;
+    outline: none;
+}
+
+.close-icon.mat-mdc-icon-button ::ng-deep .mat-mdc-button-persistent-ripple {
+    display: none;
+}
+
+::ng-deep div.mat-expansion-panel-body {
+    padding: 0;
+}
+
+::ng-deep div.mat-mdc-dialog-surface {
+    flex-grow: 1;
+}
+
+.top-clear-field-not-rtl {
+    left: unset;
+    right: -17px;
+}
+
+/* animation-emoji */
+#animationConfettiContainer {
+    width: 98%;
+    height: 450px;
+    transform: translateY(200px);
+    max-height: 300px;
+    overflow: hidden;
+}
+
+@media only screen and (min-width: 992px) {
+    #animationConfettiContainer {
+        width: 798px;
+        height: 530px;
+        transform: translateY(50px);
+        max-height: 530px;
+    }
+}

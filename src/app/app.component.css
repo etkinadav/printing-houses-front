@@ -1,0 +1,62 @@
+.app-main-nav {
+    height: calc(var(--vh, 1vh) * 100) !important;
+    width: 100% !important;
+    display: flex !important;
+}
+
+/* Pull-to-refresh container */
+.pull-to-refresh-container {
+    position: relative;
+    width: 100%;
+    min-height: calc(var(--vh, 1vh) * 100);
+}
+
+@supports (height: 100dvh) {
+    .app-main-nav {
+        height: 100dvh !important;
+    }
+
+    .pull-to-refresh-container {
+        min-height: 100dvh;
+    }
+}
+
+/* Pull-to-refresh spinner */
+.pull-to-refresh-spinner {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: top 0.1s ease-out;
+    background-color: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 12px 3px rgba(0, 0, 0, 0.3);
+}
+
+.pull-to-refresh-spinner ::ng-deep .mat-mdc-progress-spinner {
+    width: 16px !important;
+    height: 16px !important;
+}
+
+.pull-to-refresh-spinner ::ng-deep .mat-mdc-progress-spinner svg {
+    width: 16px !important;
+    height: 16px !important;
+}
+
+.pull-to-refresh-spinner ::ng-deep .mat-mdc-progress-spinner circle {
+    stroke: var(--zx-green) !important;
+    stroke-width: 2 !important;
+}
+
+/* Mobile only */
+@media (min-width: 768px) {
+    .pull-to-refresh-spinner {
+        display: none !important;
+    }
+}

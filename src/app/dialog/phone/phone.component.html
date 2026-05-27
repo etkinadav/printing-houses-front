@@ -1,0 +1,101 @@
+<div class="h-100 w-100 d-flex flex-column flex-grow-1 overflow-auto">
+
+    <div class="position-absolute w-100 d-flex" [class.justify-content-end]="isRTL">
+        <button type="button" mat-icon-button aria-label="Toggle sidenav" (click)="closePhoneDialog()"
+            class="close-icon d-flex align-items-center justify-content-center" [class.text-white]="isDarkMode">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+
+    <div class="d-flex flex-grow-1 flex-column align-items-center px-3 pt-4 pb-3 px-md-4 pt-md-5 gap-3 w-100">
+        <h4 class="text-center fw-bold m-0 pt-3 pt-lg-0" [class.zx-ltr]="!isRTL" [class.text-white]="isDarkMode"
+            [class.zx-ltr]="!isRTL">
+            <span *ngIf="!isPhoneSet">
+                {{ "phone-dialog-title" | translate }}
+            </span>
+            <span *ngIf="isPhoneSet" class="text-green" [class.zx-ltr]="!isRTL">
+                <span>{{ "phone-dialog-updated-success" | translate }}</span>
+                <span>!</span>
+            </span>
+        </h4>
+
+        <div class="d-flex flex-column gap-3 align-items-center w-100 pt-3">
+
+            <!-- ================= FIELD - PHONE -->
+            <form class="w-100 d-flex flex-column gap-4" [formGroup]="form">
+                <div class="d-flex w-100 align-items-center gap-2 gap-lg-3" [class.flex-row-reverse]="!isRTL">
+                    <span *ngIf="!isPhoneSet" [class.zx-ltr]="!isRTL">
+                        <span>
+                            <span>
+                                {{ "my-profile.phone" | translate }}
+                            </span>
+                            <span>:</span>
+                            <span class="zx-100-opp">--</span>
+                        </span>
+                    </span>
+                    <span *ngIf="isPhoneSet" class="spacer"></span>
+                    <div *ngIf="isPhoneSet"
+                        class="profileItem-phone d-flex align-items-center gap-2 gap-lg-3 zx-min-h-phone-input">
+                        <div class="fw-bold text-green d-flex flex-row-reverse align-items-center">
+                            <h4>0</h4>
+                            <h4>
+                                {{ ('0' + phone.toString()).slice(1, 3) }}
+                            </h4>
+                            <h4>-</h4>
+                            <h4>
+                                {{ ('0' + phone.toString()).slice(3, 7) }}
+                            </h4>
+                            <h4>-</h4>
+                            <h4>
+                                {{ ('0' + phone.toString()).slice(7) }}
+                            </h4>
+                        </div>
+                    </div>
+                    <span *ngIf="isPhoneSet" class="spacer"></span>
+                    <!-- inner FIELD - phone -->
+                    <mat-form-field [class.d-flex]="!isPhoneSet" [class.d-none]="isPhoneSet"
+                        class="flex-grow-1 position-relative zx-z-index-1 zx-min-h-phone-input" [class.zx-ltr]="!isRTL">
+                        <mat-label>
+                            {{ "my-profile.phone" | translate }}
+                        </mat-label>
+                        <input [class.d-none]="isLoadingUpdates" matInput type="text" formControlName="phone"
+                            [placeholder]="'my-profile.phone' | translate" required appPhoneFormatDialog
+                            [class.zx-ltr]="!isRTL" inputmode="numeric">
+                        <div [class.d-none]="!isLoadingUpdates" class="w-100 d-flex justify-content-center"
+                            [class.zx-ltr]="!isRTL" style="min-height: 24px;">
+                            <mat-spinner class="zx-small-icon-size"></mat-spinner>
+                        </div>
+                        <mat-error *ngIf="form.get('phone').invalid"
+                            [ngClass]="isRTL ? 'text-end zx-rtl' : 'text-start zx-ltr'">
+                            {{ "my-profile.phone.error" | translate }}
+                        </mat-error>
+                        <!-- clear field -->
+                        <div class="position-absolute justify-content-end px-2 zx-pb-12 rounded-pill top-clear-field w-100"
+                            [class.d-flex]="form.get('phone').value && form.get('phone').value !== ''"
+                            [class.d-none]="!(form.get('phone').value && form.get('phone').value !== '')"
+                            [class.top-clear-field-not-rtl]="!isRTL">
+                            <div matRipple (click)="clearPhoneField()"
+                                class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                                <mat-icon class="m-0 p-1 zx-text-medium c-pointer">close</mat-icon>
+                            </div>
+                        </div>
+                        <!-- // clear field -->
+                    </mat-form-field>
+                    <!-- // inner FIELD - phone -->
+                </div>
+                <!-- // ================= FIELD - PHONE -->
+            </form>
+
+            <span class="text-center pb-4" [class.zx-ltr]="!isRTL">
+                {{ "phone-dialog-explain" | translate }}
+            </span>
+
+            <button (click)="onSaveUserPhone()"
+                [disabled]="!(comperePhoneNumbers(phone, form.get('phone').value) && !form.get('phone').invalid)"
+                color="primary" mat-raised-button class="rounded-pill w-100 text-white">
+                {{ "phone-dialog-save-phone" | translate }}
+            </button>
+        </div>
+
+    </div>
+</div>
