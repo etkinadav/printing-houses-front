@@ -1,10 +1,13 @@
-<div class="home-placeholder d-flex flex-column align-items-center justify-content-center w-100 h-100 p-4"
-     [class.zx-rtl]="isRTL"
-     [class.zx-text-white]="isDarkMode">
-    <h1 class="text-center fw-bold mb-3">
-        בחירת סניף
-    </h1>
-    <p class="text-center mb-0 zx-text-medium">
-        עמוד זה יבוא בקרוב.
-    </p>
+<div class="home-video-screen">
+  <video
+    #video
+    class="home-video"
+    muted
+    playsinline
+    preload="auto"
+    disablePictureInPicture
+    (ended)="onVideoEnded()"
+  >
+    <source src="assets/videos/printing-houses-video.mp4" type="video/mp4" />
+  </video>
 </div>

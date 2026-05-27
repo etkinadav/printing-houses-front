@@ -1,11 +1,22 @@
-.home-placeholder {
-    min-height: calc(var(--vh, 1vh) * 100 - 64px);
-    background-color: var(--zx-gray-light-light-light, #fafafa);
-    color: var(--zx-dark, #262626);
+.home-video-screen {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: calc(var(--vh, 1vh) * 100);
+  z-index: 0;
+  overflow: hidden;
+  background-color: #000;
 }
 
 @supports (height: 100dvh) {
-    .home-placeholder {
-        min-height: calc(100dvh - 64px);
-    }
+  .home-video-screen {
+    height: 100dvh;
+  }
+}
+
+.home-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
