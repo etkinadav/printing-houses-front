@@ -364,7 +364,7 @@ export class MainNavComponent implements OnInit, OnDestroy {
   }
 
   isHomePage(): boolean {
-    return this.router.url === '/home' || this.router.url === '/';
+    return this.router.url === '/home';
   }
 
   checkInternetConnection() {
