@@ -1,13 +1,67 @@
-<div class="home-video-screen">
-  <video
-    #video
-    class="home-video"
-    muted
-    playsinline
-    preload="auto"
-    disablePictureInPicture
-    (ended)="onVideoEnded()"
+<div class="home-page">
+  <div class="home-video-screen">
+    <video
+      #video
+      class="home-video"
+      muted
+      playsinline
+      preload="auto"
+      disablePictureInPicture
+      (ended)="onVideoEnded()"
+    >
+      <source src="assets/videos/printing-houses-video.mp4" type="video/mp4" />
+    </video>
+  </div>
+
+  <nav
+    *ngIf="categoryGroups.length"
+    class="home-catalog-nav"
+    [class.home-catalog-nav-dark]="isDarkMode"
+    [attr.dir]="isRTL ? 'rtl' : 'ltr'"
+    (click)="$event.stopPropagation()"
+    (mouseleave)="onNavMouseLeave()"
   >
-    <source src="assets/videos/printing-houses-video.mp4" type="video/mp4" />
-  </video>
+    <div class="home-catalog-nav-bar">
+      <div class="home-catalog-buttons">
+        <div
+          *ngFor="let category of categoryGroups; let categoryIndex = index"
+          class="home-catalog-category"
+          (mouseenter)="onCategoryMouseEnter(categoryIndex)"
+        >
+          <button
+            type="button"
+            class="home-catalog-category-btn"
+            [class.active]="activeCategoryIndex === categoryIndex"
+            (click)="onCategoryClick(categoryIndex, $event)"
+          >
+            {{ category.name }}
+          </button>
+        </div>
+      </div>
+
+      <div
+        *ngIf="activeCategoryIndex !== null && categoryGroups[activeCategoryIndex] as activeCategory"
+        class="home-catalog-panel"
+        [attr.dir]="isRTL ? 'rtl' : 'ltr'"
+        (mouseenter)="onPanelMouseEnter()"
+        (mouseleave)="onPanelMouseLeave()"
+      >
+        <div
+          *ngFor="let subCategory of activeCategory.subCategories"
+          class="home-catalog-subsection"
+        >
+          <h3 class="home-catalog-subtitle">{{ subCategory.name }}</h3>
+          <ul class="home-catalog-products">
+            <li
+              *ngFor="let product of subCategory.products"
+              class="home-catalog-product"
+            >
+              <span class="home-catalog-product-name">{{ product.name }}</span>
+              <span class="home-catalog-product-material">{{ product.material }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </nav>
 </div>
