@@ -239,6 +239,16 @@
                     </span>
                   </button>
 
+                  <button
+                    *ngIf="canManageProducts()"
+                    class="justify-content-start"
+                    mat-menu-item
+                    (click)="goToCreateProduct()">
+                    <span class="mat-list-item-small">
+                      {{ 'main-nav.create-product' | translate }}
+                    </span>
+                  </button>
+
                   <hr class="m-1">
 
                   <button class="justify-content-start rounded-bottom-3" mat-menu-item (click)="onLogout()">

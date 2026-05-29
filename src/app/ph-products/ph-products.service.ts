@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { environment } from 'src/environments/environment';
-import { PhProduct } from './ph-product.model';
+import { CreatePhProductPayload, PhProduct } from './ph-product.model';
 
 const BACKEND_URL = environment.apiUrl + '/ph-products';
 
@@ -15,5 +15,9 @@ export class PhProductsService {
 
   getAllProducts(): Observable<{ message: string; products: PhProduct[] }> {
     return this.http.get<{ message: string; products: PhProduct[] }>(BACKEND_URL);
+  }
+
+  createProduct(payload: CreatePhProductPayload): Observable<{ message: string; product: PhProduct }> {
+    return this.http.post<{ message: string; product: PhProduct }>(BACKEND_URL, payload);
   }
 }

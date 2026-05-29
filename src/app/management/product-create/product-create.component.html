@@ -1,0 +1,67 @@
+<div class="product-create-page px-3 py-4" [class.zx-rtl]="isRTL" [class.text-white]="isDarkMode">
+  <mat-card class="product-create-card mx-auto">
+    <mat-card-header>
+      <mat-card-title>{{ 'management.product-create.title' | translate }}</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div *ngIf="isLoading" class="d-flex justify-content-center py-5">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
+
+      <form *ngIf="!isLoading" [formGroup]="form" (ngSubmit)="onSave()" class="d-flex flex-column gap-3 mt-3">
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>{{ 'management.product-create.name-he' | translate }}</mat-label>
+          <input matInput formControlName="name_he" autocomplete="off" />
+          <mat-error *ngIf="form.controls.name_he.hasError('required')">
+            {{ 'management.product-create.name-he-required' | translate }}
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>{{ 'management.product-create.name-en' | translate }}</mat-label>
+          <input matInput formControlName="name_en" autocomplete="off" dir="ltr" />
+          <mat-error *ngIf="form.controls.name_en.hasError('required')">
+            {{ 'management.product-create.name-en-required' | translate }}
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>{{ 'management.product-create.category' | translate }}</mat-label>
+          <mat-select formControlName="category">
+            <mat-option *ngFor="let category of categories" [value]="category._id">
+              {{ getCategoryLabel(category) }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="form.controls.category.hasError('required')">
+            {{ 'management.product-create.category-required' | translate }}
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>{{ 'management.product-create.subcategory' | translate }}</mat-label>
+          <mat-select formControlName="subCategory" [disabled]="!form.controls.category.value">
+            <mat-option *ngFor="let sub of subCategories" [value]="sub.key">
+              {{ getSubCategoryLabel(sub) }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="form.controls.subCategory.hasError('required')">
+            {{ 'management.product-create.subcategory-required' | translate }}
+          </mat-error>
+        </mat-form-field>
+
+        <div class="d-flex justify-content-end">
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
+            [disabled]="isSaving || form.invalid"
+            class="text-white">
+            <mat-spinner *ngIf="isSaving" diameter="20" class="d-inline-block me-2"></mat-spinner>
+            {{ 'management.product-create.save' | translate }}
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

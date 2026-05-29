@@ -31,6 +31,7 @@ import { ErrorComponent } from './error/error.component';
 import { PhoneComponent, PhoneFormatDialogDirective } from './dialog/phone/phone.component';
 import { LanguageChangeComponent } from './dialog/language-change/language-change.component';
 import { MyProfileComponent, PhoneFormatDirective } from './my-profile/my-profile.component';
+import { ProductCreateComponent } from './management/product-create/product-create.component';
 
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 
@@ -49,6 +50,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
     LanguageChangeComponent,
     MyProfileComponent,
     PhoneFormatDirective,
+    ProductCreateComponent,
   ],
   imports: [
     BrowserModule,

@@ -1,9 +1,11 @@
+import { PhCategory } from '../ph-categories/ph-category.model';
+
 export interface PhProduct {
   _id: string;
-  name: string;
-  category: string;
+  name_he: string;
+  name_en: string;
+  category: PhCategory | string;
   subCategory: string;
-  material: string;
 }
 
 export interface PhSubCategoryGroup {
@@ -14,4 +16,11 @@ export interface PhSubCategoryGroup {
 export interface PhCategoryGroup {
   name: string;
   subCategories: PhSubCategoryGroup[];
+}
+
+export interface CreatePhProductPayload {
+  name_he: string;
+  name_en: string;
+  category: string;
+  subCategory: string;
 }

@@ -1,0 +1,7 @@
+.product-create-page {
+  min-height: calc(100vh - 64px);
+}
+
+.product-create-card {
+  max-width: 560px;
+}

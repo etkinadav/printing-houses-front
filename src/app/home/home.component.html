@@ -56,8 +56,7 @@
               *ngFor="let product of subCategory.products"
               class="home-catalog-product"
             >
-              <span class="home-catalog-product-name">{{ product.name }}</span>
-              <span class="home-catalog-product-material">{{ product.material }}</span>
+              <span class="home-catalog-product-name">{{ getProductDisplayName(product) }}</span>
             </li>
           </ul>
         </div>

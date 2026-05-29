@@ -310,6 +310,16 @@ export class MainNavComponent implements OnInit, OnDestroy {
     ]);
   }
 
+  canManageProducts(): boolean {
+    return this.roles.includes('su') || this.roles.includes('bmph');
+  }
+
+  goToCreateProduct() {
+    this.closeDrawer();
+    this.closeProfileManu();
+    this.router.navigate(['/management/product-create']);
+  }
+
   updateGreeting() {
     const currentHour = new Date().getHours();
     if (currentHour >= 6 && currentHour < 12) {
