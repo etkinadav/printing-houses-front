@@ -65,9 +65,18 @@
                     <span class="size-title-row__prefix">
                       {{ 'management.product-create.size-number' | translate: { n: si + 1 } }}:
                     </span>
-                    <span *ngIf="sizes.length === 1" class="size-title-row__name">
-                      {{ getProductNameForSize() }}
-                    </span>
+                    <div
+                      *ngIf="sizes.length === 1"
+                      class="size-title-row__field size-title-row__field--readonly">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <input
+                          matInput
+                          [formControl]="productNameControl"
+                          readonly
+                          autocomplete="off"
+                          [placeholder]="'management.product-create.size-name-placeholder' | translate" />
+                      </mat-form-field>
+                    </div>
                     <div
                       *ngIf="sizes.length > 1"
                       [formGroup]="$any(sizeGroup.get('label'))"

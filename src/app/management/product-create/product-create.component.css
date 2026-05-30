@@ -201,8 +201,13 @@
   flex-shrink: 0;
 }
 
-.size-title-row__name {
-  font-weight: 500;
+.size-title-row__field--readonly input[readonly] {
+  cursor: default;
+  color: inherit;
+}
+
+.text-white .size-title-row__field--readonly input[readonly] {
+  color: inherit;
 }
 
 .size-title-row__field {

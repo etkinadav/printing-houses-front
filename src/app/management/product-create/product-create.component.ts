@@ -156,6 +156,10 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
     return this.dynamicGroup.get('materials') as FormArray;
   }
 
+  get productNameControl(): FormControl<string> {
+    return this.form.controls.name_he;
+  }
+
   asArray(control: AbstractControl | null): FormArray {
     return control as FormArray;
   }
@@ -169,8 +173,17 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
   }
 
   addSize(): void {
+    if (this.sizes.length === 1) {
+      this.copyProductNameToSizeLabel(this.sizes.at(0));
+    }
     this.sizes.push(this.createSizeGroup());
     this.syncSizeLabelValidators();
+  }
+
+  private copyProductNameToSizeLabel(sizeGroup: AbstractControl): void {
+    const name = this.getProductNameForSize();
+    const labelGroup = sizeGroup.get('label') as FormGroup;
+    labelGroup.patchValue({ he: name, en: name, ar: name }, { emitEvent: false });
   }
 
   removeSize(index: number): void {
