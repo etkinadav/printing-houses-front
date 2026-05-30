@@ -41,6 +41,8 @@
     "management.product-create.max-length": "الطول الأقصى",
     "management.product-create.min-width": "العرض الأدنى",
     "management.product-create.max-width": "العرض الأقصى",
+    "management.product-create.min-height": "الارتفاع الأدنى",
+    "management.product-create.max-height": "الارتفاع الأقصى",
     "management.product-create.materials": "المواد",
     "management.product-create.material": "مادة",
     "management.product-create.add-material": "إضافة مادة",

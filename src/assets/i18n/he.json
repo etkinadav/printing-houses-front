@@ -41,6 +41,8 @@
     "management.product-create.max-length": "אורך מקסימלי",
     "management.product-create.min-width": "רוחב מינימלי",
     "management.product-create.max-width": "רוחב מקסימלי",
+    "management.product-create.min-height": "גובה מינימלי",
+    "management.product-create.max-height": "גובה מקסימלי",
     "management.product-create.materials": "חומרים",
     "management.product-create.material": "חומר",
     "management.product-create.add-material": "הוסף חומר",

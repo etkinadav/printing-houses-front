@@ -44,6 +44,22 @@
   margin-top: 0.25rem;
 }
 
+.size-name-from-product {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.size-name-from-product__label {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.size-name-from-product__value {
+  font-weight: 500;
+  font-size: 1rem;
+}
+
 .color-input {
   width: 48px;
   height: 36px;

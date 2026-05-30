@@ -59,10 +59,6 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
         sizes: new FormArray<FormGroup>([]),
       }),
       dynamic: new FormGroup({
-        minLength: new FormControl<number | null>(null, [Validators.required, Validators.min(0)]),
-        maxLength: new FormControl<number | null>(null, [Validators.required, Validators.min(0)]),
-        minWidth: new FormControl<number | null>(null, [Validators.required, Validators.min(0)]),
-        maxWidth: new FormControl<number | null>(null, [Validators.required, Validators.min(0)]),
         materials: new FormArray<FormGroup>([]),
       }),
     }),
@@ -94,7 +90,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
     });
 
     this.sizes.push(this.createSizeGroup());
-    this.dynamicMaterials.push(this.createMaterialGroup());
+    this.dynamicMaterials.push(this.createDynamicMaterialGroup());
     this.syncSizeLabelValidators();
 
     this.flexabilitySub = this.flexabilityControl.valueChanges.subscribe((value) => {
@@ -168,8 +164,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
     }
   }
 
-  addMaterial(materials: FormArray): void {
-    materials.push(this.createMaterialGroup());
+  addMaterial(materials: FormArray, withDimensions = false): void {
+    materials.push(withDimensions ? this.createDynamicMaterialGroup() : this.createMaterialGroup());
   }
 
   removeMaterial(materials: FormArray, index: number): void {
@@ -251,13 +247,24 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
     return {
       dimensionsFlexability: flexability,
       dynamic: {
-        minLength: Number(this.dynamicGroup.get('minLength')!.value),
-        maxLength: Number(this.dynamicGroup.get('maxLength')!.value),
-        minWidth: Number(this.dynamicGroup.get('minWidth')!.value),
-        maxWidth: Number(this.dynamicGroup.get('maxWidth')!.value),
-        materials: this.readMaterials(this.dynamicMaterials),
+        materials: this.readDynamicMaterials(this.dynamicMaterials),
       },
     };
+  }
+
+  private readDynamicMaterials(materials: FormArray) {
+    return materials.controls.map((materialGroup) => ({
+      weight: Number(materialGroup.get('weight')!.value),
+      label: this.readLabel(materialGroup.get('label')!),
+      minLength: Number(materialGroup.get('minLength')!.value),
+      maxLength: Number(materialGroup.get('maxLength')!.value),
+      minHeight: Number(materialGroup.get('minHeight')!.value),
+      maxHeight: Number(materialGroup.get('maxHeight')!.value),
+      colors: this.getColors(materialGroup).controls.map((colorGroup) => ({
+        color: String(colorGroup.get('color')!.value),
+        label: this.readLabel(colorGroup.get('label')!),
+      })),
+    }));
   }
 
   private readMaterials(materials: FormArray) {
@@ -276,9 +283,14 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
     return { he, en: he, ar: he };
   }
 
+  getProductNameForSize(): string {
+    return String(this.form.controls.name_he.value ?? '').trim();
+  }
+
   private readSizeLabel(labelGroup: AbstractControl): PhLabel {
     if (this.sizes.length <= 1) {
-      return { he: '', en: '', ar: '' };
+      const name = this.getProductNameForSize();
+      return { he: name, en: name, ar: name };
     }
     return this.readLabel(labelGroup);
   }
@@ -305,7 +317,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
     this.sizes.clear();
     this.dynamicMaterials.clear();
     this.sizes.push(this.createSizeGroup());
-    this.dynamicMaterials.push(this.createMaterialGroup());
+    this.dynamicMaterials.push(this.createDynamicMaterialGroup());
     this.syncSizeLabelValidators();
 
     this.form.reset({
@@ -369,6 +381,19 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
     return new FormGroup({
       weight: new FormControl<number | null>(null, [Validators.required, Validators.min(0)]),
       label: this.createLabelGroup(),
+      colors: new FormArray<FormGroup>([this.createColorGroup()]),
+    });
+  }
+
+  private createDynamicMaterialGroup(): FormGroup {
+    const dimValidators = [Validators.required, Validators.min(0)];
+    return new FormGroup({
+      weight: new FormControl<number | null>(null, [Validators.required, Validators.min(0)]),
+      label: this.createLabelGroup(),
+      minLength: new FormControl<number | null>(null, dimValidators),
+      maxLength: new FormControl<number | null>(null, dimValidators),
+      minHeight: new FormControl<number | null>(null, dimValidators),
+      maxHeight: new FormControl<number | null>(null, dimValidators),
       colors: new FormArray<FormGroup>([this.createColorGroup()]),
     });
   }

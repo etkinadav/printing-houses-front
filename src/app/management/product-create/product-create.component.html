@@ -59,6 +59,11 @@
             <span class="nested-subtitle">{{ 'management.product-create.sizes' | translate }}</span>
 
             <div *ngFor="let sizeGroup of sizes.controls; let si = index" [formGroup]="$any(sizeGroup)" class="nested-item size-item">
+              <div *ngIf="sizes.length === 1" class="size-name-from-product mb-2">
+                <span class="size-name-from-product__label">{{ 'management.product-create.size-name-placeholder' | translate }}</span>
+                <span class="size-name-from-product__value">{{ getProductNameForSize() }}</span>
+              </div>
+
               <div *ngIf="sizes.length > 1" class="d-flex align-items-start gap-2 mb-2">
                 <ng-container
                   *ngTemplateOutlet="labelBlock; context: {
@@ -103,30 +108,12 @@
 
           <!-- DYNAMIC -->
           <div *ngIf="flexability === 'dynamic'" [formGroup]="dynamicGroup" class="d-flex flex-column gap-2">
-            <div class="d-flex gap-2">
-              <mat-form-field appearance="outline" class="w-50">
-                <mat-label>{{ 'management.product-create.min-length' | translate }}</mat-label>
-                <input matInput type="number" formControlName="minLength" />
-              </mat-form-field>
-              <mat-form-field appearance="outline" class="w-50">
-                <mat-label>{{ 'management.product-create.max-length' | translate }}</mat-label>
-                <input matInput type="number" formControlName="maxLength" />
-              </mat-form-field>
-            </div>
-            <div class="d-flex gap-2">
-              <mat-form-field appearance="outline" class="w-50">
-                <mat-label>{{ 'management.product-create.min-width' | translate }}</mat-label>
-                <input matInput type="number" formControlName="minWidth" />
-              </mat-form-field>
-              <mat-form-field appearance="outline" class="w-50">
-                <mat-label>{{ 'management.product-create.max-width' | translate }}</mat-label>
-                <input matInput type="number" formControlName="maxWidth" />
-              </mat-form-field>
-            </div>
-
-            <span class="nested-subtitle mt-2">{{ 'management.product-create.materials' | translate }}</span>
+            <span class="nested-subtitle">{{ 'management.product-create.materials' | translate }}</span>
             <ng-container
-              *ngTemplateOutlet="materialsBlock; context: { $implicit: dynamicMaterials }">
+              *ngTemplateOutlet="materialsBlock; context: {
+                $implicit: dynamicMaterials,
+                withDimensions: true
+              }">
             </ng-container>
           </div>
         </div>
@@ -165,7 +152,7 @@
 </ng-template>
 
 <!-- Reusable materials block (receives a FormArray of materials) -->
-<ng-template #materialsBlock let-materials>
+<ng-template #materialsBlock let-materials let-withDimensions="withDimensions">
   <div class="nested-list d-flex flex-column gap-2">
     <div *ngFor="let material of materials.controls; let mi = index" [formGroup]="$any(material)" class="nested-item material-item">
       <div class="d-flex align-items-start gap-2 mb-2">
@@ -190,6 +177,29 @@
         <mat-label>{{ 'management.product-create.weight' | translate }}</mat-label>
         <input matInput type="number" formControlName="weight" />
       </mat-form-field>
+
+      <ng-container *ngIf="withDimensions">
+        <div class="d-flex gap-2">
+          <mat-form-field appearance="outline" class="w-50">
+            <mat-label>{{ 'management.product-create.min-length' | translate }}</mat-label>
+            <input matInput type="number" formControlName="minLength" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="w-50">
+            <mat-label>{{ 'management.product-create.max-length' | translate }}</mat-label>
+            <input matInput type="number" formControlName="maxLength" />
+          </mat-form-field>
+        </div>
+        <div class="d-flex gap-2">
+          <mat-form-field appearance="outline" class="w-50">
+            <mat-label>{{ 'management.product-create.min-height' | translate }}</mat-label>
+            <input matInput type="number" formControlName="minHeight" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="w-50">
+            <mat-label>{{ 'management.product-create.max-height' | translate }}</mat-label>
+            <input matInput type="number" formControlName="maxHeight" />
+          </mat-form-field>
+        </div>
+      </ng-container>
 
       <span class="nested-subtitle">{{ 'management.product-create.colors' | translate }}</span>
       <div *ngFor="let color of getColors(material).controls; let ci = index" [formGroup]="$any(color)" class="nested-item color-item">
@@ -222,7 +232,7 @@
     </div>
 
     <div>
-      <button mat-stroked-button color="primary" type="button" (click)="addMaterial(materials)">
+      <button mat-stroked-button color="primary" type="button" (click)="addMaterial(materials, withDimensions)">
         <mat-icon>add</mat-icon>
         {{ 'management.product-create.add-material' | translate }}
       </button>

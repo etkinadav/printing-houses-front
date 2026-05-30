@@ -13,6 +13,13 @@ export interface PhMaterial {
   colors: PhColor[];
 }
 
+export interface PhDynamicMaterial extends PhMaterial {
+  minLength: number;
+  maxLength: number;
+  minHeight: number;
+  maxHeight: number;
+}
+
 export interface PhSize {
   length: number;
   width: number;
@@ -26,11 +33,7 @@ export interface PhProductProperties {
     sizes: PhSize[];
   };
   dynamic?: {
-    minLength: number;
-    maxLength: number;
-    minWidth: number;
-    maxWidth: number;
-    materials: PhMaterial[];
+    materials: PhDynamicMaterial[];
   };
 }
 

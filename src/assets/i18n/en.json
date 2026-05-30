@@ -41,6 +41,8 @@
 	"management.product-create.max-length": "Max length",
 	"management.product-create.min-width": "Min width",
 	"management.product-create.max-width": "Max width",
+	"management.product-create.min-height": "Min height",
+	"management.product-create.max-height": "Max height",
 	"management.product-create.materials": "Materials",
 	"management.product-create.material": "Material",
 	"management.product-create.add-material": "Add material",
