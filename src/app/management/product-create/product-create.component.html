@@ -59,7 +59,9 @@
               *ngFor="let sizeGroup of sizes.controls; let si = index"
               [formGroup]="$any(sizeGroup)"
               class="tree-node tree-node--size">
-              <div class="tree-node__header">
+              <div
+                *ngIf="sizes.length > 1 || getMaterials(sizeGroup).length > 1"
+                class="tree-node__header">
                 <div class="tree-node__header-body">
                   <div class="size-title-row">
                     <span class="size-title-row__prefix">
@@ -187,7 +189,9 @@
       *ngFor="let material of materials.controls; let mi = index"
       [formGroup]="$any(material)"
       class="tree-node tree-node--material">
-      <div class="tree-node__header">
+      <div
+        *ngIf="materials.length > 1 || !withDimensions"
+        class="tree-node__header">
         <div class="tree-node__header-body">
           <div class="size-title-row">
             <span class="size-title-row__prefix">
@@ -213,7 +217,7 @@
             type="button"
             color="warn"
             class="tree-node__delete"
-            (click)="removeMaterial(materials, mi)"
+            (click)="removeMaterial(materials, mi, withDimensions)"
             [disabled]="materials.length <= 1">
             <mat-icon>delete</mat-icon>
           </button>

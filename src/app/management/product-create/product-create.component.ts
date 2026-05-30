@@ -100,6 +100,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
     this.sizes.push(this.createSizeGroup());
     this.dynamicMaterials.push(this.createDynamicMaterialGroup());
     this.syncSizeLabelValidators();
+    this.syncMaterialHeaderLabelValidators();
 
     this.flexabilitySub = this.flexabilityControl.valueChanges.subscribe((value) => {
       this.applyFlexabilityState(value);
@@ -178,6 +179,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
     }
     this.sizes.push(this.createSizeGroup());
     this.syncSizeLabelValidators();
+    this.syncMaterialHeaderLabelValidators();
   }
 
   private copyProductNameToSizeLabel(sizeGroup: AbstractControl): void {
@@ -190,16 +192,19 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
     if (this.sizes.length > 1) {
       this.sizes.removeAt(index);
       this.syncSizeLabelValidators();
+      this.syncMaterialHeaderLabelValidators();
     }
   }
 
   addMaterial(materials: FormArray, withDimensions = false): void {
     materials.push(withDimensions ? this.createDynamicMaterialGroup() : this.createMaterialGroup());
+    this.syncMaterialHeaderLabelValidators();
   }
 
-  removeMaterial(materials: FormArray, index: number): void {
+  removeMaterial(materials: FormArray, index: number, withDimensions = false): void {
     if (materials.length > 1) {
       materials.removeAt(index);
+      this.syncMaterialHeaderLabelValidators();
     }
   }
 
@@ -266,7 +271,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
           sizes: this.sizes.controls.map((sizeGroup) => ({
             length: Number(sizeGroup.get('length')!.value),
             width: Number(sizeGroup.get('width')!.value),
-            label: this.readSizeLabel(sizeGroup.get('label')!),
+            label: this.readSizeLabelForSave(sizeGroup.get('label')!),
             materials: this.readMaterials(this.getMaterials(sizeGroup)),
           })),
         },
@@ -284,7 +289,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
   private readDynamicMaterials(materials: FormArray) {
     return materials.controls.map((materialGroup) => ({
       weight: Number(materialGroup.get('weight')!.value),
-      label: this.readLabel(materialGroup.get('label')!),
+      label: this.readMaterialLabelForSave(materialGroup, materials),
       minLength: Number(materialGroup.get('minLength')!.value),
       maxLength: Number(materialGroup.get('maxLength')!.value),
       minHeight: Number(materialGroup.get('minHeight')!.value),
@@ -321,11 +326,51 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
     return { he: name, en: name, ar: name };
   }
 
-  private readSizeLabel(labelGroup: AbstractControl): PhLabel {
-    if (this.sizes.length <= 1) {
+  /** Fixed sizes: single size has no name input — persist product name as size label. */
+  private readSizeLabelForSave(labelGroup: AbstractControl): PhLabel {
+    if (this.sizes.length === 1) {
       return this.productNameLabel();
     }
     return this.readLabel(labelGroup);
+  }
+
+  /** Dynamic: single material has no name input — persist product name as material label. */
+  private readMaterialLabelForSave(materialGroup: AbstractControl, materials: FormArray): PhLabel {
+    if (this.flexability === 'dynamic' && materials.length === 1) {
+      return this.productNameLabel();
+    }
+    return this.readLabel(materialGroup.get('label')!);
+  }
+
+  private syncMaterialHeaderLabelValidators(): void {
+    if (this.flexability === 'fixed') {
+      for (const sizeGroup of this.sizes.controls) {
+        this.applySingleMaterialLabelValidators(this.getMaterials(sizeGroup), true);
+      }
+      return;
+    }
+
+    this.applySingleMaterialLabelValidators(this.dynamicMaterials, false);
+  }
+
+  /** @param requireSingleMaterialLabel fixed mode shows material name even with one material */
+  private applySingleMaterialLabelValidators(
+    materials: FormArray,
+    requireSingleMaterialLabel = false
+  ): void {
+    const hideLabel = materials.length === 1 && !requireSingleMaterialLabel;
+
+    for (const materialGroup of materials.controls) {
+      const heControl = (materialGroup.get('label') as FormGroup).get('he') as FormControl<string>;
+
+      if (hideLabel) {
+        heControl.clearValidators();
+      } else {
+        heControl.setValidators([Validators.required]);
+      }
+
+      heControl.updateValueAndValidity({ emitEvent: false });
+    }
   }
 
   private syncSizeLabelValidators(): void {
@@ -352,6 +397,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
     this.sizes.push(this.createSizeGroup());
     this.dynamicMaterials.push(this.createDynamicMaterialGroup());
     this.syncSizeLabelValidators();
+    this.syncMaterialHeaderLabelValidators();
 
     this.form.reset({
       name_he: '',
@@ -396,6 +442,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
       dynamic.enable({ emitEvent: false });
       fixed.disable({ emitEvent: false });
     }
+
+    this.syncMaterialHeaderLabelValidators();
   }
 
   private onCategoryChange(categoryId: string): void {
