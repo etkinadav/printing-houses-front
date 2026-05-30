@@ -134,7 +134,7 @@
 
             <div class="tree-branch__footer">
               <span class="tree-branch__rail-end" aria-hidden="true"></span>
-              <button mat-stroked-button color="primary" type="button" class="tree-add-btn" (click)="addSize()">
+              <button mat-raised-button color="primary" type="button" class="tree-add-btn text-white rounded-pill" (click)="addSize()">
                 <mat-icon>add</mat-icon>
                 {{ 'management.product-create.add-size' | translate }}
               </button>
@@ -269,9 +269,10 @@
     <div class="tree-branch__footer">
       <span class="tree-branch__rail-end" aria-hidden="true"></span>
       <button
-        mat-stroked-button
+        mat-raised-button
+        color="primary"
         type="button"
-        class="tree-add-btn"
+        class="tree-add-btn text-white rounded-pill"
         (click)="addMaterial(materials, withDimensions)">
         <mat-icon>add</mat-icon>
         {{ 'management.product-create.add-material' | translate }}
@@ -323,7 +324,7 @@
 
     <div class="tree-branch__footer">
       <span class="tree-branch__rail-end" aria-hidden="true"></span>
-      <button mat-stroked-button type="button" class="tree-add-btn" (click)="addColor(colors)">
+      <button mat-raised-button color="primary" type="button" class="tree-add-btn text-white rounded-pill" (click)="addColor(colors)">
         <mat-icon>add</mat-icon>
         {{ 'management.product-create.add-color' | translate }}
       </button>

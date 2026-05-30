@@ -50,7 +50,7 @@
   --tree-rail-join-overlap: 1px;
   --tree-rail-inset: 0.4rem;
   --tree-branch-padding: 1.125rem;
-  --tree-add-btn-height: var(--mdc-outlined-button-container-height, 40px);
+  --tree-add-btn-height: var(--mdc-protected-button-container-height, 40px);
   --tree-rail-span-width: calc(var(--tree-rail-cap) + var(--tree-rail-corner-radius));
   --tree-rail-top-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 7'%3E%3Cpath d='M 15 1 L 6 1 A 5 5 0 0 0 1 6 L 1 7' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E");
   --tree-rail-bottom-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 7'%3E%3Cpath d='M 1 0 L 1 1.5 A 5 5 0 0 0 6 3.5 L 15 3.5' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E");
@@ -280,8 +280,16 @@
 }
 
 .tree-add-btn {
+  --mdc-protected-button-container-color: var(--zx-green);
+  --mdc-protected-button-label-text-color: #fff;
+  --mdc-protected-button-container-shape: 999px;
   align-self: flex-start;
   margin: 0;
+  color: #fff !important;
+}
+
+.tree-add-btn .mat-icon {
+  color: #fff;
 }
 
 .label-block {
