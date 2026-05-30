@@ -71,15 +71,13 @@
 
 .tree-node {
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.02);
 }
 
 .tree-node--size {
   position: relative;
-  border: 1px solid rgba(63, 81, 181, 0.35);
   padding: 0.75rem;
   padding-inline-start: 1.125rem;
-  background: rgba(63, 81, 181, 0.04);
+  background: transparent;
 }
 
 .tree-node--size::before {
@@ -95,10 +93,9 @@
 
 .tree-node--material {
   position: relative;
-  border: 1px solid rgba(0, 150, 136, 0.25);
   padding: 0.65rem;
   padding-inline-start: 1.125rem;
-  background: rgba(0, 150, 136, 0.04);
+  background: transparent;
 }
 
 .tree-node--material::before {
@@ -113,9 +110,22 @@
 }
 
 .tree-node--color {
-  border: 1px dashed rgba(0, 0, 0, 0.15);
+  position: relative;
   padding: 0.5rem;
-  background: rgba(0, 0, 0, 0.02);
+  padding-inline-start: 1.125rem;
+  border: none;
+  background: none;
+}
+
+.tree-node--color::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0.4rem;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 2px;
+  border-radius: 1px;
+  background: rgba(126, 87, 194, 0.55);
 }
 
 .tree-node__children {
@@ -216,27 +226,16 @@
 }
 
 /* Dark mode */
-.text-white .tree-node--size {
-  border-color: rgba(121, 134, 203, 0.5);
-  background: rgba(121, 134, 203, 0.08);
-}
-
-.text-white .tree-node--material {
-  border-color: rgba(77, 182, 172, 0.4);
-  background: rgba(77, 182, 172, 0.08);
-}
-
-.text-white .tree-node--color {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.04);
-}
-
 .text-white .tree-node--size::before {
   background: rgba(121, 134, 203, 0.65);
 }
 
 .text-white .tree-node--material::before {
   background: rgba(77, 182, 172, 0.65);
+}
+
+.text-white .tree-node--color::before {
+  background: rgba(186, 154, 229, 0.65);
 }
 
 .text-white .color-input {
