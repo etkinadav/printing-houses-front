@@ -33,6 +33,7 @@
     "management.product-create.properties": "الخصائص",
     "management.product-create.dimensions-flexability": "مرونة الأبعاد",
     "management.product-create.tree-size": "حجم",
+    "management.product-create.size-number": "حجم {{n}}",
     "management.product-create.tree-material": "مادة",
     "management.product-create.tree-color": "لون",
     "management.product-create.sizes": "المقاسات",
