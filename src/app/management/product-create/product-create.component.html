@@ -55,6 +55,7 @@
           <ng-container *ngIf="canShowPropertyTree">
           <!-- FIXED: tree of sizes → materials → colors -->
           <div *ngIf="flexability === 'fixed'" class="property-tree">
+            <div class="tree-branch tree-branch--sizes">
             <div
               *ngFor="let sizeGroup of sizes.controls; let si = index"
               [formGroup]="$any(sizeGroup)"
@@ -131,10 +132,13 @@
               </div>
             </div>
 
-            <button mat-stroked-button color="primary" type="button" class="tree-add-btn" (click)="addSize()">
-              <mat-icon>add</mat-icon>
-              {{ 'management.product-create.add-size' | translate }}
-            </button>
+            <div class="tree-branch__footer">
+              <button mat-stroked-button color="primary" type="button" class="tree-add-btn" (click)="addSize()">
+                <mat-icon>add</mat-icon>
+                {{ 'management.product-create.add-size' | translate }}
+              </button>
+            </div>
+            </div>
           </div>
 
           <!-- DYNAMIC: tree of materials → colors -->
@@ -261,14 +265,16 @@
       </div>
     </div>
 
-    <button
-      mat-stroked-button
-      type="button"
-      class="tree-add-btn tree-add-btn--child"
-      (click)="addMaterial(materials, withDimensions)">
-      <mat-icon>add</mat-icon>
-      {{ 'management.product-create.add-material' | translate }}
-    </button>
+    <div class="tree-branch__footer">
+      <button
+        mat-stroked-button
+        type="button"
+        class="tree-add-btn"
+        (click)="addMaterial(materials, withDimensions)">
+        <mat-icon>add</mat-icon>
+        {{ 'management.product-create.add-material' | translate }}
+      </button>
+    </div>
   </div>
 </ng-template>
 
@@ -313,9 +319,11 @@
       </div>
     </div>
 
-    <button mat-stroked-button type="button" class="tree-add-btn tree-add-btn--child" (click)="addColor(colors)">
-      <mat-icon>add</mat-icon>
-      {{ 'management.product-create.add-color' | translate }}
-    </button>
+    <div class="tree-branch__footer">
+      <button mat-stroked-button type="button" class="tree-add-btn" (click)="addColor(colors)">
+        <mat-icon>add</mat-icon>
+        {{ 'management.product-create.add-color' | translate }}
+      </button>
+    </div>
   </div>
 </ng-template>
