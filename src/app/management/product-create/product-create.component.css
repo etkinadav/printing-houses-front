@@ -1,7 +1,54 @@
 .product-create-page {
-  min-height: calc(100vh - 64px);
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .product-create-card {
-  max-width: 560px;
+  max-width: 640px;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+}
+
+.nested-subtitle {
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.nested-item {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.size-item {
+  border-color: rgba(63, 81, 181, 0.35);
+}
+
+.material-item {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.color-item {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.label-block {
+  margin-top: 0.25rem;
+}
+
+.color-input {
+  width: 48px;
+  height: 36px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
 }

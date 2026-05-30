@@ -11,26 +11,10 @@
 
       <form *ngIf="!isLoading" [formGroup]="form" (ngSubmit)="onSave()" class="d-flex flex-column gap-3 mt-3">
         <mat-form-field appearance="outline" class="w-100">
-          <mat-label>{{ 'management.product-create.name-he' | translate }}</mat-label>
+          <mat-label>{{ 'management.product-create.name' | translate }}</mat-label>
           <input matInput formControlName="name_he" autocomplete="off" />
           <mat-error *ngIf="form.controls.name_he.hasError('required')">
-            {{ 'management.product-create.name-he-required' | translate }}
-          </mat-error>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="w-100">
-          <mat-label>{{ 'management.product-create.name-en' | translate }}</mat-label>
-          <input matInput formControlName="name_en" autocomplete="off" dir="ltr" />
-          <mat-error *ngIf="form.controls.name_en.hasError('required')">
-            {{ 'management.product-create.name-en-required' | translate }}
-          </mat-error>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="w-100">
-          <mat-label>{{ 'management.product-create.name-ar' | translate }}</mat-label>
-          <input matInput formControlName="name_ar" autocomplete="off" dir="rtl" />
-          <mat-error *ngIf="form.controls.name_ar.hasError('required')">
-            {{ 'management.product-create.name-ar-required' | translate }}
+            {{ 'management.product-create.name-required' | translate }}
           </mat-error>
         </mat-form-field>
 
@@ -58,6 +42,95 @@
           </mat-error>
         </mat-form-field>
 
+        <!-- Properties -->
+        <div class="properties-section">
+          <h3 class="section-title">{{ 'management.product-create.properties' | translate }}</h3>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>{{ 'management.product-create.dimensions-flexability' | translate }}</mat-label>
+            <mat-select [formControl]="flexabilityControl">
+              <mat-option value="fixed">{{ 'properties.dimensionsFlexability.fixed' | translate }}</mat-option>
+              <mat-option value="dynamic">{{ 'properties.dimensionsFlexability.dynamic' | translate }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- FIXED -->
+          <div *ngIf="flexability === 'fixed'" class="d-flex flex-column gap-3">
+            <span class="nested-subtitle">{{ 'management.product-create.sizes' | translate }}</span>
+
+            <div *ngFor="let sizeGroup of sizes.controls; let si = index" [formGroup]="$any(sizeGroup)" class="nested-item size-item">
+              <div *ngIf="sizes.length > 1" class="d-flex align-items-start gap-2 mb-2">
+                <ng-container
+                  *ngTemplateOutlet="labelBlock; context: {
+                    $implicit: sizeGroup.get('label'),
+                    labelKey: 'management.product-create.size-name-placeholder'
+                  }">
+                </ng-container>
+                <button
+                  mat-icon-button
+                  type="button"
+                  color="warn"
+                  class="flex-shrink-0"
+                  (click)="removeSize(si)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+
+              <div class="d-flex gap-2">
+                <mat-form-field appearance="outline" class="w-50">
+                  <mat-label>{{ 'management.product-create.length' | translate }}</mat-label>
+                  <input matInput type="number" formControlName="length" />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="w-50">
+                  <mat-label>{{ 'management.product-create.width' | translate }}</mat-label>
+                  <input matInput type="number" formControlName="width" />
+                </mat-form-field>
+              </div>
+
+              <span class="nested-subtitle mt-2">{{ 'management.product-create.materials' | translate }}</span>
+              <ng-container
+                *ngTemplateOutlet="materialsBlock; context: { $implicit: getMaterials(sizeGroup) }">
+              </ng-container>
+            </div>
+
+            <div>
+              <button mat-stroked-button color="primary" type="button" (click)="addSize()">
+                <mat-icon>add</mat-icon>
+                {{ 'management.product-create.add-size' | translate }}
+              </button>
+            </div>
+          </div>
+
+          <!-- DYNAMIC -->
+          <div *ngIf="flexability === 'dynamic'" [formGroup]="dynamicGroup" class="d-flex flex-column gap-2">
+            <div class="d-flex gap-2">
+              <mat-form-field appearance="outline" class="w-50">
+                <mat-label>{{ 'management.product-create.min-length' | translate }}</mat-label>
+                <input matInput type="number" formControlName="minLength" />
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="w-50">
+                <mat-label>{{ 'management.product-create.max-length' | translate }}</mat-label>
+                <input matInput type="number" formControlName="maxLength" />
+              </mat-form-field>
+            </div>
+            <div class="d-flex gap-2">
+              <mat-form-field appearance="outline" class="w-50">
+                <mat-label>{{ 'management.product-create.min-width' | translate }}</mat-label>
+                <input matInput type="number" formControlName="minWidth" />
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="w-50">
+                <mat-label>{{ 'management.product-create.max-width' | translate }}</mat-label>
+                <input matInput type="number" formControlName="maxWidth" />
+              </mat-form-field>
+            </div>
+
+            <span class="nested-subtitle mt-2">{{ 'management.product-create.materials' | translate }}</span>
+            <ng-container
+              *ngTemplateOutlet="materialsBlock; context: { $implicit: dynamicMaterials }">
+            </ng-container>
+          </div>
+        </div>
+
         <div class="d-flex justify-content-end">
           <button
             mat-raised-button
@@ -73,3 +146,86 @@
     </mat-card-content>
   </mat-card>
 </div>
+
+<!-- Reusable label block: UI shows Hebrew only; en/ar kept in form for future i18n -->
+<ng-template #labelBlock let-labelGroup let-labelKey="labelKey">
+  <div [formGroup]="$any(labelGroup)" class="label-block flex-grow-1 w-100">
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>{{ labelKey | translate }}</mat-label>
+      <input
+        matInput
+        formControlName="he"
+        autocomplete="off"
+        [placeholder]="labelKey | translate" />
+      <mat-error *ngIf="labelGroup.get('he')?.hasError('required')">
+        {{ 'management.product-create.label-required' | translate }}
+      </mat-error>
+    </mat-form-field>
+  </div>
+</ng-template>
+
+<!-- Reusable materials block (receives a FormArray of materials) -->
+<ng-template #materialsBlock let-materials>
+  <div class="nested-list d-flex flex-column gap-2">
+    <div *ngFor="let material of materials.controls; let mi = index" [formGroup]="$any(material)" class="nested-item material-item">
+      <div class="d-flex align-items-start gap-2 mb-2">
+        <ng-container
+          *ngTemplateOutlet="labelBlock; context: {
+            $implicit: material.get('label'),
+            labelKey: 'management.product-create.material-name-placeholder'
+          }">
+        </ng-container>
+        <button
+          mat-icon-button
+          type="button"
+          color="warn"
+          class="flex-shrink-0"
+          (click)="removeMaterial(materials, mi)"
+          [disabled]="materials.length <= 1">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>{{ 'management.product-create.weight' | translate }}</mat-label>
+        <input matInput type="number" formControlName="weight" />
+      </mat-form-field>
+
+      <span class="nested-subtitle">{{ 'management.product-create.colors' | translate }}</span>
+      <div *ngFor="let color of getColors(material).controls; let ci = index" [formGroup]="$any(color)" class="nested-item color-item">
+        <div class="d-flex align-items-start gap-2 mb-2">
+          <input type="color" formControlName="color" class="color-input flex-shrink-0 mt-2" />
+          <ng-container
+            *ngTemplateOutlet="labelBlock; context: {
+              $implicit: color.get('label'),
+              labelKey: 'management.product-create.color-name-placeholder'
+            }">
+          </ng-container>
+          <button
+            mat-icon-button
+            type="button"
+            color="warn"
+            class="flex-shrink-0"
+            (click)="removeColor(getColors(material), ci)"
+            [disabled]="getColors(material).length <= 1">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <button mat-stroked-button type="button" (click)="addColor(getColors(material))">
+          <mat-icon>add</mat-icon>
+          {{ 'management.product-create.add-color' | translate }}
+        </button>
+      </div>
+    </div>
+
+    <div>
+      <button mat-stroked-button color="primary" type="button" (click)="addMaterial(materials)">
+        <mat-icon>add</mat-icon>
+        {{ 'management.product-create.add-material' | translate }}
+      </button>
+    </div>
+  </div>
+</ng-template>
