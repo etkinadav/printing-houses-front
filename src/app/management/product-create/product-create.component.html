@@ -94,15 +94,16 @@
                     </div>
                   </div>
                 </div>
-                <button
-                  *ngIf="sizes.length > 1"
-                  mat-icon-button
-                  type="button"
-                  color="warn"
-                  class="tree-node__delete"
-                  (click)="removeSize(si)">
-                  <mat-icon>delete</mat-icon>
-                </button>
+                <span *ngIf="sizes.length > 1" class="tree-node__delete-wrap">
+                  <button
+                    mat-icon-button
+                    type="button"
+                    color="warn"
+                    class="tree-node__delete"
+                    (click)="removeSize(si)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </span>
               </div>
 
               <div class="tree-node__fields tree-node__fields--under-title">
@@ -206,15 +207,17 @@
             </div>
           </div>
         </div>
-        <button
-          mat-icon-button
-          type="button"
-          color="warn"
-          class="tree-node__delete"
-          (click)="removeMaterial(materials, mi)"
-          [disabled]="materials.length <= 1">
-          <mat-icon>delete</mat-icon>
-        </button>
+        <span class="tree-node__delete-wrap">
+          <button
+            mat-icon-button
+            type="button"
+            color="warn"
+            class="tree-node__delete"
+            (click)="removeMaterial(materials, mi)"
+            [disabled]="materials.length <= 1">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </span>
       </div>
 
       <div class="tree-node__fields tree-node__fields--under-title">
@@ -292,15 +295,17 @@
             </div>
           </div>
         </div>
-        <button
-          mat-icon-button
-          type="button"
-          color="warn"
-          class="tree-node__delete"
-          (click)="removeColor(colors, ci)"
-          [disabled]="colors.length <= 1">
-          <mat-icon>delete</mat-icon>
-        </button>
+        <span class="tree-node__delete-wrap">
+          <button
+            mat-icon-button
+            type="button"
+            color="warn"
+            class="tree-node__delete"
+            (click)="removeColor(colors, ci)"
+            [disabled]="colors.length <= 1">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </span>
       </div>
     </div>
 

@@ -1,4 +1,6 @@
 .product-create-page {
+  --field-infix-height: 56px;
+  --field-subscript-reserve: 1.25rem;
   flex: 1;
   min-height: 0;
   width: 100%;
@@ -138,7 +140,7 @@
 
 .tree-node__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
 }
 
@@ -148,6 +150,16 @@
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
+}
+
+.tree-node__delete-wrap {
+  flex-shrink: 0;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--field-infix-height);
+  margin-bottom: calc(var(--field-subscript-reserve) + 4px);
 }
 
 .tree-node__delete {
@@ -185,10 +197,9 @@
 }
 
 .size-title-row {
-  --size-title-row-control-height: calc(56px + 1.25rem);
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.35rem 0.5rem;
   width: 100%;
 }
@@ -198,8 +209,10 @@
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  align-self: center;
-  min-height: var(--size-title-row-control-height);
+  align-self: flex-start;
+  height: var(--field-infix-height);
+  padding-bottom: var(--field-subscript-reserve);
+  box-sizing: content-box;
   line-height: 1.3;
 }
 
@@ -215,7 +228,7 @@
 .size-title-row__field {
   flex: 1;
   min-width: 160px;
-  align-self: center;
+  align-self: flex-start;
 }
 
 .size-title-row__field .mat-mdc-form-field {
@@ -224,20 +237,21 @@
 }
 
 .product-create-page .mat-mdc-form-field-subscript-wrapper {
-  min-height: 1.25rem;
+  min-height: var(--field-subscript-reserve);
 }
 
 .color-input {
   width: 44px;
   height: 44px;
-  align-self: center;
+  align-self: flex-start;
   flex-shrink: 0;
-  margin: 0;
+  margin-top: calc((var(--field-infix-height) - 44px) / 2);
+  margin-bottom: var(--field-subscript-reserve);
+  padding: 2px;
   border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 6px;
   background: none;
   cursor: pointer;
-  padding: 2px;
   box-sizing: border-box;
 }
 
