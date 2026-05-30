@@ -6,7 +6,7 @@ import { Subscription } from 'rxjs';
 
 import { DirectionService } from '../../direction.service';
 import { PhCategoriesService } from '../../ph-categories/ph-categories.service';
-import { PhCategory, PhSubCategory } from '../../ph-categories/ph-category.model';
+import { PhCategory, PhLabel, PhSubCategory } from '../../ph-categories/ph-category.model';
 import { PhProductsService } from '../../ph-products/ph-products.service';
 
 @Component({
@@ -31,6 +31,10 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
       validators: [Validators.required, Validators.minLength(1), Validators.maxLength(120)],
     }),
     name_en: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.minLength(1), Validators.maxLength(120)],
+    }),
+    name_ar: new FormControl<string>('', {
       nonNullable: true,
       validators: [Validators.required, Validators.minLength(1), Validators.maxLength(120)],
     }),
@@ -86,13 +90,22 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
   }
 
   getCategoryLabel(category: PhCategory): string {
-    const lang = this.translateService.currentLang || 'he';
-    return lang === 'en' ? category.label_en : category.label_he;
+    return this.resolveLabel(category.label);
   }
 
   getSubCategoryLabel(sub: PhSubCategory): string {
+    return this.resolveLabel(sub.label);
+  }
+
+  private resolveLabel(label: PhLabel): string {
     const lang = this.translateService.currentLang || 'he';
-    return lang === 'en' ? sub.label.en : sub.label.he;
+    if (lang === 'en') {
+      return label.en;
+    }
+    if (lang === 'ar') {
+      return label.ar;
+    }
+    return label.he;
   }
 
   onSave(): void {
@@ -108,6 +121,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
       .createProduct({
         name_he: value.name_he.trim(),
         name_en: value.name_en.trim(),
+        name_ar: value.name_ar.trim(),
         category: value.category,
         subCategory: value.subCategory,
       })
@@ -117,6 +131,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
           this.form.reset({
             name_he: '',
             name_en: '',
+            name_ar: '',
             category: '',
             subCategory: '',
           });

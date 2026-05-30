@@ -7,12 +7,13 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { forkJoin, Subscription } from 'rxjs';
 
 import { TranslateService } from '@ngx-translate/core';
 
 import { DirectionService } from '../direction.service';
-import { PhCategory } from '../ph-categories/ph-category.model';
+import { PhCategoriesService } from '../ph-categories/ph-categories.service';
+import { PhCategory, PhLabel } from '../ph-categories/ph-category.model';
 import { PhProductsService } from '../ph-products/ph-products.service';
 import {
   PhCategoryGroup,
@@ -50,6 +51,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   constructor(
     private phProductsService: PhProductsService,
+    private phCategoriesService: PhCategoriesService,
     private directionService: DirectionService,
     private translateService: TranslateService,
   ) {}
@@ -62,13 +64,18 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
       this.isDarkMode = isDarkMode;
     });
 
-    this.phProductsService.getAllProducts().subscribe({
-      next: (response) => {
-        console.log('ph-products', response);
-        this.categoryGroups = this.buildCategoryGroups(response.products ?? []);
+    forkJoin({
+      categories: this.phCategoriesService.getAllCategories(),
+      products: this.phProductsService.getAllProducts(),
+    }).subscribe({
+      next: ({ categories, products }) => {
+        this.categoryGroups = this.buildCategoryGroups(
+          categories.categories ?? [],
+          products.products ?? [],
+        );
       },
       error: (error) => {
-        console.error('ph-products', error);
+        console.error('ph-catalog', error);
       },
     });
   }
@@ -147,60 +154,67 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   getProductDisplayName(product: PhProduct): string {
     const lang = this.translateService.currentLang || 'he';
-    return lang === 'en' ? product.name_en : product.name_he;
+    if (lang === 'en') {
+      return product.name_en;
+    }
+    if (lang === 'ar') {
+      return product.name_ar;
+    }
+    return product.name_he;
   }
 
-  private buildCategoryGroups(products: PhProduct[]): PhCategoryGroup[] {
-    const lang = this.translateService.currentLang || 'he';
-    const categoryMap = new Map<string, { label: string; subMap: Map<string, { label: string; products: PhProduct[] }> }>();
-
+  private buildCategoryGroups(
+    categories: PhCategory[],
+    products: PhProduct[],
+  ): PhCategoryGroup[] {
+    const productsBySub = new Map<string, PhProduct[]>();
     for (const product of products) {
-      const categoryDoc = this.resolveCategory(product.category);
-      if (!categoryDoc) {
+      const categoryId = this.resolveCategoryId(product.category);
+      if (!categoryId) {
         continue;
       }
-
-      const categoryId = categoryDoc._id;
-      if (!categoryMap.has(categoryId)) {
-        categoryMap.set(categoryId, {
-          label: lang === 'en' ? categoryDoc.label_en : categoryDoc.label_he,
-          subMap: new Map(),
-        });
+      const key = `${categoryId}::${product.subCategory}`;
+      if (!productsBySub.has(key)) {
+        productsBySub.set(key, []);
       }
-
-      const categoryEntry = categoryMap.get(categoryId)!;
-      const subCategoryKey = product.subCategory;
-      if (!categoryEntry.subMap.has(subCategoryKey)) {
-        const subDoc = (categoryDoc.subCategories || []).find((sc) => sc.key === subCategoryKey);
-        const subLabel = subDoc
-          ? (lang === 'en' ? subDoc.label.en : subDoc.label.he)
-          : subCategoryKey;
-        categoryEntry.subMap.set(subCategoryKey, { label: subLabel, products: [] });
-      }
-
-      categoryEntry.subMap.get(subCategoryKey)!.products.push(product);
+      productsBySub.get(key)!.push(product);
     }
 
-    const groups: PhCategoryGroup[] = [];
-    for (const categoryEntry of categoryMap.values()) {
-      const subCategories = Array.from(categoryEntry.subMap.values()).map((entry) => ({
-        name: entry.label,
-        products: [...entry.products].sort((a, b) =>
-          this.getProductDisplayName(a).localeCompare(this.getProductDisplayName(b)),
-        ),
-      }));
-      subCategories.sort((a, b) => a.name.localeCompare(b.name));
-      groups.push({ name: categoryEntry.label, subCategories });
-    }
+    return categories.map((category) => {
+      const subCategories = (category.subCategories || []).map((sub) => {
+        const key = `${category._id}::${sub.key}`;
+        const subProducts = productsBySub.get(key) ?? [];
+        return {
+          name: this.resolveLabel(sub.label),
+          products: [...subProducts].sort((a, b) =>
+            this.getProductDisplayName(a).localeCompare(this.getProductDisplayName(b)),
+          ),
+        };
+      });
 
-    return groups.sort((a, b) => a.name.localeCompare(b.name));
+      return {
+        name: this.resolveLabel(category.label),
+        subCategories,
+      };
+    });
   }
 
-  private resolveCategory(category: PhProduct['category']): PhCategory | null {
-    if (!category || typeof category === 'string') {
+  private resolveCategoryId(category: PhProduct['category']): string | null {
+    if (!category) {
       return null;
     }
-    return category;
+    return typeof category === 'string' ? category : category._id;
+  }
+
+  private resolveLabel(label: PhLabel): string {
+    const lang = this.translateService.currentLang || 'he';
+    if (lang === 'en') {
+      return label.en;
+    }
+    if (lang === 'ar') {
+      return label.ar;
+    }
+    return label.he;
   }
 
   private isMobileCatalogViewport(): boolean {

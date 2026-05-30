@@ -27,6 +27,14 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="w-100">
+          <mat-label>{{ 'management.product-create.name-ar' | translate }}</mat-label>
+          <input matInput formControlName="name_ar" autocomplete="off" dir="rtl" />
+          <mat-error *ngIf="form.controls.name_ar.hasError('required')">
+            {{ 'management.product-create.name-ar-required' | translate }}
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-100">
           <mat-label>{{ 'management.product-create.category' | translate }}</mat-label>
           <mat-select formControlName="category">
             <mat-option *ngFor="let category of categories" [value]="category._id">

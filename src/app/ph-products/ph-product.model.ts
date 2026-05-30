@@ -4,6 +4,7 @@ export interface PhProduct {
   _id: string;
   name_he: string;
   name_en: string;
+  name_ar: string;
   category: PhCategory | string;
   subCategory: string;
 }
@@ -21,6 +22,7 @@ export interface PhCategoryGroup {
 export interface CreatePhProductPayload {
   name_he: string;
   name_en: string;
+  name_ar: string;
   category: string;
   subCategory: string;
 }
