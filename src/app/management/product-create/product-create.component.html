@@ -65,9 +65,21 @@
                 class="tree-node__header">
                 <div class="tree-node__header-body">
                   <div class="size-title-row">
-                    <span class="size-title-row__prefix">
-                      {{ 'management.product-create.size-number' | translate: { n: si + 1 } }}:
-                    </span>
+                    <div class="size-title-row__heading">
+                      <span class="size-title-row__prefix">
+                        {{ 'management.product-create.size-number' | translate: { n: si + 1 } }}
+                      </span>
+                      <span *ngIf="sizes.length > 1" class="tree-node__delete-wrap">
+                        <button
+                          mat-icon-button
+                          type="button"
+                          color="warn"
+                          class="tree-node__delete"
+                          (click)="removeSize(si)">
+                          <mat-icon>delete</mat-icon>
+                        </button>
+                      </span>
+                    </div>
                     <div
                       *ngIf="sizes.length === 1"
                       class="size-title-row__field size-title-row__field--readonly">
@@ -97,16 +109,6 @@
                     </div>
                   </div>
                 </div>
-                <span *ngIf="sizes.length > 1" class="tree-node__delete-wrap">
-                  <button
-                    mat-icon-button
-                    type="button"
-                    color="warn"
-                    class="tree-node__delete"
-                    (click)="removeSize(si)">
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                </span>
               </div>
 
               <div class="tree-node__fields tree-node__fields--under-title">
@@ -199,9 +201,21 @@
         class="tree-node__header">
         <div class="tree-node__header-body">
           <div class="size-title-row size-title-row--material">
-            <span class="size-title-row__prefix">
-              {{ 'management.product-create.material-number' | translate: { n: mi + 1 } }}:
-            </span>
+            <div class="size-title-row__heading">
+              <span class="size-title-row__prefix">
+                {{ 'management.product-create.material-number' | translate: { n: mi + 1 } }}
+              </span>
+              <span *ngIf="materials.length > 1" class="tree-node__delete-wrap">
+                <button
+                  mat-icon-button
+                  type="button"
+                  color="warn"
+                  class="tree-node__delete"
+                  (click)="removeMaterial(materials, mi, withDimensions)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </span>
+            </div>
             <div [formGroup]="$any(material.get('label'))" class="size-title-row__field">
               <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
                 <input
@@ -223,16 +237,6 @@
             </mat-form-field>
           </div>
         </div>
-        <span *ngIf="materials.length > 1" class="tree-node__delete-wrap">
-          <button
-            mat-icon-button
-            type="button"
-            color="warn"
-            class="tree-node__delete"
-            (click)="removeMaterial(materials, mi, withDimensions)">
-            <mat-icon>delete</mat-icon>
-          </button>
-        </span>
       </div>
 
       <div *ngIf="withDimensions" class="tree-node__fields tree-node__fields--under-title">
@@ -298,34 +302,38 @@
       <div class="tree-node__header">
         <div class="tree-node__header-body">
           <div class="size-title-row size-title-row--color">
-            <span class="size-title-row__prefix">
-              {{ 'management.product-create.color-number' | translate: { n: ci + 1 } }}:
-            </span>
-            <input type="color" formControlName="color" class="color-input" />
-            <div [formGroup]="$any(color.get('label'))" class="size-title-row__field">
-              <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
-                <input
-                  matInput
-                  formControlName="he"
-                  autocomplete="off"
-                  [placeholder]="'management.product-create.color-name-placeholder' | translate" />
-                <mat-error *ngIf="color.get('label')?.get('he')?.hasError('required')">
-                  {{ 'management.product-create.label-required' | translate }}
-                </mat-error>
-              </mat-form-field>
+            <div class="size-title-row__heading">
+              <span class="size-title-row__prefix">
+                {{ 'management.product-create.color-number' | translate: { n: ci + 1 } }}
+              </span>
+              <span *ngIf="colors.length > 1" class="tree-node__delete-wrap">
+                <button
+                  mat-icon-button
+                  type="button"
+                  color="warn"
+                  class="tree-node__delete"
+                  (click)="removeColor(colors, ci)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </span>
+            </div>
+            <div class="size-title-row__color-line">
+              <input type="color" formControlName="color" class="color-input" />
+              <div [formGroup]="$any(color.get('label'))" class="size-title-row__field">
+                <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
+                  <input
+                    matInput
+                    formControlName="he"
+                    autocomplete="off"
+                    [placeholder]="'management.product-create.color-name-placeholder' | translate" />
+                  <mat-error *ngIf="color.get('label')?.get('he')?.hasError('required')">
+                    {{ 'management.product-create.label-required' | translate }}
+                  </mat-error>
+                </mat-form-field>
+              </div>
             </div>
           </div>
         </div>
-        <span *ngIf="colors.length > 1" class="tree-node__delete-wrap">
-          <button
-            mat-icon-button
-            type="button"
-            color="warn"
-            class="tree-node__delete"
-            (click)="removeColor(colors, ci)">
-            <mat-icon>delete</mat-icon>
-          </button>
-        </span>
       </div>
     </div>
 

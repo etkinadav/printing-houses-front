@@ -186,7 +186,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     if (this.sizes.length === 1) {
       this.copyProductNameToSizeLabel(this.sizes.at(0));
     }
-    this.sizes.push(this.createSizeGroup());
+    const last = this.sizes.at(this.sizes.length - 1);
+    this.sizes.push(this.cloneSizeGroup(last));
     this.syncSizeLabelValidators();
     this.syncMaterialHeaderLabelValidators();
     this.scheduleRailSync();
@@ -208,7 +209,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   addMaterial(materials: FormArray, withDimensions = false): void {
-    materials.push(withDimensions ? this.createDynamicMaterialGroup() : this.createMaterialGroup());
+    const last = materials.at(materials.length - 1);
+    materials.push(this.cloneMaterialGroup(last, withDimensions));
     this.syncMaterialHeaderLabelValidators();
     this.scheduleRailSync();
   }
@@ -222,7 +224,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   addColor(colors: FormArray): void {
-    colors.push(this.createColorGroup());
+    const last = colors.at(colors.length - 1);
+    colors.push(this.cloneColorGroup(last));
     this.scheduleRailSync();
   }
 
@@ -474,52 +477,123 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     this.subCategories = category?.subCategories ?? [];
   }
 
-  private createLabelGroup(): FormGroup {
+  private createLabelGroup(label?: Partial<PhLabel>): FormGroup {
     return new FormGroup({
-      he: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
-      en: new FormControl<string>('', { nonNullable: true }),
-      ar: new FormControl<string>('', { nonNullable: true }),
-    });
-  }
-
-  private createColorGroup(): FormGroup {
-    return new FormGroup({
-      color: new FormControl<string>('#ffffff', {
+      he: new FormControl<string>(label?.he ?? '', {
         nonNullable: true,
         validators: [Validators.required],
       }),
-      label: this.createLabelGroup(),
+      en: new FormControl<string>(label?.en ?? '', { nonNullable: true }),
+      ar: new FormControl<string>(label?.ar ?? '', { nonNullable: true }),
     });
   }
 
-  private createMaterialGroup(): FormGroup {
+  private createColorGroup(color?: Partial<{ color: string; label: Partial<PhLabel> }>): FormGroup {
     return new FormGroup({
-      weight: new FormControl<number | null>(null, [Validators.required, Validators.min(0)]),
-      label: this.createLabelGroup(),
-      colors: new FormArray<FormGroup>([this.createColorGroup()]),
+      color: new FormControl<string>(color?.color ?? '#ffffff', {
+        nonNullable: true,
+        validators: [Validators.required],
+      }),
+      label: this.createLabelGroup(color?.label),
     });
   }
 
-  private createDynamicMaterialGroup(): FormGroup {
+  private cloneColorGroup(source: AbstractControl): FormGroup {
+    const raw = source.getRawValue() as { color: string; label: Partial<PhLabel> };
+    return this.createColorGroup(raw);
+  }
+
+  private createMaterialGroup(
+    material?: Partial<{
+      weight: number | null;
+      label: Partial<PhLabel>;
+      colors: Array<{ color: string; label: Partial<PhLabel> }>;
+    }>,
+  ): FormGroup {
+    const colors = material?.colors?.length
+      ? new FormArray<FormGroup>(material.colors.map((color) => this.createColorGroup(color)))
+      : new FormArray<FormGroup>([this.createColorGroup()]);
+
+    return new FormGroup({
+      weight: new FormControl<number | null>(material?.weight ?? null, [
+        Validators.required,
+        Validators.min(0),
+      ]),
+      label: this.createLabelGroup(material?.label),
+      colors,
+    });
+  }
+
+  private createDynamicMaterialGroup(
+    material?: Partial<{
+      weight: number | null;
+      label: Partial<PhLabel>;
+      minLength: number | null;
+      maxLength: number | null;
+      minHeight: number | null;
+      maxHeight: number | null;
+      colors: Array<{ color: string; label: Partial<PhLabel> }>;
+    }>,
+  ): FormGroup {
     const dimValidators = [Validators.required, Validators.min(0)];
+    const colors = material?.colors?.length
+      ? new FormArray<FormGroup>(material.colors.map((color) => this.createColorGroup(color)))
+      : new FormArray<FormGroup>([this.createColorGroup()]);
+
     return new FormGroup({
-      weight: new FormControl<number | null>(null, [Validators.required, Validators.min(0)]),
-      label: this.createLabelGroup(),
-      minLength: new FormControl<number | null>(null, dimValidators),
-      maxLength: new FormControl<number | null>(null, dimValidators),
-      minHeight: new FormControl<number | null>(null, dimValidators),
-      maxHeight: new FormControl<number | null>(null, dimValidators),
-      colors: new FormArray<FormGroup>([this.createColorGroup()]),
+      weight: new FormControl<number | null>(material?.weight ?? null, [
+        Validators.required,
+        Validators.min(0),
+      ]),
+      label: this.createLabelGroup(material?.label),
+      minLength: new FormControl<number | null>(material?.minLength ?? null, dimValidators),
+      maxLength: new FormControl<number | null>(material?.maxLength ?? null, dimValidators),
+      minHeight: new FormControl<number | null>(material?.minHeight ?? null, dimValidators),
+      maxHeight: new FormControl<number | null>(material?.maxHeight ?? null, dimValidators),
+      colors,
     });
   }
 
-  private createSizeGroup(): FormGroup {
+  private cloneMaterialGroup(source: AbstractControl, withDimensions: boolean): FormGroup {
+    const raw = source.getRawValue();
+    return withDimensions
+      ? this.createDynamicMaterialGroup(raw)
+      : this.createMaterialGroup(raw);
+  }
+
+  private createSizeGroup(
+    size?: Partial<{
+      length: number | null;
+      width: number | null;
+      label: Partial<PhLabel>;
+      materials: Array<{
+        weight: number | null;
+        label: Partial<PhLabel>;
+        colors: Array<{ color: string; label: Partial<PhLabel> }>;
+      }>;
+    }>,
+  ): FormGroup {
+    const materials = size?.materials?.length
+      ? new FormArray<FormGroup>(size.materials.map((material) => this.createMaterialGroup(material)))
+      : new FormArray<FormGroup>([this.createMaterialGroup()]);
+
     return new FormGroup({
-      length: new FormControl<number | null>(null, [Validators.required, Validators.min(0)]),
-      width: new FormControl<number | null>(null, [Validators.required, Validators.min(0)]),
-      label: this.createLabelGroup(),
-      materials: new FormArray<FormGroup>([this.createMaterialGroup()]),
+      length: new FormControl<number | null>(size?.length ?? null, [
+        Validators.required,
+        Validators.min(0),
+      ]),
+      width: new FormControl<number | null>(size?.width ?? null, [
+        Validators.required,
+        Validators.min(0),
+      ]),
+      label: this.createLabelGroup(size?.label),
+      materials,
     });
+  }
+
+  private cloneSizeGroup(source: AbstractControl): FormGroup {
+    const raw = source.getRawValue();
+    return this.createSizeGroup(raw);
   }
 
   private resolveLabel(label: PhLabel): string {

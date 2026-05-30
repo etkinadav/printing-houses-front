@@ -258,12 +258,9 @@
 
 .tree-node__delete-wrap {
   flex-shrink: 0;
-  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: var(--field-infix-height);
-  margin-bottom: calc(var(--field-subscript-reserve) + 4px);
 }
 
 .tree-node__delete {
@@ -324,13 +321,72 @@
   width: 100%;
 }
 
-.size-title-row__prefix {
+.size-title-row__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   flex: 0 0 100%;
   width: 100%;
+  position: relative;
+  line-height: 1.3;
+}
+
+.size-title-row__heading:has(.tree-node__delete-wrap) {
+  padding-inline-end: 1.25rem;
+}
+
+.size-title-row__prefix {
   color: var(--zx-green);
   font-weight: 600;
-  line-height: 1.3;
-  margin: 0 0 0.15rem;
+  line-height: inherit;
+  margin: 0;
+}
+
+.size-title-row__heading .tree-node__delete-wrap {
+  position: absolute;
+  inset-inline-end: 0;
+  top: 0;
+  height: 100%;
+  margin: 0;
+  pointer-events: none;
+}
+
+.size-title-row__heading .tree-node__delete {
+  pointer-events: auto;
+  width: 1.125rem;
+  height: 1.125rem;
+  padding: 0;
+  line-height: 1.125rem;
+  --mdc-icon-button-state-layer-size: 1.125rem;
+  --mdc-icon-button-icon-size: 1.125rem;
+}
+
+.size-title-row__heading .tree-node__delete .mat-icon {
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  line-height: 1.125rem;
+}
+
+:host ::ng-deep .size-title-row__heading .tree-node__delete.mat-mdc-icon-button .mat-mdc-button-touch-target {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.size-title-row__color-line {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 0.35rem 0.5rem;
+  flex: 0 0 100%;
+  width: 100%;
+  min-width: 0;
+}
+
+.size-title-row--color .size-title-row__field {
+  flex: 1;
+  min-width: 0;
 }
 
 .size-title-row__field--readonly input[readonly] {
@@ -343,8 +399,8 @@
 }
 
 .size-title-row__field {
-  flex: 1;
-  min-width: 160px;
+  flex: 1 1 100%;
+  min-width: 0;
   align-self: flex-start;
 }
 
@@ -358,7 +414,7 @@
 
 @media only screen and (min-width: 576px) {
   .size-title-row--material .size-title-row__field {
-    flex: 1;
+    flex: 1 1 auto;
     min-width: 0;
   }
 
