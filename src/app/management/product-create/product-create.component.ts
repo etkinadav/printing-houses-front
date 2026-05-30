@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit } from '@angular/core';
 import {
   AbstractControl,
   FormArray,
@@ -27,7 +27,7 @@ import {
     class: 'fill-screen',
   },
 })
-export class ProductCreateComponent implements OnInit, OnDestroy {
+export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit {
   isRTL = true;
   isDarkMode = false;
   isLoading = true;
@@ -69,6 +69,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
   private categorySub?: Subscription;
   private flexabilitySub?: Subscription;
   private propertyTreeGateSub?: Subscription;
+  private railResizeObserver?: ResizeObserver;
 
   constructor(
     private phCategoriesService: PhCategoriesService,
@@ -76,6 +77,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
     private directionService: DirectionService,
     private translateService: TranslateService,
     private snackBar: MatSnackBar,
+    private elementRef: ElementRef<HTMLElement>,
   ) {}
 
   ngOnInit(): void {
@@ -124,6 +126,13 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
     this.categorySub?.unsubscribe();
     this.flexabilitySub?.unsubscribe();
     this.propertyTreeGateSub?.unsubscribe();
+    this.railResizeObserver?.disconnect();
+  }
+
+  ngAfterViewInit(): void {
+    this.railResizeObserver = new ResizeObserver(() => this.syncTreeRailHeights());
+    this.observeTreeRailFooters();
+    this.scheduleRailSync();
   }
 
   get canShowPropertyTree(): boolean {
@@ -180,6 +189,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
     this.sizes.push(this.createSizeGroup());
     this.syncSizeLabelValidators();
     this.syncMaterialHeaderLabelValidators();
+    this.scheduleRailSync();
   }
 
   private copyProductNameToSizeLabel(sizeGroup: AbstractControl): void {
@@ -193,28 +203,33 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
       this.sizes.removeAt(index);
       this.syncSizeLabelValidators();
       this.syncMaterialHeaderLabelValidators();
+      this.scheduleRailSync();
     }
   }
 
   addMaterial(materials: FormArray, withDimensions = false): void {
     materials.push(withDimensions ? this.createDynamicMaterialGroup() : this.createMaterialGroup());
     this.syncMaterialHeaderLabelValidators();
+    this.scheduleRailSync();
   }
 
   removeMaterial(materials: FormArray, index: number, withDimensions = false): void {
     if (materials.length > 1) {
       materials.removeAt(index);
       this.syncMaterialHeaderLabelValidators();
+      this.scheduleRailSync();
     }
   }
 
   addColor(colors: FormArray): void {
     colors.push(this.createColorGroup());
+    this.scheduleRailSync();
   }
 
   removeColor(colors: FormArray, index: number): void {
     if (colors.length > 1) {
       colors.removeAt(index);
+      this.scheduleRailSync();
     }
   }
 
@@ -419,6 +434,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
 
     if (this.canShowPropertyTree) {
       this.applyFlexabilityState(this.flexabilityControl.value);
+      this.scheduleRailSync();
     } else {
       fixed.disable({ emitEvent: false });
       dynamic.disable({ emitEvent: false });
@@ -515,5 +531,36 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
       return label.ar;
     }
     return label.he;
+  }
+
+  private scheduleRailSync(): void {
+    queueMicrotask(() => {
+      this.observeTreeRailFooters();
+      this.syncTreeRailHeights();
+    });
+  }
+
+  private observeTreeRailFooters(): void {
+    if (!this.railResizeObserver) {
+      return;
+    }
+
+    this.railResizeObserver.disconnect();
+    const root = this.elementRef.nativeElement;
+    root.querySelectorAll('.tree-branch__footer').forEach((footer) => {
+      this.railResizeObserver?.observe(footer);
+    });
+  }
+
+  private syncTreeRailHeights(): void {
+    const root = this.elementRef.nativeElement;
+    root.querySelectorAll<HTMLElement>('.tree-branch').forEach((branch) => {
+      const footer = branch.querySelector<HTMLElement>('.tree-branch__footer');
+      if (!footer) {
+        return;
+      }
+
+      branch.style.setProperty('--tree-add-btn-height', `${footer.offsetHeight}px`);
+    });
   }
 }
