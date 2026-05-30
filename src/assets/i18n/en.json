@@ -34,6 +34,8 @@
 	"management.product-create.dimensions-flexability": "Dimensions flexibility",
 	"management.product-create.tree-size": "Size",
 	"management.product-create.size-number": "Size {{n}}",
+	"management.product-create.material-number": "Material {{n}}",
+	"management.product-create.color-number": "Color {{n}}",
 	"management.product-create.tree-material": "Material",
 	"management.product-create.tree-color": "Color",
 	"management.product-create.sizes": "Sizes",

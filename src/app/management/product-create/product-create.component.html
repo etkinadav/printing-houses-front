@@ -179,13 +179,23 @@
       class="tree-node tree-node--material">
       <div class="tree-node__header">
         <div class="tree-node__header-body">
-          <span class="tree-node__badge">{{ 'management.product-create.tree-material' | translate }}</span>
-          <ng-container
-            *ngTemplateOutlet="labelBlock; context: {
-              $implicit: material.get('label'),
-              labelKey: 'management.product-create.material-name-placeholder'
-            }">
-          </ng-container>
+          <div class="size-title-row">
+            <span class="size-title-row__prefix">
+              {{ 'management.product-create.material-number' | translate: { n: mi + 1 } }}:
+            </span>
+            <div [formGroup]="$any(material.get('label'))" class="size-title-row__field">
+              <mat-form-field appearance="outline" class="w-100">
+                <input
+                  matInput
+                  formControlName="he"
+                  autocomplete="off"
+                  [placeholder]="'management.product-create.material-name-placeholder' | translate" />
+                <mat-error *ngIf="material.get('label')?.get('he')?.hasError('required')">
+                  {{ 'management.product-create.label-required' | translate }}
+                </mat-error>
+              </mat-form-field>
+            </div>
+          </div>
         </div>
         <button
           mat-icon-button
@@ -253,15 +263,25 @@
       [formGroup]="$any(color)"
       class="tree-node tree-node--color">
       <div class="tree-node__header">
-        <div class="tree-node__header-body tree-node__header-body--color">
-          <span class="tree-node__badge">{{ 'management.product-create.tree-color' | translate }}</span>
-          <input type="color" formControlName="color" class="color-input" />
-          <ng-container
-            *ngTemplateOutlet="labelBlock; context: {
-              $implicit: color.get('label'),
-              labelKey: 'management.product-create.color-name-placeholder'
-            }">
-          </ng-container>
+        <div class="tree-node__header-body">
+          <div class="size-title-row size-title-row--color">
+            <span class="size-title-row__prefix">
+              {{ 'management.product-create.color-number' | translate: { n: ci + 1 } }}:
+            </span>
+            <input type="color" formControlName="color" class="color-input" />
+            <div [formGroup]="$any(color.get('label'))" class="size-title-row__field">
+              <mat-form-field appearance="outline" class="w-100">
+                <input
+                  matInput
+                  formControlName="he"
+                  autocomplete="off"
+                  [placeholder]="'management.product-create.color-name-placeholder' | translate" />
+                <mat-error *ngIf="color.get('label')?.get('he')?.hasError('required')">
+                  {{ 'management.product-create.label-required' | translate }}
+                </mat-error>
+              </mat-form-field>
+            </div>
+          </div>
         </div>
         <button
           mat-icon-button

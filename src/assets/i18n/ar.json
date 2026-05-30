@@ -34,6 +34,8 @@
     "management.product-create.dimensions-flexability": "مرونة الأبعاد",
     "management.product-create.tree-size": "حجم",
     "management.product-create.size-number": "حجم {{n}}",
+    "management.product-create.material-number": "مادة {{n}}",
+    "management.product-create.color-number": "لون {{n}}",
     "management.product-create.tree-material": "مادة",
     "management.product-create.tree-color": "لون",
     "management.product-create.sizes": "المقاسات",

@@ -34,6 +34,8 @@
     "management.product-create.dimensions-flexability": "גמישות גדלים",
     "management.product-create.tree-size": "גודל",
     "management.product-create.size-number": "גודל {{n}}",
+    "management.product-create.material-number": "חומר {{n}}",
+    "management.product-create.color-number": "צבע {{n}}",
     "management.product-create.tree-material": "חומר",
     "management.product-create.tree-color": "צבע",
     "management.product-create.sizes": "גדלים",

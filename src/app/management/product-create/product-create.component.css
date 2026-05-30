@@ -116,25 +116,8 @@
   gap: 0.15rem;
 }
 
-.tree-node__header-body--color {
-  flex-direction: row;
-  flex-wrap: wrap;
+.size-title-row--color {
   align-items: center;
-  gap: 0.5rem;
-}
-
-.tree-node__header-body--color .label-block {
-  flex: 1;
-  min-width: 140px;
-}
-
-.tree-node__badge {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  opacity: 0.65;
-  line-height: 1.2;
 }
 
 .tree-node__delete {
