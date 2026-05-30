@@ -153,13 +153,6 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getProductDisplayName(product: PhProduct): string {
-    const lang = this.translateService.currentLang || 'he';
-    if (lang === 'en') {
-      return product.name_en;
-    }
-    if (lang === 'ar') {
-      return product.name_ar;
-    }
     return product.name_he;
   }
 

@@ -16,6 +16,7 @@ import { PhCategory, PhLabel, PhSubCategory } from '../../ph-categories/ph-categ
 import { PhProductsService } from '../../ph-products/ph-products.service';
 import {
   DimensionsFlexability,
+  PhProductLabel,
   PhProductProperties,
 } from '../../ph-products/ph-product.model';
 
@@ -40,8 +41,6 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       nonNullable: true,
       validators: [Validators.required, Validators.minLength(1), Validators.maxLength(120)],
     }),
-    name_en: new FormControl<string>('', { nonNullable: true }),
-    name_ar: new FormControl<string>('', { nonNullable: true }),
     category: new FormControl<string>('', {
       nonNullable: true,
       validators: [Validators.required],
@@ -196,7 +195,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   private copyProductNameToSizeLabel(sizeGroup: AbstractControl): void {
     const name = this.getProductNameForSize();
     const labelGroup = sizeGroup.get('label') as FormGroup;
-    labelGroup.patchValue({ he: name, en: name, ar: name }, { emitEvent: false });
+    labelGroup.patchValue({ he: name }, { emitEvent: false });
   }
 
   removeSize(index: number): void {
@@ -257,8 +256,6 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     this.phProductsService
       .createProduct({
         name_he: name,
-        name_en: name,
-        name_ar: name,
         category: value.category,
         subCategory: value.subCategory,
         properties: this.buildProperties(),
@@ -330,22 +327,22 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     }));
   }
 
-  private readLabel(labelGroup: AbstractControl): PhLabel {
+  private readLabel(labelGroup: AbstractControl): PhProductLabel {
     const he = String(labelGroup.get('he')!.value ?? '').trim();
-    return { he, en: he, ar: he };
+    return { he };
   }
 
   getProductNameForSize(): string {
     return String(this.form.controls.name_he.value ?? '').trim();
   }
 
-  private productNameLabel(): PhLabel {
+  private productNameLabel(): PhProductLabel {
     const name = this.getProductNameForSize();
-    return { he: name, en: name, ar: name };
+    return { he: name };
   }
 
   /** Fixed sizes: single size has no name input — persist product name as size label. */
-  private readSizeLabelForSave(labelGroup: AbstractControl): PhLabel {
+  private readSizeLabelForSave(labelGroup: AbstractControl): PhProductLabel {
     if (this.sizes.length === 1) {
       return this.productNameLabel();
     }
@@ -353,7 +350,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   /** Dynamic: single material has no name input — persist product name as material label. */
-  private readMaterialLabelForSave(materialGroup: AbstractControl, materials: FormArray): PhLabel {
+  private readMaterialLabelForSave(materialGroup: AbstractControl, materials: FormArray): PhProductLabel {
     if (this.flexability === 'dynamic' && materials.length === 1) {
       return this.productNameLabel();
     }
@@ -402,7 +399,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         heControl.setValidators([Validators.required]);
       } else {
         heControl.clearValidators();
-        labelGroup.patchValue({ he: '', en: '', ar: '' }, { emitEvent: false });
+        labelGroup.patchValue({ he: '' }, { emitEvent: false });
       }
 
       heControl.updateValueAndValidity({ emitEvent: false });
@@ -419,8 +416,6 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
     this.form.reset({
       name_he: '',
-      name_en: '',
-      name_ar: '',
       category: '',
       subCategory: '',
       properties: {
@@ -477,18 +472,16 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     this.subCategories = category?.subCategories ?? [];
   }
 
-  private createLabelGroup(label?: Partial<PhLabel>): FormGroup {
+  private createLabelGroup(label?: Partial<PhProductLabel>): FormGroup {
     return new FormGroup({
       he: new FormControl<string>(label?.he ?? '', {
         nonNullable: true,
         validators: [Validators.required],
       }),
-      en: new FormControl<string>(label?.en ?? '', { nonNullable: true }),
-      ar: new FormControl<string>(label?.ar ?? '', { nonNullable: true }),
     });
   }
 
-  private createColorGroup(color?: Partial<{ color: string; label: Partial<PhLabel> }>): FormGroup {
+  private createColorGroup(color?: Partial<{ color: string; label: Partial<PhProductLabel> }>): FormGroup {
     return new FormGroup({
       color: new FormControl<string>(color?.color ?? '#ffffff', {
         nonNullable: true,
@@ -499,15 +492,15 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   private cloneColorGroup(source: AbstractControl): FormGroup {
-    const raw = source.getRawValue() as { color: string; label: Partial<PhLabel> };
+    const raw = source.getRawValue() as { color: string; label: Partial<PhProductLabel> };
     return this.createColorGroup(raw);
   }
 
   private createMaterialGroup(
     material?: Partial<{
       weight: number | null;
-      label: Partial<PhLabel>;
-      colors: Array<{ color: string; label: Partial<PhLabel> }>;
+      label: Partial<PhProductLabel>;
+      colors: Array<{ color: string; label: Partial<PhProductLabel> }>;
     }>,
   ): FormGroup {
     const colors = material?.colors?.length
@@ -527,12 +520,12 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   private createDynamicMaterialGroup(
     material?: Partial<{
       weight: number | null;
-      label: Partial<PhLabel>;
+      label: Partial<PhProductLabel>;
       minLength: number | null;
       maxLength: number | null;
       minHeight: number | null;
       maxHeight: number | null;
-      colors: Array<{ color: string; label: Partial<PhLabel> }>;
+      colors: Array<{ color: string; label: Partial<PhProductLabel> }>;
     }>,
   ): FormGroup {
     const dimValidators = [Validators.required, Validators.min(0)];
@@ -565,11 +558,11 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     size?: Partial<{
       length: number | null;
       width: number | null;
-      label: Partial<PhLabel>;
+      label: Partial<PhProductLabel>;
       materials: Array<{
         weight: number | null;
-        label: Partial<PhLabel>;
-        colors: Array<{ color: string; label: Partial<PhLabel> }>;
+        label: Partial<PhProductLabel>;
+        colors: Array<{ color: string; label: Partial<PhProductLabel> }>;
       }>;
     }>,
   ): FormGroup {

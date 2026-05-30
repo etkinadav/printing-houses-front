@@ -170,8 +170,8 @@
             type="submit"
             [disabled]="isSaving || form.invalid"
             class="tree-add-btn tree-add-btn--block text-white rounded-pill">
-            <mat-spinner *ngIf="isSaving" diameter="20" class="d-inline-block me-2"></mat-spinner>
-            {{ 'management.product-create.save' | translate }}
+            <mat-spinner *ngIf="isSaving" diameter="20" class="d-inline-block"></mat-spinner>
+            <span *ngIf="!isSaving">{{ 'management.product-create.save' | translate }}</span>
           </button>
         </div>
       </form>
