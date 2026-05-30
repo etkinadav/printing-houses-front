@@ -44,8 +44,6 @@
 
         <!-- Properties -->
         <div class="properties-section">
-          <h3 class="section-title">{{ 'management.product-create.properties' | translate }}</h3>
-
           <mat-form-field appearance="outline" class="w-100">
             <mat-label>{{ 'management.product-create.dimensions-flexability' | translate }}</mat-label>
             <mat-select [formControl]="flexabilityControl">
@@ -54,68 +52,83 @@
             </mat-select>
           </mat-form-field>
 
-          <!-- FIXED -->
-          <div *ngIf="flexability === 'fixed'" class="d-flex flex-column gap-3">
-            <span class="nested-subtitle">{{ 'management.product-create.sizes' | translate }}</span>
+          <ng-container *ngIf="canShowPropertyTree">
+          <!-- FIXED: tree of sizes → materials → colors -->
+          <div *ngIf="flexability === 'fixed'" class="property-tree">
+            <div
+              *ngFor="let sizeGroup of sizes.controls; let si = index"
+              [formGroup]="$any(sizeGroup)"
+              class="tree-node tree-node--size">
+              <div class="tree-node__header">
+                <mat-icon class="tree-node__icon tree-node__icon--size">straighten</mat-icon>
+                <div class="tree-node__header-body">
+                  <span class="tree-node__badge">{{ 'management.product-create.tree-size' | translate }}</span>
 
-            <div *ngFor="let sizeGroup of sizes.controls; let si = index" [formGroup]="$any(sizeGroup)" class="nested-item size-item">
-              <div *ngIf="sizes.length === 1" class="size-name-from-product mb-2">
-                <span class="size-name-from-product__label">{{ 'management.product-create.size-name-placeholder' | translate }}</span>
-                <span class="size-name-from-product__value">{{ getProductNameForSize() }}</span>
-              </div>
+                  <div *ngIf="sizes.length === 1" class="size-name-from-product">
+                    <span class="size-name-from-product__value">{{ getProductNameForSize() }}</span>
+                  </div>
 
-              <div *ngIf="sizes.length > 1" class="d-flex align-items-start gap-2 mb-2">
-                <ng-container
-                  *ngTemplateOutlet="labelBlock; context: {
-                    $implicit: sizeGroup.get('label'),
-                    labelKey: 'management.product-create.size-name-placeholder'
-                  }">
-                </ng-container>
+                  <ng-container *ngIf="sizes.length > 1">
+                    <ng-container
+                      *ngTemplateOutlet="labelBlock; context: {
+                        $implicit: sizeGroup.get('label'),
+                        labelKey: 'management.product-create.size-name-placeholder'
+                      }">
+                    </ng-container>
+                  </ng-container>
+                </div>
                 <button
+                  *ngIf="sizes.length > 1"
                   mat-icon-button
                   type="button"
                   color="warn"
-                  class="flex-shrink-0"
+                  class="tree-node__delete"
                   (click)="removeSize(si)">
                   <mat-icon>delete</mat-icon>
                 </button>
               </div>
 
-              <div class="d-flex gap-2">
-                <mat-form-field appearance="outline" class="w-50">
-                  <mat-label>{{ 'management.product-create.length' | translate }}</mat-label>
-                  <input matInput type="number" formControlName="length" />
-                </mat-form-field>
-                <mat-form-field appearance="outline" class="w-50">
-                  <mat-label>{{ 'management.product-create.width' | translate }}</mat-label>
-                  <input matInput type="number" formControlName="width" />
-                </mat-form-field>
+              <div class="tree-node__fields">
+                <div class="d-flex gap-2">
+                  <mat-form-field appearance="outline" class="w-50">
+                    <mat-label>{{ 'management.product-create.length' | translate }}</mat-label>
+                    <input matInput type="number" formControlName="length" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="w-50">
+                    <mat-label>{{ 'management.product-create.width' | translate }}</mat-label>
+                    <input matInput type="number" formControlName="width" />
+                  </mat-form-field>
+                </div>
               </div>
 
-              <span class="nested-subtitle mt-2">{{ 'management.product-create.materials' | translate }}</span>
-              <ng-container
-                *ngTemplateOutlet="materialsBlock; context: { $implicit: getMaterials(sizeGroup) }">
-              </ng-container>
+              <div class="tree-node__children">
+                <ng-container
+                  *ngTemplateOutlet="materialsTree; context: {
+                    $implicit: getMaterials(sizeGroup),
+                    withDimensions: false
+                  }">
+                </ng-container>
+              </div>
             </div>
 
-            <div>
-              <button mat-stroked-button color="primary" type="button" (click)="addSize()">
-                <mat-icon>add</mat-icon>
-                {{ 'management.product-create.add-size' | translate }}
-              </button>
-            </div>
+            <button mat-stroked-button color="primary" type="button" class="tree-add-btn" (click)="addSize()">
+              <mat-icon>add</mat-icon>
+              {{ 'management.product-create.add-size' | translate }}
+            </button>
           </div>
 
-          <!-- DYNAMIC -->
-          <div *ngIf="flexability === 'dynamic'" [formGroup]="dynamicGroup" class="d-flex flex-column gap-2">
-            <span class="nested-subtitle">{{ 'management.product-create.materials' | translate }}</span>
+          <!-- DYNAMIC: tree of materials → colors -->
+          <div *ngIf="flexability === 'dynamic'" [formGroup]="dynamicGroup" class="property-tree">
+            <div class="property-tree__root-label">{{ 'management.product-create.materials' | translate }}</div>
             <ng-container
-              *ngTemplateOutlet="materialsBlock; context: {
+              *ngTemplateOutlet="materialsTree; context: {
                 $implicit: dynamicMaterials,
-                withDimensions: true
+                withDimensions: true,
+                isRoot: true
               }">
             </ng-container>
           </div>
+          </ng-container>
         </div>
 
         <div class="d-flex justify-content-end">
@@ -134,7 +147,6 @@
   </mat-card>
 </div>
 
-<!-- Reusable label block: UI shows Hebrew only; en/ar kept in form for future i18n -->
 <ng-template #labelBlock let-labelGroup let-labelKey="labelKey">
   <div [formGroup]="$any(labelGroup)" class="label-block flex-grow-1 w-100">
     <mat-form-field appearance="outline" class="w-100">
@@ -151,91 +163,115 @@
   </div>
 </ng-template>
 
-<!-- Reusable materials block (receives a FormArray of materials) -->
-<ng-template #materialsBlock let-materials let-withDimensions="withDimensions">
-  <div class="nested-list d-flex flex-column gap-2">
-    <div *ngFor="let material of materials.controls; let mi = index" [formGroup]="$any(material)" class="nested-item material-item">
-      <div class="d-flex align-items-start gap-2 mb-2">
-        <ng-container
-          *ngTemplateOutlet="labelBlock; context: {
-            $implicit: material.get('label'),
-            labelKey: 'management.product-create.material-name-placeholder'
-          }">
-        </ng-container>
+<ng-template #materialsTree let-materials let-withDimensions="withDimensions" let-isRoot="isRoot">
+  <div class="tree-branch tree-branch--materials" [class.tree-branch--root]="isRoot">
+    <div
+      *ngFor="let material of materials.controls; let mi = index"
+      [formGroup]="$any(material)"
+      class="tree-node tree-node--material">
+      <div class="tree-node__header">
+        <mat-icon class="tree-node__icon tree-node__icon--material">layers</mat-icon>
+        <div class="tree-node__header-body">
+          <span class="tree-node__badge">{{ 'management.product-create.tree-material' | translate }}</span>
+          <ng-container
+            *ngTemplateOutlet="labelBlock; context: {
+              $implicit: material.get('label'),
+              labelKey: 'management.product-create.material-name-placeholder'
+            }">
+          </ng-container>
+        </div>
         <button
           mat-icon-button
           type="button"
           color="warn"
-          class="flex-shrink-0"
+          class="tree-node__delete"
           (click)="removeMaterial(materials, mi)"
           [disabled]="materials.length <= 1">
           <mat-icon>delete</mat-icon>
         </button>
       </div>
 
-      <mat-form-field appearance="outline" class="w-100">
-        <mat-label>{{ 'management.product-create.weight' | translate }}</mat-label>
-        <input matInput type="number" formControlName="weight" />
-      </mat-form-field>
+      <div class="tree-node__fields">
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>{{ 'management.product-create.weight' | translate }}</mat-label>
+          <input matInput type="number" formControlName="weight" />
+        </mat-form-field>
 
-      <ng-container *ngIf="withDimensions">
-        <div class="d-flex gap-2">
-          <mat-form-field appearance="outline" class="w-50">
-            <mat-label>{{ 'management.product-create.min-length' | translate }}</mat-label>
-            <input matInput type="number" formControlName="minLength" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="w-50">
-            <mat-label>{{ 'management.product-create.max-length' | translate }}</mat-label>
-            <input matInput type="number" formControlName="maxLength" />
-          </mat-form-field>
-        </div>
-        <div class="d-flex gap-2">
-          <mat-form-field appearance="outline" class="w-50">
-            <mat-label>{{ 'management.product-create.min-height' | translate }}</mat-label>
-            <input matInput type="number" formControlName="minHeight" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="w-50">
-            <mat-label>{{ 'management.product-create.max-height' | translate }}</mat-label>
-            <input matInput type="number" formControlName="maxHeight" />
-          </mat-form-field>
-        </div>
-      </ng-container>
+        <ng-container *ngIf="withDimensions">
+          <div class="d-flex gap-2">
+            <mat-form-field appearance="outline" class="w-50">
+              <mat-label>{{ 'management.product-create.min-length' | translate }}</mat-label>
+              <input matInput type="number" formControlName="minLength" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="w-50">
+              <mat-label>{{ 'management.product-create.max-length' | translate }}</mat-label>
+              <input matInput type="number" formControlName="maxLength" />
+            </mat-form-field>
+          </div>
+          <div class="d-flex gap-2">
+            <mat-form-field appearance="outline" class="w-50">
+              <mat-label>{{ 'management.product-create.min-height' | translate }}</mat-label>
+              <input matInput type="number" formControlName="minHeight" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="w-50">
+              <mat-label>{{ 'management.product-create.max-height' | translate }}</mat-label>
+              <input matInput type="number" formControlName="maxHeight" />
+            </mat-form-field>
+          </div>
+        </ng-container>
+      </div>
 
-      <span class="nested-subtitle">{{ 'management.product-create.colors' | translate }}</span>
-      <div *ngFor="let color of getColors(material).controls; let ci = index" [formGroup]="$any(color)" class="nested-item color-item">
-        <div class="d-flex align-items-start gap-2 mb-2">
-          <input type="color" formControlName="color" class="color-input flex-shrink-0 mt-2" />
+      <div class="tree-node__children">
+        <ng-container
+          *ngTemplateOutlet="colorsTree; context: { $implicit: getColors(material) }">
+        </ng-container>
+      </div>
+    </div>
+
+    <button
+      mat-stroked-button
+      type="button"
+      class="tree-add-btn tree-add-btn--child"
+      (click)="addMaterial(materials, withDimensions)">
+      <mat-icon>add</mat-icon>
+      {{ 'management.product-create.add-material' | translate }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #colorsTree let-colors>
+  <div class="tree-branch tree-branch--colors">
+    <div
+      *ngFor="let color of colors.controls; let ci = index"
+      [formGroup]="$any(color)"
+      class="tree-node tree-node--color">
+      <div class="tree-node__header">
+        <mat-icon class="tree-node__icon tree-node__icon--color">palette</mat-icon>
+        <div class="tree-node__header-body tree-node__header-body--color">
+          <span class="tree-node__badge">{{ 'management.product-create.tree-color' | translate }}</span>
+          <input type="color" formControlName="color" class="color-input" />
           <ng-container
             *ngTemplateOutlet="labelBlock; context: {
               $implicit: color.get('label'),
               labelKey: 'management.product-create.color-name-placeholder'
             }">
           </ng-container>
-          <button
-            mat-icon-button
-            type="button"
-            color="warn"
-            class="flex-shrink-0"
-            (click)="removeColor(getColors(material), ci)"
-            [disabled]="getColors(material).length <= 1">
-            <mat-icon>delete</mat-icon>
-          </button>
         </div>
-      </div>
-
-      <div>
-        <button mat-stroked-button type="button" (click)="addColor(getColors(material))">
-          <mat-icon>add</mat-icon>
-          {{ 'management.product-create.add-color' | translate }}
+        <button
+          mat-icon-button
+          type="button"
+          color="warn"
+          class="tree-node__delete"
+          (click)="removeColor(colors, ci)"
+          [disabled]="colors.length <= 1">
+          <mat-icon>delete</mat-icon>
         </button>
       </div>
     </div>
 
-    <div>
-      <button mat-stroked-button color="primary" type="button" (click)="addMaterial(materials, withDimensions)">
-        <mat-icon>add</mat-icon>
-        {{ 'management.product-create.add-material' | translate }}
-      </button>
-    </div>
+    <button mat-stroked-button type="button" class="tree-add-btn tree-add-btn--child" (click)="addColor(colors)">
+      <mat-icon>add</mat-icon>
+      {{ 'management.product-create.add-color' | translate }}
+    </button>
   </div>
 </ng-template>
