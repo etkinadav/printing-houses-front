@@ -156,13 +156,13 @@
           </ng-container>
         </div>
 
-        <div class="d-flex justify-content-end">
+        <div class="product-create-save">
           <button
             mat-raised-button
             color="primary"
             type="submit"
             [disabled]="isSaving || form.invalid"
-            class="text-white">
+            class="tree-add-btn tree-add-btn--block text-white rounded-pill">
             <mat-spinner *ngIf="isSaving" diameter="20" class="d-inline-block me-2"></mat-spinner>
             {{ 'management.product-create.save' | translate }}
           </button>
