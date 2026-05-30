@@ -303,10 +303,14 @@ export class ProductCreateComponent implements OnInit, OnDestroy {
     return String(this.form.controls.name_he.value ?? '').trim();
   }
 
+  private productNameLabel(): PhLabel {
+    const name = this.getProductNameForSize();
+    return { he: name, en: name, ar: name };
+  }
+
   private readSizeLabel(labelGroup: AbstractControl): PhLabel {
     if (this.sizes.length <= 1) {
-      const name = this.getProductNameForSize();
-      return { he: name, en: name, ar: name };
+      return this.productNameLabel();
     }
     return this.readLabel(labelGroup);
   }

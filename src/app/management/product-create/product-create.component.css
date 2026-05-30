@@ -73,6 +73,12 @@
   border-radius: 8px;
 }
 
+.tree-node--size,
+.tree-node--material,
+.tree-node--color {
+  --tree-rail-width: 2px;
+}
+
 .tree-node--size {
   position: relative;
   padding: 0.75rem;
@@ -80,15 +86,21 @@
   background: transparent;
 }
 
-.tree-node--size::before {
+.tree-node--size::before,
+.tree-node--material::before,
+.tree-node--color::before {
   content: '';
   position: absolute;
   inset-inline-start: 0.4rem;
+  width: 0;
+  border-inline-start: var(--tree-rail-width, 2px) solid var(--zx-green);
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.tree-node--size::before {
   top: 0.75rem;
   bottom: 0.75rem;
-  width: 2px;
-  border-radius: 1px;
-  background: rgba(63, 81, 181, 0.55);
 }
 
 .tree-node--material {
@@ -99,14 +111,8 @@
 }
 
 .tree-node--material::before {
-  content: '';
-  position: absolute;
-  inset-inline-start: 0.4rem;
   top: 0.65rem;
   bottom: 0.65rem;
-  width: 2px;
-  border-radius: 1px;
-  background: rgba(0, 150, 136, 0.55);
 }
 
 .tree-node--color {
@@ -118,14 +124,8 @@
 }
 
 .tree-node--color::before {
-  content: '';
-  position: absolute;
-  inset-inline-start: 0.4rem;
   top: 0.5rem;
   bottom: 0.5rem;
-  width: 2px;
-  border-radius: 1px;
-  background: rgba(126, 87, 194, 0.55);
 }
 
 .tree-node__children {
@@ -226,18 +226,6 @@
 }
 
 /* Dark mode */
-.text-white .tree-node--size::before {
-  background: rgba(121, 134, 203, 0.65);
-}
-
-.text-white .tree-node--material::before {
-  background: rgba(77, 182, 172, 0.65);
-}
-
-.text-white .tree-node--color::before {
-  background: rgba(186, 154, 229, 0.65);
-}
-
 .text-white .color-input {
   border-color: rgba(255, 255, 255, 0.3);
 }
