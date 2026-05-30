@@ -198,7 +198,7 @@
         *ngIf="materials.length > 1 || !withDimensions"
         class="tree-node__header">
         <div class="tree-node__header-body">
-          <div class="size-title-row">
+          <div class="size-title-row size-title-row--material">
             <span class="size-title-row__prefix">
               {{ 'management.product-create.material-number' | translate: { n: mi + 1 } }}:
             </span>
@@ -214,29 +214,38 @@
                 </mat-error>
               </mat-form-field>
             </div>
+            <mat-form-field
+              appearance="outline"
+              subscriptSizing="fixed"
+              class="material-weight-field">
+              <mat-label>{{ 'management.product-create.weight' | translate }}</mat-label>
+              <input matInput type="number" formControlName="weight" />
+            </mat-form-field>
           </div>
         </div>
-        <span class="tree-node__delete-wrap">
+        <span *ngIf="materials.length > 1" class="tree-node__delete-wrap">
           <button
             mat-icon-button
             type="button"
             color="warn"
             class="tree-node__delete"
-            (click)="removeMaterial(materials, mi, withDimensions)"
-            [disabled]="materials.length <= 1">
+            (click)="removeMaterial(materials, mi, withDimensions)">
             <mat-icon>delete</mat-icon>
           </button>
         </span>
       </div>
 
-      <div class="tree-node__fields tree-node__fields--under-title">
-        <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
+      <div *ngIf="withDimensions" class="tree-node__fields tree-node__fields--under-title">
+        <mat-form-field
+          *ngIf="materials.length === 1"
+          appearance="outline"
+          subscriptSizing="fixed"
+          class="w-100 material-weight-field material-weight-field--solo">
           <mat-label>{{ 'management.product-create.weight' | translate }}</mat-label>
           <input matInput type="number" formControlName="weight" />
         </mat-form-field>
 
-        <ng-container *ngIf="withDimensions">
-          <div class="d-flex gap-2">
+        <div class="d-flex gap-2">
             <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-50">
               <mat-label>{{ 'management.product-create.min-length' | translate }}</mat-label>
               <input matInput type="number" formControlName="minLength" />
@@ -256,7 +265,6 @@
               <input matInput type="number" formControlName="maxHeight" />
             </mat-form-field>
           </div>
-        </ng-container>
       </div>
 
       <div class="tree-node__children" [class.tree-node__children--from-material-title]="withDimensions">
@@ -308,14 +316,13 @@
             </div>
           </div>
         </div>
-        <span class="tree-node__delete-wrap">
+        <span *ngIf="colors.length > 1" class="tree-node__delete-wrap">
           <button
             mat-icon-button
             type="button"
             color="warn"
             class="tree-node__delete"
-            (click)="removeColor(colors, ci)"
-            [disabled]="colors.length <= 1">
+            (click)="removeColor(colors, ci)">
             <mat-icon>delete</mat-icon>
           </button>
         </span>

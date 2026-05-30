@@ -331,6 +331,33 @@
   align-self: flex-start;
 }
 
+.material-weight-field {
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+  align-self: flex-start;
+  margin: 0;
+}
+
+@media only screen and (min-width: 576px) {
+  .size-title-row--material {
+    flex-wrap: nowrap;
+  }
+
+  .size-title-row--material .material-weight-field:not(.material-weight-field--solo) {
+    flex: 0 0 5.5rem;
+    width: 5.5rem;
+    max-width: 5.5rem;
+    --mat-form-field-container-height: 40px;
+    --mat-form-field-container-vertical-padding: 8px;
+    font-size: 0.875rem;
+  }
+
+  .size-title-row--material .material-weight-field:not(.material-weight-field--solo) .mdc-floating-label {
+    font-size: 0.8125rem;
+  }
+}
+
 .size-title-row__field .mat-mdc-form-field {
   width: 100%;
   margin: 0;
