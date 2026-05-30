@@ -10,7 +10,7 @@
       </div>
 
       <form *ngIf="!isLoading" [formGroup]="form" (ngSubmit)="onSave()" class="d-flex flex-column gap-3 mt-3">
-        <mat-form-field appearance="outline" class="w-100">
+        <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
           <mat-label>{{ 'management.product-create.name' | translate }}</mat-label>
           <input matInput formControlName="name_he" autocomplete="off" />
           <mat-error *ngIf="form.controls.name_he.hasError('required')">
@@ -18,7 +18,7 @@
           </mat-error>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="w-100">
+        <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
           <mat-label>{{ 'management.product-create.category' | translate }}</mat-label>
           <mat-select formControlName="category">
             <mat-option *ngFor="let category of categories" [value]="category._id">
@@ -30,7 +30,7 @@
           </mat-error>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="w-100">
+        <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
           <mat-label>{{ 'management.product-create.subcategory' | translate }}</mat-label>
           <mat-select formControlName="subCategory" [disabled]="!form.controls.category.value">
             <mat-option *ngFor="let sub of subCategories" [value]="sub.key">
@@ -44,7 +44,7 @@
 
         <!-- Properties -->
         <div class="properties-section">
-          <mat-form-field appearance="outline" class="w-100">
+          <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
             <mat-label>{{ 'management.product-create.dimensions-flexability' | translate }}</mat-label>
             <mat-select [formControl]="flexabilityControl">
               <mat-option value="fixed">{{ 'properties.dimensionsFlexability.fixed' | translate }}</mat-option>
@@ -68,7 +68,7 @@
                     <div
                       *ngIf="sizes.length === 1"
                       class="size-title-row__field size-title-row__field--readonly">
-                      <mat-form-field appearance="outline" class="w-100">
+                      <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
                         <input
                           matInput
                           [formControl]="productNameControl"
@@ -81,7 +81,7 @@
                       *ngIf="sizes.length > 1"
                       [formGroup]="$any(sizeGroup.get('label'))"
                       class="size-title-row__field">
-                      <mat-form-field appearance="outline" class="w-100">
+                      <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
                         <input
                           matInput
                           formControlName="he"
@@ -107,11 +107,11 @@
 
               <div class="tree-node__fields tree-node__fields--under-title">
                 <div class="d-flex gap-2">
-                  <mat-form-field appearance="outline" class="w-50">
+                  <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-50">
                     <mat-label>{{ 'management.product-create.length' | translate }}</mat-label>
                     <input matInput type="number" formControlName="length" />
                   </mat-form-field>
-                  <mat-form-field appearance="outline" class="w-50">
+                  <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-50">
                     <mat-label>{{ 'management.product-create.width' | translate }}</mat-label>
                     <input matInput type="number" formControlName="width" />
                   </mat-form-field>
@@ -166,7 +166,7 @@
 
 <ng-template #labelBlock let-labelGroup let-labelKey="labelKey">
   <div [formGroup]="$any(labelGroup)" class="label-block flex-grow-1 w-100">
-    <mat-form-field appearance="outline" class="w-100">
+    <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
       <mat-label>{{ labelKey | translate }}</mat-label>
       <input
         matInput
@@ -193,7 +193,7 @@
               {{ 'management.product-create.material-number' | translate: { n: mi + 1 } }}:
             </span>
             <div [formGroup]="$any(material.get('label'))" class="size-title-row__field">
-              <mat-form-field appearance="outline" class="w-100">
+              <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
                 <input
                   matInput
                   formControlName="he"
@@ -218,28 +218,28 @@
       </div>
 
       <div class="tree-node__fields tree-node__fields--under-title">
-        <mat-form-field appearance="outline" class="w-100">
+        <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
           <mat-label>{{ 'management.product-create.weight' | translate }}</mat-label>
           <input matInput type="number" formControlName="weight" />
         </mat-form-field>
 
         <ng-container *ngIf="withDimensions">
           <div class="d-flex gap-2">
-            <mat-form-field appearance="outline" class="w-50">
+            <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-50">
               <mat-label>{{ 'management.product-create.min-length' | translate }}</mat-label>
               <input matInput type="number" formControlName="minLength" />
             </mat-form-field>
-            <mat-form-field appearance="outline" class="w-50">
+            <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-50">
               <mat-label>{{ 'management.product-create.max-length' | translate }}</mat-label>
               <input matInput type="number" formControlName="maxLength" />
             </mat-form-field>
           </div>
           <div class="d-flex gap-2">
-            <mat-form-field appearance="outline" class="w-50">
+            <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-50">
               <mat-label>{{ 'management.product-create.min-height' | translate }}</mat-label>
               <input matInput type="number" formControlName="minHeight" />
             </mat-form-field>
-            <mat-form-field appearance="outline" class="w-50">
+            <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-50">
               <mat-label>{{ 'management.product-create.max-height' | translate }}</mat-label>
               <input matInput type="number" formControlName="maxHeight" />
             </mat-form-field>
@@ -279,7 +279,7 @@
             </span>
             <input type="color" formControlName="color" class="color-input" />
             <div [formGroup]="$any(color.get('label'))" class="size-title-row__field">
-              <mat-form-field appearance="outline" class="w-100">
+              <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
                 <input
                   matInput
                   formControlName="he"
