@@ -7,6 +7,7 @@ import { TAndCComponent } from './legal/t-and-c/t-and-c.component';
 import { PrivacyPolicyComponent } from './legal/privacy-policy/privacy-policy.component';
 import { MyProfileComponent } from './my-profile/my-profile.component';
 import { ProductCreateComponent } from './management/product-create/product-create.component';
+import { CategoryEditComponent } from './management/category-edit/category-edit.component';
 
 import { AuthGuard } from './auth/auth.guard';
 
@@ -26,6 +27,7 @@ const routes: Routes = [
     { path: 'social', component: SocialComponent },
 
     { path: 'management/product-create', component: ProductCreateComponent },
+    { path: 'management/category-edit', component: CategoryEditComponent },
 
     { path: '**', redirectTo: '/' },
 ];

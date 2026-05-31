@@ -1,0 +1,141 @@
+<div class="category-edit-page px-3 py-4" [class.zx-rtl]="isRTL" [class.text-white]="isDarkMode">
+  <mat-card class="category-edit-card mx-auto">
+    <mat-card-header>
+      <mat-card-title>{{ 'management.category-edit.title' | translate }}</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div *ngIf="isLoading" class="d-flex justify-content-center py-5">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
+
+      <form *ngIf="!isLoading" [formGroup]="form" (ngSubmit)="onSave()" class="d-flex flex-column gap-3 mt-3">
+        <div class="property-tree">
+          <div class="tree-branch tree-branch--categories">
+            <div
+              *ngFor="let categoryGroup of categories.controls; let ci = index"
+              [formGroup]="$any(categoryGroup)"
+              class="tree-node tree-node--category">
+              <div class="tree-node__header">
+                <div class="tree-node__header-body">
+                  <div class="size-title-row">
+                    <div class="size-title-row__heading">
+                      <span class="size-title-row__prefix">
+                        {{ 'management.category-edit.category-number' | translate: { n: ci + 1 } }}
+                      </span>
+                      <span *ngIf="categories.length > 1" class="tree-node__delete-wrap">
+                        <button
+                          mat-icon-button
+                          type="button"
+                          color="warn"
+                          class="tree-node__delete"
+                          (click)="removeCategory(ci)">
+                          <mat-icon>delete</mat-icon>
+                        </button>
+                      </span>
+                    </div>
+                    <div [formGroup]="$any(categoryGroup.get('label'))" class="size-title-row__field">
+                      <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
+                        <input
+                          matInput
+                          formControlName="he"
+                          autocomplete="off"
+                          [placeholder]="'management.category-edit.category-name-placeholder' | translate" />
+                        <mat-error *ngIf="categoryGroup.get('label')?.get('he')?.hasError('required')">
+                          {{ 'management.category-edit.category-name-required' | translate }}
+                        </mat-error>
+                      </mat-form-field>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tree-node__children tree-node__children--from-category-title">
+                <div class="tree-branch tree-branch--subcategories">
+                  <div
+                    *ngFor="let subCategoryGroup of getSubCategories(categoryGroup).controls; let si = index"
+                    [formGroup]="$any(subCategoryGroup)"
+                    class="tree-node tree-node--subcategory">
+                    <div class="tree-node__header">
+                      <div class="tree-node__header-body">
+                        <div class="size-title-row size-title-row--subcategory">
+                          <div class="size-title-row__heading">
+                            <span class="size-title-row__prefix">
+                              {{ 'management.category-edit.subcategory-number' | translate: { n: si + 1 } }}
+                            </span>
+                            <span
+                              *ngIf="getSubCategories(categoryGroup).length > 1"
+                              class="tree-node__delete-wrap">
+                              <button
+                                mat-icon-button
+                                type="button"
+                                color="warn"
+                                class="tree-node__delete"
+                                (click)="removeSubCategory(categoryGroup, si)">
+                                <mat-icon>delete</mat-icon>
+                              </button>
+                            </span>
+                          </div>
+                          <div [formGroup]="$any(subCategoryGroup.get('label'))" class="size-title-row__field">
+                            <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
+                              <input
+                                matInput
+                                formControlName="he"
+                                autocomplete="off"
+                                [placeholder]="'management.category-edit.subcategory-name-placeholder' | translate" />
+                              <mat-error *ngIf="subCategoryGroup.get('label')?.get('he')?.hasError('required')">
+                                {{ 'management.category-edit.subcategory-name-required' | translate }}
+                              </mat-error>
+                            </mat-form-field>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="tree-branch__footer">
+                    <span class="tree-branch__rail-end" aria-hidden="true"></span>
+                    <button
+                      mat-raised-button
+                      color="primary"
+                      type="button"
+                      class="tree-add-btn text-white rounded-pill"
+                      (click)="addSubCategory(categoryGroup)">
+                      <mat-icon>add</mat-icon>
+                      {{ 'management.category-edit.add-subcategory' | translate }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="tree-branch__footer">
+              <span class="tree-branch__rail-end" aria-hidden="true"></span>
+              <button
+                mat-raised-button
+                color="primary"
+                type="button"
+                class="tree-add-btn text-white rounded-pill"
+                (click)="addCategory()">
+                <mat-icon>add</mat-icon>
+                {{ 'management.category-edit.add-category' | translate }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="category-edit-save">
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
+            [disabled]="isSaving || form.invalid"
+            class="tree-add-btn tree-add-btn--block text-white rounded-pill">
+            <mat-spinner *ngIf="isSaving" diameter="20" class="d-inline-block"></mat-spinner>
+            <span *ngIf="!isSaving">{{ 'management.category-edit.save' | translate }}</span>
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -29,6 +29,21 @@
         </div>
       </a>
 
+      <a
+        *ngIf="canManageProducts()"
+        tabindex="0"
+        role="button"
+        class="my-tab-focus"
+        mat-list-item
+        (click)="goToEditCategories()">
+        <div class="w-100 h-100 d-flex align-items-center gap-2">
+          <mat-icon>category</mat-icon>
+          <span class="mat-list-item-small">
+            {{ 'main-nav.manage-categories' | translate }}
+          </span>
+        </div>
+      </a>
+
       <div class="spacer"></div>
 
       <!--  Set language  + Set Theme + Terms of Use + Privacy Policy -->
@@ -246,6 +261,16 @@
                     (click)="goToCreateProduct()">
                     <span class="mat-list-item-small">
                       {{ 'main-nav.create-product' | translate }}
+                    </span>
+                  </button>
+
+                  <button
+                    *ngIf="canManageProducts()"
+                    class="justify-content-start"
+                    mat-menu-item
+                    (click)="goToEditCategories()">
+                    <span class="mat-list-item-small">
+                      {{ 'main-nav.edit-categories' | translate }}
                     </span>
                   </button>
 

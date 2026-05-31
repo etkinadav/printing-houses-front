@@ -320,6 +320,12 @@ export class MainNavComponent implements OnInit, OnDestroy {
     this.router.navigate(['/management/product-create']);
   }
 
+  goToEditCategories() {
+    this.closeDrawer();
+    this.closeProfileManu();
+    this.router.navigate(['/management/category-edit']);
+  }
+
   updateGreeting() {
     const currentHour = new Date().getHours();
     if (currentHour >= 6 && currentHour < 12) {
