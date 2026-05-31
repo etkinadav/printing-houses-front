@@ -265,6 +265,24 @@
 
 .tree-node__delete {
   flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  padding: 0;
+  line-height: 1.125rem;
+  --mdc-icon-button-state-layer-size: 1.125rem;
+  --mdc-icon-button-icon-size: 1.125rem;
+}
+
+.tree-node__delete .mat-icon {
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  line-height: 1.125rem;
+}
+
+:host ::ng-deep .tree-node__delete.mat-mdc-icon-button .mat-mdc-button-touch-target {
+  width: 1.125rem;
+  height: 1.125rem;
 }
 
 .tree-node__fields {
@@ -426,35 +444,11 @@
 .corners-node__heading {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 0.5rem;
   width: 100%;
-  position: relative;
   line-height: 1.3;
   margin-bottom: 0.35rem;
-}
-
-.corners-node__heading:has(.tree-node__delete-wrap) {
-  padding-inline-end: 1.25rem;
-}
-
-.corners-node__heading .tree-node__delete-wrap {
-  position: absolute;
-  inset-inline-end: 0;
-  top: 0;
-  height: 100%;
-  margin: 0;
-  pointer-events: none;
-}
-
-.corners-node__heading .tree-node__delete {
-  pointer-events: auto;
-  width: 1.125rem;
-  height: 1.125rem;
-  padding: 0;
-  line-height: 1.125rem;
-  --mdc-icon-button-state-layer-size: 1.125rem;
-  --mdc-icon-button-icon-size: 1.125rem;
 }
 
 .corners-node__prefix {
@@ -600,35 +594,11 @@
 .bleed-node__heading {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 0.5rem;
   width: 100%;
-  position: relative;
   line-height: 1.3;
   margin-bottom: 0.35rem;
-}
-
-.bleed-node__heading:has(.tree-node__delete-wrap) {
-  padding-inline-end: 1.25rem;
-}
-
-.bleed-node__heading .tree-node__delete-wrap {
-  position: absolute;
-  inset-inline-end: 0;
-  top: 0;
-  height: 100%;
-  margin: 0;
-  pointer-events: none;
-}
-
-.bleed-node__heading .tree-node__delete {
-  pointer-events: auto;
-  width: 1.125rem;
-  height: 1.125rem;
-  padding: 0;
-  line-height: 1.125rem;
-  --mdc-icon-button-state-layer-size: 1.125rem;
-  --mdc-icon-button-icon-size: 1.125rem;
 }
 
 .bleed-node__prefix {
@@ -729,16 +699,11 @@
 .size-title-row__heading {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 0.5rem;
   flex: 0 0 100%;
   width: 100%;
-  position: relative;
   line-height: 1.3;
-}
-
-.size-title-row__heading:has(.tree-node__delete-wrap) {
-  padding-inline-end: 1.25rem;
 }
 
 .size-title-row__prefix {
@@ -746,37 +711,6 @@
   font-weight: 600;
   line-height: inherit;
   margin: 0;
-}
-
-.size-title-row__heading .tree-node__delete-wrap {
-  position: absolute;
-  inset-inline-end: 0;
-  top: 0;
-  height: 100%;
-  margin: 0;
-  pointer-events: none;
-}
-
-.size-title-row__heading .tree-node__delete {
-  pointer-events: auto;
-  width: 1.125rem;
-  height: 1.125rem;
-  padding: 0;
-  line-height: 1.125rem;
-  --mdc-icon-button-state-layer-size: 1.125rem;
-  --mdc-icon-button-icon-size: 1.125rem;
-}
-
-.size-title-row__heading .tree-node__delete .mat-icon {
-  font-size: 1.125rem;
-  width: 1.125rem;
-  height: 1.125rem;
-  line-height: 1.125rem;
-}
-
-:host ::ng-deep .size-title-row__heading .tree-node__delete.mat-mdc-icon-button .mat-mdc-button-touch-target {
-  width: 1.125rem;
-  height: 1.125rem;
 }
 
 .size-title-row__color-line {
