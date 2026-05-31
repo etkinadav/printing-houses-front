@@ -384,6 +384,9 @@
     <ng-container *ngIf="isExtraSettingSelected(group, 'bleed')">
       <ng-container *ngTemplateOutlet="bleedBranch; context: { $implicit: group }"></ng-container>
     </ng-container>
+    <ng-container *ngIf="isExtraSettingSelected(group, 'folding')">
+      <ng-container *ngTemplateOutlet="foldingBranch; context: { $implicit: group }"></ng-container>
+    </ng-container>
     <div class="extra-settings-row">
       <button
         mat-raised-button
@@ -506,6 +509,54 @@
         (click)="addBleed(group)">
         <mat-icon>add</mat-icon>
         {{ 'management.product-create.add-bleed' | translate }}
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #foldingBranch let-group>
+  <div class="folding-branch">
+    <div
+      *ngFor="let folding of getFoldings(group).controls; let fi = index"
+      [formGroup]="$any(folding)"
+      class="folding-node">
+      <div class="folding-node__heading">
+        <span class="folding-node__prefix">
+          {{ 'management.product-create.folding-number' | translate: { n: fi + 1 } }}
+        </span>
+        <span class="tree-node__delete-wrap">
+          <button
+            mat-icon-button
+            type="button"
+            color="warn"
+            class="tree-node__delete"
+            (click)="removeFolding(group, fi)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </span>
+      </div>
+      <div class="folding-node__fields">
+        <mat-form-field appearance="outline" subscriptSizing="fixed" class="folding-node__field folding-node__field--count">
+          <mat-label>{{ 'management.product-create.folding-count' | translate }}</mat-label>
+          <input matInput type="number" step="1" min="1" formControlName="count" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="fixed" class="folding-node__field folding-node__field--offset">
+          <mat-label>{{ 'management.product-create.folding-offset' | translate }}</mat-label>
+          <input matInput type="number" formControlName="offset" />
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div class="folding-branch__footer">
+      <span class="folding-branch__rail-end" aria-hidden="true"></span>
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        class="folding-add-btn text-white rounded-pill"
+        (click)="addFolding(group)">
+        <mat-icon>add</mat-icon>
+        {{ 'management.product-create.add-folding' | translate }}
       </button>
     </div>
   </div>

@@ -265,6 +265,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       if (key === 'bleed') {
         this.getBleeds(group).clear();
       }
+      if (key === 'folding') {
+        this.getFoldings(group).clear();
+      }
     } else {
       current.push(key);
       if (key === 'corners' && this.getCorners(group).length === 0) {
@@ -273,9 +276,12 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       if (key === 'bleed' && this.getBleeds(group).length === 0) {
         this.getBleeds(group).push(this.createBleedGroup());
       }
+      if (key === 'folding' && this.getFoldings(group).length === 0) {
+        this.getFoldings(group).push(this.createFoldingGroup());
+      }
     }
     control.setValue(current);
-    if (key === 'corners' || key === 'bleed') {
+    if (key === 'corners' || key === 'bleed' || key === 'folding') {
       this.scheduleRailSync();
     }
   }
@@ -322,6 +328,29 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       return;
     }
     bleeds.removeAt(index);
+    this.scheduleRailSync();
+  }
+
+  getFoldings(group: AbstractControl): FormArray {
+    return group.get('foldings') as FormArray;
+  }
+
+  addFolding(group: AbstractControl): void {
+    const foldings = this.getFoldings(group);
+    const last = foldings.at(foldings.length - 1);
+    foldings.push(this.cloneFoldingGroup(last));
+    this.scheduleRailSync();
+  }
+
+  removeFolding(group: AbstractControl, index: number): void {
+    const foldings = this.getFoldings(group);
+    if (foldings.length <= 1) {
+      foldings.clear();
+      this.uncheckExtraSetting(group, 'folding');
+      this.scheduleRailSync();
+      return;
+    }
+    foldings.removeAt(index);
     this.scheduleRailSync();
   }
 
@@ -604,6 +633,31 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     return this.createBleedGroup(source.getRawValue());
   }
 
+  private createFoldingsArray(
+    foldings?: Array<{ count: number; offset: number | null }>,
+  ): FormArray<FormGroup> {
+    if (!foldings?.length) {
+      return new FormArray<FormGroup>([]);
+    }
+    return new FormArray<FormGroup>(foldings.map((folding) => this.createFoldingGroup(folding)));
+  }
+
+  private createFoldingGroup(
+    folding?: Partial<{ count: number; offset: number | null }>,
+  ): FormGroup {
+    return new FormGroup({
+      count: new FormControl<number>(folding?.count ?? 1, {
+        nonNullable: true,
+        validators: [Validators.required, Validators.min(1)],
+      }),
+      offset: new FormControl<number | null>(folding?.offset ?? 0),
+    });
+  }
+
+  private cloneFoldingGroup(source: AbstractControl): FormGroup {
+    return this.createFoldingGroup(source.getRawValue());
+  }
+
   private createLabelGroup(label?: Partial<PhProductLabel>): FormGroup {
     return new FormGroup({
       he: new FormControl<string>(label?.he ?? '', {
@@ -620,6 +674,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings?: ExtraSettingKey[];
       corners?: Array<{ type: CornerType; radius: number | null }>;
       bleeds?: Array<{ size: number | null }>;
+      foldings?: Array<{ count: number; offset: number | null }>;
     }>,
   ): FormGroup {
     return new FormGroup({
@@ -631,6 +686,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings: this.createExtraSettingsControl(color?.extraSettings),
       corners: this.createCornersArray(color?.corners),
       bleeds: this.createBleedsArray(color?.bleeds),
+      foldings: this.createFoldingsArray(color?.foldings),
     });
   }
 
@@ -641,6 +697,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings?: ExtraSettingKey[];
       corners?: Array<{ type: CornerType; radius: number | null }>;
       bleeds?: Array<{ size: number | null }>;
+      foldings?: Array<{ count: number; offset: number | null }>;
     };
     return this.createColorGroup(raw);
   }
@@ -652,12 +709,14 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings?: ExtraSettingKey[];
       corners?: Array<{ type: CornerType; radius: number | null }>;
       bleeds?: Array<{ size: number | null }>;
+      foldings?: Array<{ count: number; offset: number | null }>;
       colors: Array<{
         color: string;
         label: Partial<PhProductLabel>;
         extraSettings?: ExtraSettingKey[];
         corners?: Array<{ type: CornerType; radius: number | null }>;
         bleeds?: Array<{ size: number | null }>;
+        foldings?: Array<{ count: number; offset: number | null }>;
       }>;
     }>,
   ): FormGroup {
@@ -674,6 +733,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings: this.createExtraSettingsControl(material?.extraSettings),
       corners: this.createCornersArray(material?.corners),
       bleeds: this.createBleedsArray(material?.bleeds),
+      foldings: this.createFoldingsArray(material?.foldings),
       colors,
     });
   }
@@ -685,6 +745,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings?: ExtraSettingKey[];
       corners?: Array<{ type: CornerType; radius: number | null }>;
       bleeds?: Array<{ size: number | null }>;
+      foldings?: Array<{ count: number; offset: number | null }>;
       minLength: number | null;
       maxLength: number | null;
       minHeight: number | null;
@@ -695,6 +756,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         extraSettings?: ExtraSettingKey[];
         corners?: Array<{ type: CornerType; radius: number | null }>;
         bleeds?: Array<{ size: number | null }>;
+        foldings?: Array<{ count: number; offset: number | null }>;
       }>;
     }>,
   ): FormGroup {
@@ -712,6 +774,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings: this.createExtraSettingsControl(material?.extraSettings),
       corners: this.createCornersArray(material?.corners),
       bleeds: this.createBleedsArray(material?.bleeds),
+      foldings: this.createFoldingsArray(material?.foldings),
       minLength: new FormControl<number | null>(material?.minLength ?? null, dimValidators),
       maxLength: new FormControl<number | null>(material?.maxLength ?? null, dimValidators),
       minHeight: new FormControl<number | null>(material?.minHeight ?? null, dimValidators),
@@ -735,18 +798,21 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings?: ExtraSettingKey[];
       corners?: Array<{ type: CornerType; radius: number | null }>;
       bleeds?: Array<{ size: number | null }>;
+      foldings?: Array<{ count: number; offset: number | null }>;
       materials: Array<{
         weight: number | null;
         label: Partial<PhProductLabel>;
         extraSettings?: ExtraSettingKey[];
         corners?: Array<{ type: CornerType; radius: number | null }>;
         bleeds?: Array<{ size: number | null }>;
+        foldings?: Array<{ count: number; offset: number | null }>;
         colors: Array<{
           color: string;
           label: Partial<PhProductLabel>;
           extraSettings?: ExtraSettingKey[];
           corners?: Array<{ type: CornerType; radius: number | null }>;
           bleeds?: Array<{ size: number | null }>;
+          foldings?: Array<{ count: number; offset: number | null }>;
         }>;
       }>;
     }>,
@@ -768,6 +834,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings: this.createExtraSettingsControl(size?.extraSettings),
       corners: this.createCornersArray(size?.corners),
       bleeds: this.createBleedsArray(size?.bleeds),
+      foldings: this.createFoldingsArray(size?.foldings),
       materials,
     });
   }
@@ -803,7 +870,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
     this.railResizeObserver.disconnect();
     const root = this.elementRef.nativeElement;
-    root.querySelectorAll('.tree-branch__footer, .corners-branch__footer, .bleed-branch__footer').forEach((footer) => {
+    root.querySelectorAll('.tree-branch__footer, .corners-branch__footer, .bleed-branch__footer, .folding-branch__footer').forEach((footer) => {
       this.railResizeObserver?.observe(footer);
     });
   }
@@ -819,9 +886,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       branch.style.setProperty('--tree-add-btn-height', `${footer.offsetHeight}px`);
     });
 
-    root.querySelectorAll<HTMLElement>('.corners-branch, .bleed-branch').forEach((branch) => {
-      const footer = branch.querySelector<HTMLElement>('.corners-branch__footer, .bleed-branch__footer');
-      const railEnd = branch.querySelector<HTMLElement>('.corners-branch__rail-end, .bleed-branch__rail-end');
+    root.querySelectorAll<HTMLElement>('.corners-branch, .bleed-branch, .folding-branch').forEach((branch) => {
+      const footer = branch.querySelector<HTMLElement>('.corners-branch__footer, .bleed-branch__footer, .folding-branch__footer');
+      const railEnd = branch.querySelector<HTMLElement>('.corners-branch__rail-end, .bleed-branch__rail-end, .folding-branch__rail-end');
       if (!footer) {
         return;
       }
