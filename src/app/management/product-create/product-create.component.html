@@ -52,7 +52,6 @@
             </mat-select>
           </mat-form-field>
 
-          <ng-container *ngIf="canShowPropertyTree">
           <!-- FIXED: tree of sizes → materials → colors -->
           <div *ngIf="flexability === 'fixed'" class="property-tree">
             <div class="tree-branch tree-branch--sizes">
@@ -161,7 +160,6 @@
               }">
             </ng-container>
           </div>
-          </ng-container>
         </div>
 
         <div class="product-create-save">

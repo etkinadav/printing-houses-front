@@ -8,7 +8,7 @@ import {
 } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
-import { merge, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
 
 import { DirectionService } from '../../direction.service';
 import { PhCategoriesService } from '../../ph-categories/ph-categories.service';
@@ -70,7 +70,6 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   private darkModeSub?: Subscription;
   private categorySub?: Subscription;
   private flexabilitySub?: Subscription;
-  private propertyTreeGateSub?: Subscription;
   private railResizeObserver?: ResizeObserver;
 
   constructor(
@@ -93,13 +92,6 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     this.categorySub = this.form.controls.category.valueChanges.subscribe((categoryId) => {
       this.onCategoryChange(categoryId);
     });
-
-    this.propertyTreeGateSub = merge(
-      this.form.controls.name_he.valueChanges,
-      this.form.controls.category.valueChanges,
-      this.form.controls.subCategory.valueChanges,
-    ).subscribe(() => this.syncPropertyTreeVisibility());
-    this.syncPropertyTreeVisibility();
 
     this.sizes.push(this.createSizeGroup());
     this.dynamicMaterials.push(this.createDynamicMaterialGroup());
@@ -127,7 +119,6 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     this.darkModeSub?.unsubscribe();
     this.categorySub?.unsubscribe();
     this.flexabilitySub?.unsubscribe();
-    this.propertyTreeGateSub?.unsubscribe();
     this.railResizeObserver?.disconnect();
   }
 
@@ -135,13 +126,6 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     this.railResizeObserver = new ResizeObserver(() => this.syncTreeRailHeights());
     this.observeTreeRailFooters();
     this.scheduleRailSync();
-  }
-
-  get canShowPropertyTree(): boolean {
-    const name = String(this.form.controls.name_he.value ?? '').trim();
-    const category = String(this.form.controls.category.value ?? '').trim();
-    const subCategory = String(this.form.controls.subCategory.value ?? '').trim();
-    return !!name && !!category && !!subCategory;
   }
 
   get propertiesGroup(): FormGroup {
@@ -539,31 +523,13 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       },
     });
     this.subCategories = [];
-    this.syncPropertyTreeVisibility();
-  }
-
-  private syncPropertyTreeVisibility(): void {
-    const fixed = this.propertiesGroup.get('fixed')!;
-    const dynamic = this.propertiesGroup.get('dynamic')!;
-
-    if (this.canShowPropertyTree) {
-      this.applyFlexabilityState(this.flexabilityControl.value);
-      this.scheduleRailSync();
-    } else {
-      fixed.disable({ emitEvent: false });
-      dynamic.disable({ emitEvent: false });
-    }
+    this.applyFlexabilityState(this.flexabilityControl.value);
+    this.scheduleRailSync();
   }
 
   private applyFlexabilityState(value: DimensionsFlexability): void {
     const fixed = this.propertiesGroup.get('fixed')!;
     const dynamic = this.propertiesGroup.get('dynamic')!;
-
-    if (!this.canShowPropertyTree) {
-      fixed.disable({ emitEvent: false });
-      dynamic.disable({ emitEvent: false });
-      return;
-    }
 
     if (value === 'fixed') {
       fixed.enable({ emitEvent: false });
