@@ -1,7 +1,8 @@
 import { PhCategory } from '../ph-categories/ph-category.model';
 
 export type DimensionsFlexability = 'fixed' | 'dynamic';
-export type ExtraSettingKey = 'corners' | 'bleed' | 'folding' | 'duplex';
+export type ExtraSettingKey = 'corners' | 'bleed' | 'folding' | 'duplex' | 'double-sided';
+export type DoubleSidedMode = 'required' | 'optional';
 export type CornerType = 'rounded' | 'chamfer';
 
 export interface PhProductLabel {

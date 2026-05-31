@@ -388,6 +388,9 @@
     <ng-container *ngIf="isExtraSettingSelected(group, 'duplex')">
       <ng-container *ngTemplateOutlet="duplexBranch; context: { $implicit: group }"></ng-container>
     </ng-container>
+    <ng-container *ngIf="isExtraSettingSelected(group, 'double-sided')">
+      <ng-container *ngTemplateOutlet="doubleSidedBranch; context: { $implicit: group }"></ng-container>
+    </ng-container>
     <div class="extra-settings-row">
       <button
         mat-raised-button
@@ -603,6 +606,44 @@
         <mat-icon>add</mat-icon>
         {{ 'management.product-create.add-duplex' | translate }}
       </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #doubleSidedBranch let-group>
+  <div class="double-sided-branch">
+    <div class="double-sided-node" [formGroup]="getDoubleSided(group)">
+      <div class="double-sided-node__heading">
+        <span class="double-sided-node__prefix">
+          {{ 'management.product-create.extra-settings.double-sided' | translate }}
+        </span>
+        <span class="tree-node__delete-wrap">
+          <button
+            mat-icon-button
+            type="button"
+            color="warn"
+            class="tree-node__delete"
+            (click)="removeDoubleSided(group)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </span>
+      </div>
+      <div class="double-sided-node__field">
+        <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
+          <mat-select formControlName="mode">
+            <mat-option value="required">
+              {{ 'management.product-create.double-sided-required' | translate }}
+            </mat-option>
+            <mat-option value="optional">
+              {{ 'management.product-create.double-sided-optional' | translate }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div class="double-sided-branch__footer">
+      <span class="double-sided-branch__rail-end" aria-hidden="true"></span>
     </div>
   </div>
 </ng-template>

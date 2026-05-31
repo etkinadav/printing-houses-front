@@ -16,6 +16,7 @@ import { PhCategory, PhLabel, PhSubCategory } from '../../ph-categories/ph-categ
 import { PhProductsService } from '../../ph-products/ph-products.service';
 import {
   CornerType,
+  DoubleSidedMode,
   DimensionsFlexability,
   ExtraSettingKey,
   PhProductLabel,
@@ -37,7 +38,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   isSaving = false;
   categories: PhCategory[] = [];
   subCategories: PhSubCategory[] = [];
-  readonly extraSettingOptions: ExtraSettingKey[] = ['corners', 'bleed', 'folding', 'duplex'];
+  readonly extraSettingOptions: ExtraSettingKey[] = ['corners', 'bleed', 'folding', 'duplex', 'double-sided'];
 
   form = new FormGroup({
     name_he: new FormControl<string>('', {
@@ -255,6 +256,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       if (key === 'duplex') {
         this.getDuplexes(group).clear();
       }
+      if (key === 'double-sided') {
+        this.getDoubleSided(group).reset({ mode: 'optional' });
+      }
     } else {
       current.push(key);
       if (key === 'corners' && this.getCorners(group).length === 0) {
@@ -271,7 +275,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       }
     }
     control.setValue(current);
-    if (key === 'corners' || key === 'bleed' || key === 'folding' || key === 'duplex') {
+    if (key === 'corners' || key === 'bleed' || key === 'folding' || key === 'duplex' || key === 'double-sided') {
       this.scheduleRailSync();
     }
   }
@@ -341,6 +345,16 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       return;
     }
     duplexes.removeAt(index);
+    this.scheduleRailSync();
+  }
+
+  getDoubleSided(group: AbstractControl): FormGroup {
+    return group.get('doubleSided') as FormGroup;
+  }
+
+  removeDoubleSided(group: AbstractControl): void {
+    this.getDoubleSided(group).reset({ mode: 'optional' });
+    this.uncheckExtraSetting(group, 'double-sided');
     this.scheduleRailSync();
   }
 
@@ -647,6 +661,16 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     return this.createDuplexGroup(source.getRawValue());
   }
 
+  private createDoubleSidedGroup(
+    doubleSided?: Partial<{ mode: DoubleSidedMode }>,
+  ): FormGroup {
+    return new FormGroup({
+      mode: new FormControl<DoubleSidedMode>(doubleSided?.mode ?? 'optional', {
+        nonNullable: true,
+      }),
+    });
+  }
+
   private createFoldingsArray(
     foldings?: Array<{ count: number; offset: number | null }>,
   ): FormArray<FormGroup> {
@@ -690,6 +714,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       bleeds?: Array<{ size: number | null }>;
       duplexes?: Array<{ size: number | null }>;
       foldings?: Array<{ count: number; offset: number | null }>;
+      doubleSided?: Partial<{ mode: DoubleSidedMode }>;
     }>,
   ): FormGroup {
     return new FormGroup({
@@ -703,6 +728,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       bleeds: this.createBleedsArray(color?.bleeds),
       duplexes: this.createDuplexesArray(color?.duplexes),
       foldings: this.createFoldingsArray(color?.foldings),
+      doubleSided: this.createDoubleSidedGroup(color?.doubleSided),
     });
   }
 
@@ -715,6 +741,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       bleeds?: Array<{ size: number | null }>;
       duplexes?: Array<{ size: number | null }>;
       foldings?: Array<{ count: number; offset: number | null }>;
+      doubleSided?: Partial<{ mode: DoubleSidedMode }>;
     };
     return this.createColorGroup(raw);
   }
@@ -728,6 +755,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       bleeds?: Array<{ size: number | null }>;
       duplexes?: Array<{ size: number | null }>;
       foldings?: Array<{ count: number; offset: number | null }>;
+      doubleSided?: Partial<{ mode: DoubleSidedMode }>;
       colors: Array<{
         color: string;
         label: Partial<PhProductLabel>;
@@ -754,6 +782,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       bleeds: this.createBleedsArray(material?.bleeds),
       duplexes: this.createDuplexesArray(material?.duplexes),
       foldings: this.createFoldingsArray(material?.foldings),
+      doubleSided: this.createDoubleSidedGroup(material?.doubleSided),
       colors,
     });
   }
@@ -767,6 +796,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       bleeds?: Array<{ size: number | null }>;
       duplexes?: Array<{ size: number | null }>;
       foldings?: Array<{ count: number; offset: number | null }>;
+      doubleSided?: Partial<{ mode: DoubleSidedMode }>;
       minLength: number | null;
       maxLength: number | null;
       minHeight: number | null;
@@ -798,6 +828,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       bleeds: this.createBleedsArray(material?.bleeds),
       duplexes: this.createDuplexesArray(material?.duplexes),
       foldings: this.createFoldingsArray(material?.foldings),
+      doubleSided: this.createDoubleSidedGroup(material?.doubleSided),
       minLength: new FormControl<number | null>(material?.minLength ?? null, dimValidators),
       maxLength: new FormControl<number | null>(material?.maxLength ?? null, dimValidators),
       minHeight: new FormControl<number | null>(material?.minHeight ?? null, dimValidators),
@@ -823,6 +854,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       bleeds?: Array<{ size: number | null }>;
       duplexes?: Array<{ size: number | null }>;
       foldings?: Array<{ count: number; offset: number | null }>;
+      doubleSided?: Partial<{ mode: DoubleSidedMode }>;
       materials: Array<{
         weight: number | null;
         label: Partial<PhProductLabel>;
@@ -862,6 +894,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       bleeds: this.createBleedsArray(size?.bleeds),
       duplexes: this.createDuplexesArray(size?.duplexes),
       foldings: this.createFoldingsArray(size?.foldings),
+      doubleSided: this.createDoubleSidedGroup(size?.doubleSided),
       materials,
     });
   }
@@ -897,7 +930,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
     this.railResizeObserver.disconnect();
     const root = this.elementRef.nativeElement;
-    root.querySelectorAll('.tree-branch__footer, .corners-branch__footer, .bleed-branch__footer, .folding-branch__footer, .duplex-branch__footer').forEach((footer) => {
+    root.querySelectorAll('.tree-branch__footer, .corners-branch__footer, .bleed-branch__footer, .folding-branch__footer, .duplex-branch__footer, .double-sided-branch__footer').forEach((footer) => {
       this.railResizeObserver?.observe(footer);
     });
   }
@@ -913,9 +946,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       branch.style.setProperty('--tree-add-btn-height', `${footer.offsetHeight}px`);
     });
 
-    root.querySelectorAll<HTMLElement>('.corners-branch, .bleed-branch, .folding-branch, .duplex-branch').forEach((branch) => {
-      const footer = branch.querySelector<HTMLElement>('.corners-branch__footer, .bleed-branch__footer, .folding-branch__footer, .duplex-branch__footer');
-      const railEnd = branch.querySelector<HTMLElement>('.corners-branch__rail-end, .bleed-branch__rail-end, .folding-branch__rail-end, .duplex-branch__rail-end');
+    root.querySelectorAll<HTMLElement>('.corners-branch, .bleed-branch, .folding-branch, .duplex-branch, .double-sided-branch').forEach((branch) => {
+      const footer = branch.querySelector<HTMLElement>('.corners-branch__footer, .bleed-branch__footer, .folding-branch__footer, .duplex-branch__footer, .double-sided-branch__footer');
+      const railEnd = branch.querySelector<HTMLElement>('.corners-branch__rail-end, .bleed-branch__rail-end, .folding-branch__rail-end, .duplex-branch__rail-end, .double-sided-branch__rail-end');
       if (!footer) {
         return;
       }
