@@ -381,6 +381,9 @@
     <ng-container *ngIf="isExtraSettingSelected(group, 'corners')">
       <ng-container *ngTemplateOutlet="cornersBranch; context: { $implicit: group }"></ng-container>
     </ng-container>
+    <ng-container *ngIf="isExtraSettingSelected(group, 'bleed')">
+      <ng-container *ngTemplateOutlet="bleedBranch; context: { $implicit: group }"></ng-container>
+    </ng-container>
     <div class="extra-settings-row">
       <button
         mat-raised-button
@@ -459,6 +462,50 @@
         (click)="addCorner(group)">
         <mat-icon>add</mat-icon>
         {{ 'management.product-create.add-corner' | translate }}
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #bleedBranch let-group>
+  <div class="bleed-branch">
+    <div
+      *ngFor="let bleed of getBleeds(group).controls; let bi = index"
+      [formGroup]="$any(bleed)"
+      class="bleed-node">
+      <div class="bleed-node__heading">
+        <span class="bleed-node__prefix">
+          {{ 'management.product-create.bleed-number' | translate: { n: bi + 1 } }}
+        </span>
+        <span class="tree-node__delete-wrap">
+          <button
+            mat-icon-button
+            type="button"
+            color="warn"
+            class="tree-node__delete"
+            (click)="removeBleed(group, bi)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </span>
+      </div>
+      <div class="bleed-node__fields">
+        <mat-form-field appearance="outline" subscriptSizing="fixed" class="bleed-node__field">
+          <mat-label>{{ 'management.product-create.bleed-size' | translate }}</mat-label>
+          <input matInput type="number" formControlName="size" />
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div class="bleed-branch__footer">
+      <span class="bleed-branch__rail-end" aria-hidden="true"></span>
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        class="bleed-add-btn text-white rounded-pill"
+        (click)="addBleed(group)">
+        <mat-icon>add</mat-icon>
+        {{ 'management.product-create.add-bleed' | translate }}
       </button>
     </div>
   </div>

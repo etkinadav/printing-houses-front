@@ -262,14 +262,20 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       if (key === 'corners') {
         this.getCorners(group).clear();
       }
+      if (key === 'bleed') {
+        this.getBleeds(group).clear();
+      }
     } else {
       current.push(key);
       if (key === 'corners' && this.getCorners(group).length === 0) {
         this.getCorners(group).push(this.createCornerGroup());
       }
+      if (key === 'bleed' && this.getBleeds(group).length === 0) {
+        this.getBleeds(group).push(this.createBleedGroup());
+      }
     }
     control.setValue(current);
-    if (key === 'corners') {
+    if (key === 'corners' || key === 'bleed') {
       this.scheduleRailSync();
     }
   }
@@ -293,6 +299,29 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       return;
     }
     corners.removeAt(index);
+    this.scheduleRailSync();
+  }
+
+  getBleeds(group: AbstractControl): FormArray {
+    return group.get('bleeds') as FormArray;
+  }
+
+  addBleed(group: AbstractControl): void {
+    const bleeds = this.getBleeds(group);
+    const last = bleeds.at(bleeds.length - 1);
+    bleeds.push(this.cloneBleedGroup(last));
+    this.scheduleRailSync();
+  }
+
+  removeBleed(group: AbstractControl, index: number): void {
+    const bleeds = this.getBleeds(group);
+    if (bleeds.length <= 1) {
+      bleeds.clear();
+      this.uncheckExtraSetting(group, 'bleed');
+      this.scheduleRailSync();
+      return;
+    }
+    bleeds.removeAt(index);
     this.scheduleRailSync();
   }
 
@@ -556,6 +585,25 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     return this.createCornerGroup(source.getRawValue());
   }
 
+  private createBleedsArray(
+    bleeds?: Array<{ size: number | null }>,
+  ): FormArray<FormGroup> {
+    if (!bleeds?.length) {
+      return new FormArray<FormGroup>([]);
+    }
+    return new FormArray<FormGroup>(bleeds.map((bleed) => this.createBleedGroup(bleed)));
+  }
+
+  private createBleedGroup(bleed?: Partial<{ size: number | null }>): FormGroup {
+    return new FormGroup({
+      size: new FormControl<number | null>(bleed?.size ?? null),
+    });
+  }
+
+  private cloneBleedGroup(source: AbstractControl): FormGroup {
+    return this.createBleedGroup(source.getRawValue());
+  }
+
   private createLabelGroup(label?: Partial<PhProductLabel>): FormGroup {
     return new FormGroup({
       he: new FormControl<string>(label?.he ?? '', {
@@ -571,6 +619,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       label: Partial<PhProductLabel>;
       extraSettings?: ExtraSettingKey[];
       corners?: Array<{ type: CornerType; radius: number | null }>;
+      bleeds?: Array<{ size: number | null }>;
     }>,
   ): FormGroup {
     return new FormGroup({
@@ -581,6 +630,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       label: this.createLabelGroup(color?.label),
       extraSettings: this.createExtraSettingsControl(color?.extraSettings),
       corners: this.createCornersArray(color?.corners),
+      bleeds: this.createBleedsArray(color?.bleeds),
     });
   }
 
@@ -590,6 +640,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       label: Partial<PhProductLabel>;
       extraSettings?: ExtraSettingKey[];
       corners?: Array<{ type: CornerType; radius: number | null }>;
+      bleeds?: Array<{ size: number | null }>;
     };
     return this.createColorGroup(raw);
   }
@@ -600,11 +651,13 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       label: Partial<PhProductLabel>;
       extraSettings?: ExtraSettingKey[];
       corners?: Array<{ type: CornerType; radius: number | null }>;
+      bleeds?: Array<{ size: number | null }>;
       colors: Array<{
         color: string;
         label: Partial<PhProductLabel>;
         extraSettings?: ExtraSettingKey[];
         corners?: Array<{ type: CornerType; radius: number | null }>;
+        bleeds?: Array<{ size: number | null }>;
       }>;
     }>,
   ): FormGroup {
@@ -620,6 +673,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       label: this.createLabelGroup(material?.label),
       extraSettings: this.createExtraSettingsControl(material?.extraSettings),
       corners: this.createCornersArray(material?.corners),
+      bleeds: this.createBleedsArray(material?.bleeds),
       colors,
     });
   }
@@ -630,6 +684,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       label: Partial<PhProductLabel>;
       extraSettings?: ExtraSettingKey[];
       corners?: Array<{ type: CornerType; radius: number | null }>;
+      bleeds?: Array<{ size: number | null }>;
       minLength: number | null;
       maxLength: number | null;
       minHeight: number | null;
@@ -639,6 +694,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         label: Partial<PhProductLabel>;
         extraSettings?: ExtraSettingKey[];
         corners?: Array<{ type: CornerType; radius: number | null }>;
+        bleeds?: Array<{ size: number | null }>;
       }>;
     }>,
   ): FormGroup {
@@ -655,6 +711,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       label: this.createLabelGroup(material?.label),
       extraSettings: this.createExtraSettingsControl(material?.extraSettings),
       corners: this.createCornersArray(material?.corners),
+      bleeds: this.createBleedsArray(material?.bleeds),
       minLength: new FormControl<number | null>(material?.minLength ?? null, dimValidators),
       maxLength: new FormControl<number | null>(material?.maxLength ?? null, dimValidators),
       minHeight: new FormControl<number | null>(material?.minHeight ?? null, dimValidators),
@@ -677,16 +734,19 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       label: Partial<PhProductLabel>;
       extraSettings?: ExtraSettingKey[];
       corners?: Array<{ type: CornerType; radius: number | null }>;
+      bleeds?: Array<{ size: number | null }>;
       materials: Array<{
         weight: number | null;
         label: Partial<PhProductLabel>;
         extraSettings?: ExtraSettingKey[];
         corners?: Array<{ type: CornerType; radius: number | null }>;
+        bleeds?: Array<{ size: number | null }>;
         colors: Array<{
           color: string;
           label: Partial<PhProductLabel>;
           extraSettings?: ExtraSettingKey[];
           corners?: Array<{ type: CornerType; radius: number | null }>;
+          bleeds?: Array<{ size: number | null }>;
         }>;
       }>;
     }>,
@@ -707,6 +767,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       label: this.createLabelGroup(size?.label),
       extraSettings: this.createExtraSettingsControl(size?.extraSettings),
       corners: this.createCornersArray(size?.corners),
+      bleeds: this.createBleedsArray(size?.bleeds),
       materials,
     });
   }
@@ -742,7 +803,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
     this.railResizeObserver.disconnect();
     const root = this.elementRef.nativeElement;
-    root.querySelectorAll('.tree-branch__footer, .corners-branch__footer').forEach((footer) => {
+    root.querySelectorAll('.tree-branch__footer, .corners-branch__footer, .bleed-branch__footer').forEach((footer) => {
       this.railResizeObserver?.observe(footer);
     });
   }
@@ -758,9 +819,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       branch.style.setProperty('--tree-add-btn-height', `${footer.offsetHeight}px`);
     });
 
-    root.querySelectorAll<HTMLElement>('.corners-branch').forEach((branch) => {
-      const footer = branch.querySelector<HTMLElement>('.corners-branch__footer');
-      const railEnd = branch.querySelector<HTMLElement>('.corners-branch__rail-end');
+    root.querySelectorAll<HTMLElement>('.corners-branch, .bleed-branch').forEach((branch) => {
+      const footer = branch.querySelector<HTMLElement>('.corners-branch__footer, .bleed-branch__footer');
+      const railEnd = branch.querySelector<HTMLElement>('.corners-branch__rail-end, .bleed-branch__rail-end');
       if (!footer) {
         return;
       }
