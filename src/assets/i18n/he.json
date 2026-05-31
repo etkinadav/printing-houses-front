@@ -75,7 +75,7 @@
     "management.product-create.extra-settings.corners": "פינות",
     "management.product-create.extra-settings.bleed": "בליד",
     "management.product-create.extra-settings.folding": "קיפול",
-    "management.product-create.corner-number": "פינות {{n}}",
+    "management.product-create.corner-number": "סוג פינה {{n}}",
     "management.product-create.corner-type": "סוג פינה",
     "management.product-create.corner-type.rounded": "פינה עגולה",
     "management.product-create.corner-type.chamfer": "צ'מפר",

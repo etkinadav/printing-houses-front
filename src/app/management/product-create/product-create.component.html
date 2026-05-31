@@ -430,21 +430,23 @@
           </button>
         </span>
       </div>
-      <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
-        <mat-label>{{ 'management.product-create.corner-type' | translate }}</mat-label>
-        <mat-select formControlName="type">
-          <mat-option value="rounded">
-            {{ 'management.product-create.corner-type.rounded' | translate }}
-          </mat-option>
-          <mat-option value="chamfer">
-            {{ 'management.product-create.corner-type.chamfer' | translate }}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
-        <mat-label>{{ 'management.product-create.corner-radius' | translate }}</mat-label>
-        <input matInput type="number" formControlName="radius" />
-      </mat-form-field>
+      <div class="corners-node__fields">
+        <mat-form-field appearance="outline" subscriptSizing="fixed" class="corners-node__field corners-node__field--type">
+          <mat-label>{{ 'management.product-create.corner-type' | translate }}</mat-label>
+          <mat-select formControlName="type">
+            <mat-option value="rounded">
+              {{ 'management.product-create.corner-type.rounded' | translate }}
+            </mat-option>
+            <mat-option value="chamfer">
+              {{ 'management.product-create.corner-type.chamfer' | translate }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="fixed" class="corners-node__field corners-node__field--radius">
+          <mat-label>{{ 'management.product-create.corner-radius' | translate }}</mat-label>
+          <input matInput type="number" formControlName="radius" />
+        </mat-form-field>
+      </div>
     </div>
 
     <div class="corners-branch__footer">

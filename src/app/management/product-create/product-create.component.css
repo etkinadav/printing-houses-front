@@ -431,7 +431,7 @@
   width: 100%;
   position: relative;
   line-height: 1.3;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.35rem;
 }
 
 .corners-node__heading:has(.tree-node__delete-wrap) {
@@ -464,9 +464,32 @@
   margin: 0;
 }
 
-.corners-node .mat-mdc-form-field {
+.corners-node__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  width: 100%;
+}
+
+.corners-node__field {
+  flex: 1 1 100%;
+  min-width: 0;
   width: 100%;
   margin: 0;
+}
+
+@media only screen and (min-width: 576px) {
+  .corners-node__fields {
+    flex-wrap: nowrap;
+  }
+
+  .corners-node__field--type,
+  .corners-node__field--radius {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+    max-width: none;
+  }
 }
 
 .extra-settings-menu .mat-mdc-menu-content {
