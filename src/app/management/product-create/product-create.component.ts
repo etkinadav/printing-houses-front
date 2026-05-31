@@ -16,6 +16,7 @@ import { PhCategory, PhLabel, PhSubCategory } from '../../ph-categories/ph-categ
 import { PhProductsService } from '../../ph-products/ph-products.service';
 import {
   DimensionsFlexability,
+  ExtraSettingKey,
   PhProductLabel,
   PhProductProperties,
 } from '../../ph-products/ph-product.model';
@@ -35,6 +36,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   isSaving = false;
   categories: PhCategory[] = [];
   subCategories: PhSubCategory[] = [];
+  readonly extraSettingOptions: ExtraSettingKey[] = ['corners', 'bleed', 'folding'];
 
   form = new FormGroup({
     name_he: new FormControl<string>('', {
@@ -241,6 +243,25 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
   getSubCategoryLabel(sub: PhSubCategory): string {
     return this.resolveLabel(sub.label);
+  }
+
+  isExtraSettingSelected(group: AbstractControl, key: ExtraSettingKey): boolean {
+    const settings = group.get('extraSettings')?.value as ExtraSettingKey[] | undefined;
+    return settings?.includes(key) ?? false;
+  }
+
+  toggleExtraSetting(group: AbstractControl, key: ExtraSettingKey, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const control = group.get('extraSettings') as FormControl<ExtraSettingKey[]>;
+    const current = [...control.value];
+    const index = current.indexOf(key);
+    if (index >= 0) {
+      current.splice(index, 1);
+    } else {
+      current.push(key);
+    }
+    control.setValue(current);
   }
 
   onSave(): void {
@@ -472,6 +493,10 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     this.subCategories = category?.subCategories ?? [];
   }
 
+  private createExtraSettingsControl(values?: ExtraSettingKey[]): FormControl<ExtraSettingKey[]> {
+    return new FormControl<ExtraSettingKey[]>(values ?? [], { nonNullable: true });
+  }
+
   private createLabelGroup(label?: Partial<PhProductLabel>): FormGroup {
     return new FormGroup({
       he: new FormControl<string>(label?.he ?? '', {
@@ -481,13 +506,14 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     });
   }
 
-  private createColorGroup(color?: Partial<{ color: string; label: Partial<PhProductLabel> }>): FormGroup {
+  private createColorGroup(color?: Partial<{ color: string; label: Partial<PhProductLabel>; extraSettings?: ExtraSettingKey[] }>): FormGroup {
     return new FormGroup({
       color: new FormControl<string>(color?.color ?? '#ffffff', {
         nonNullable: true,
         validators: [Validators.required],
       }),
       label: this.createLabelGroup(color?.label),
+      extraSettings: this.createExtraSettingsControl(color?.extraSettings),
     });
   }
 
@@ -500,7 +526,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     material?: Partial<{
       weight: number | null;
       label: Partial<PhProductLabel>;
-      colors: Array<{ color: string; label: Partial<PhProductLabel> }>;
+      extraSettings?: ExtraSettingKey[];
+      colors: Array<{ color: string; label: Partial<PhProductLabel>; extraSettings?: ExtraSettingKey[] }>;
     }>,
   ): FormGroup {
     const colors = material?.colors?.length
@@ -513,6 +540,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         Validators.min(0),
       ]),
       label: this.createLabelGroup(material?.label),
+      extraSettings: this.createExtraSettingsControl(material?.extraSettings),
       colors,
     });
   }
@@ -521,11 +549,12 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     material?: Partial<{
       weight: number | null;
       label: Partial<PhProductLabel>;
+      extraSettings?: ExtraSettingKey[];
       minLength: number | null;
       maxLength: number | null;
       minHeight: number | null;
       maxHeight: number | null;
-      colors: Array<{ color: string; label: Partial<PhProductLabel> }>;
+      colors: Array<{ color: string; label: Partial<PhProductLabel>; extraSettings?: ExtraSettingKey[] }>;
     }>,
   ): FormGroup {
     const dimValidators = [Validators.required, Validators.min(0)];
@@ -539,6 +568,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         Validators.min(0),
       ]),
       label: this.createLabelGroup(material?.label),
+      extraSettings: this.createExtraSettingsControl(material?.extraSettings),
       minLength: new FormControl<number | null>(material?.minLength ?? null, dimValidators),
       maxLength: new FormControl<number | null>(material?.maxLength ?? null, dimValidators),
       minHeight: new FormControl<number | null>(material?.minHeight ?? null, dimValidators),
@@ -559,10 +589,12 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       length: number | null;
       width: number | null;
       label: Partial<PhProductLabel>;
+      extraSettings?: ExtraSettingKey[];
       materials: Array<{
         weight: number | null;
         label: Partial<PhProductLabel>;
-        colors: Array<{ color: string; label: Partial<PhProductLabel> }>;
+        extraSettings?: ExtraSettingKey[];
+        colors: Array<{ color: string; label: Partial<PhProductLabel>; extraSettings?: ExtraSettingKey[] }>;
       }>;
     }>,
   ): FormGroup {
@@ -580,6 +612,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         Validators.min(0),
       ]),
       label: this.createLabelGroup(size?.label),
+      extraSettings: this.createExtraSettingsControl(size?.extraSettings),
       materials,
     });
   }

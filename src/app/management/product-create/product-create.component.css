@@ -297,6 +297,73 @@
   color: #fff;
 }
 
+.tree-extra-btn {
+  --mdc-protected-button-container-color: #fff;
+  --mdc-protected-button-label-text-color: var(--zx-green);
+  --mdc-protected-button-container-shape: 999px;
+  margin: 0;
+  color: var(--zx-green) !important;
+  border: 1px solid var(--zx-green);
+  box-shadow: none;
+}
+
+.extra-settings-row {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: 0.35rem;
+}
+
+.extra-settings-menu .mat-mdc-menu-content {
+  padding: 0.25rem 0;
+}
+
+.extra-settings-menu__list {
+  min-width: 10rem;
+}
+
+.extra-settings-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: start;
+}
+
+.extra-settings-menu__item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.text-white .extra-settings-menu__item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.extra-settings-menu__check-slot {
+  flex: 0 0 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.extra-settings-menu__check-slot .mat-icon {
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--zx-green);
+}
+
+.extra-settings-menu__label {
+  flex: 1;
+}
+
 .product-create-save {
   width: 100%;
   margin-top: 0.25rem;
