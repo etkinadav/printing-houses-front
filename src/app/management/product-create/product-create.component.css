@@ -704,6 +704,7 @@
   flex: 0 0 100%;
   width: 100%;
   line-height: 1.3;
+  padding-bottom: 3px;
 }
 
 .size-title-row__prefix {
