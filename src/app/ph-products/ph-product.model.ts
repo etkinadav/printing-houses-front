@@ -2,6 +2,7 @@ import { PhCategory } from '../ph-categories/ph-category.model';
 
 export type DimensionsFlexability = 'fixed' | 'dynamic';
 export type ExtraSettingKey = 'corners' | 'bleed' | 'folding';
+export type CornerType = 'rounded' | 'chamfer';
 
 export interface PhProductLabel {
   he: string;

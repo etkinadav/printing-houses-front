@@ -314,6 +314,159 @@
   margin-top: 0.35rem;
 }
 
+.extra-settings-block {
+  width: 100%;
+}
+
+/* ── Corners branch (pink rail) ── */
+.corners-branch {
+  --tree-rail-width: 2px;
+  --tree-rail-cap: 10px;
+  --tree-rail-corner-radius: 5px;
+  --tree-rail-corner-block: 7px;
+  --tree-rail-join-overlap: 1px;
+  --tree-rail-inset: 0.4rem;
+  --tree-branch-padding: 1.125rem;
+  --tree-add-btn-height: var(--mdc-protected-button-container-height, 40px);
+  --corners-rail-bottom: calc(var(--tree-add-btn-height) / 2 - var(--tree-rail-corner-block) / 2);
+  --tree-rail-span-width: calc(var(--tree-rail-cap) + var(--tree-rail-corner-radius));
+  --tree-rail-top-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 7'%3E%3Cpath d='M 15 1 L 6 1 A 5 5 0 0 0 1 6 L 1 7' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E");
+  --tree-rail-bottom-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 7'%3E%3Cpath d='M 1 0 L 1 1.5 A 5 5 0 0 0 6 3.5 L 15 3.5' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E");
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  margin-bottom: 0.35rem;
+  padding-top: 0.5rem;
+  padding-inline-start: var(--tree-branch-padding);
+}
+
+.corners-branch::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: var(--tree-rail-inset);
+  top: calc(var(--tree-rail-corner-block) - var(--tree-rail-join-overlap));
+  bottom: var(--corners-rail-bottom);
+  width: 0;
+  border-inline-start: var(--tree-rail-width) solid var(--zx-pink);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.corners-branch::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: var(--tree-rail-inset);
+  top: 0;
+  width: var(--tree-rail-span-width);
+  height: var(--tree-rail-corner-block);
+  background-color: var(--zx-pink);
+  pointer-events: none;
+  box-sizing: border-box;
+  -webkit-mask: var(--tree-rail-top-mask) no-repeat left top / 100% 100%;
+  mask: var(--tree-rail-top-mask) no-repeat left top / 100% 100%;
+  transform-origin: inline-start top;
+}
+
+.zx-rtl .corners-branch::after,
+:dir(rtl) .corners-branch::after {
+  transform: scaleX(-1);
+}
+
+.corners-branch__footer {
+  position: relative;
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  min-height: 0;
+  padding-inline-start: 0;
+}
+
+.corners-branch__rail-end {
+  position: absolute;
+  inset-inline-start: calc(var(--tree-rail-inset) - var(--tree-branch-padding));
+  top: 50%;
+  width: var(--tree-rail-span-width);
+  height: var(--tree-rail-corner-block);
+  margin-top: calc(var(--tree-rail-corner-block) / -2);
+  background-color: var(--zx-pink);
+  pointer-events: none;
+  box-sizing: border-box;
+  -webkit-mask: var(--tree-rail-bottom-mask) no-repeat left top / 100% 100%;
+  mask: var(--tree-rail-bottom-mask) no-repeat left top / 100% 100%;
+  transform-origin: inline-start center;
+}
+
+.zx-rtl .corners-branch__rail-end,
+:dir(rtl) .corners-branch__rail-end {
+  transform: scaleX(-1);
+}
+
+.corners-add-btn {
+  --mdc-protected-button-container-color: var(--zx-pink);
+  --mdc-protected-button-label-text-color: #fff;
+  --mdc-protected-button-container-shape: 999px;
+  margin: 0;
+  color: #fff !important;
+}
+
+.corners-add-btn .mat-icon {
+  color: #fff;
+}
+
+.corners-node {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.corners-node__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  position: relative;
+  line-height: 1.3;
+}
+
+.corners-node__heading:has(.tree-node__delete-wrap) {
+  padding-inline-end: 1.25rem;
+}
+
+.corners-node__heading .tree-node__delete-wrap {
+  position: absolute;
+  inset-inline-end: 0;
+  top: 0;
+  height: 100%;
+  margin: 0;
+  pointer-events: none;
+}
+
+.corners-node__heading .tree-node__delete {
+  pointer-events: auto;
+  width: 1.125rem;
+  height: 1.125rem;
+  padding: 0;
+  line-height: 1.125rem;
+  --mdc-icon-button-state-layer-size: 1.125rem;
+  --mdc-icon-button-icon-size: 1.125rem;
+}
+
+.corners-node__prefix {
+  color: var(--zx-pink);
+  font-weight: 600;
+  line-height: inherit;
+  margin: 0;
+}
+
+.corners-node .mat-mdc-form-field {
+  width: 100%;
+  margin: 0;
+}
+
 .extra-settings-menu .mat-mdc-menu-content {
   padding: 0.25rem 0;
 }

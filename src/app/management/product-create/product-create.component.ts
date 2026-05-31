@@ -15,6 +15,7 @@ import { PhCategoriesService } from '../../ph-categories/ph-categories.service';
 import { PhCategory, PhLabel, PhSubCategory } from '../../ph-categories/ph-category.model';
 import { PhProductsService } from '../../ph-products/ph-products.service';
 import {
+  CornerType,
   DimensionsFlexability,
   ExtraSettingKey,
   PhProductLabel,
@@ -258,10 +259,36 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     const index = current.indexOf(key);
     if (index >= 0) {
       current.splice(index, 1);
+      if (key === 'corners') {
+        this.getCorners(group).clear();
+      }
     } else {
       current.push(key);
+      if (key === 'corners' && this.getCorners(group).length === 0) {
+        this.getCorners(group).push(this.createCornerGroup());
+      }
     }
     control.setValue(current);
+    if (key === 'corners') {
+      this.scheduleRailSync();
+    }
+  }
+
+  getCorners(group: AbstractControl): FormArray {
+    return group.get('corners') as FormArray;
+  }
+
+  addCorner(group: AbstractControl): void {
+    const last = this.getCorners(group).at(this.getCorners(group).length - 1);
+    this.getCorners(group).push(this.cloneCornerGroup(last));
+    this.scheduleRailSync();
+  }
+
+  removeCorner(group: AbstractControl, index: number): void {
+    if (this.getCorners(group).length > 1) {
+      this.getCorners(group).removeAt(index);
+      this.scheduleRailSync();
+    }
   }
 
   onSave(): void {
@@ -497,6 +524,28 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     return new FormControl<ExtraSettingKey[]>(values ?? [], { nonNullable: true });
   }
 
+  private createCornersArray(
+    corners?: Array<{ type: CornerType; radius: number | null }>,
+  ): FormArray<FormGroup> {
+    if (!corners?.length) {
+      return new FormArray<FormGroup>([]);
+    }
+    return new FormArray<FormGroup>(corners.map((corner) => this.createCornerGroup(corner)));
+  }
+
+  private createCornerGroup(
+    corner?: Partial<{ type: CornerType; radius: number | null }>,
+  ): FormGroup {
+    return new FormGroup({
+      type: new FormControl<CornerType>(corner?.type ?? 'rounded', { nonNullable: true }),
+      radius: new FormControl<number | null>(corner?.radius ?? null),
+    });
+  }
+
+  private cloneCornerGroup(source: AbstractControl): FormGroup {
+    return this.createCornerGroup(source.getRawValue());
+  }
+
   private createLabelGroup(label?: Partial<PhProductLabel>): FormGroup {
     return new FormGroup({
       he: new FormControl<string>(label?.he ?? '', {
@@ -506,7 +555,14 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     });
   }
 
-  private createColorGroup(color?: Partial<{ color: string; label: Partial<PhProductLabel>; extraSettings?: ExtraSettingKey[] }>): FormGroup {
+  private createColorGroup(
+    color?: Partial<{
+      color: string;
+      label: Partial<PhProductLabel>;
+      extraSettings?: ExtraSettingKey[];
+      corners?: Array<{ type: CornerType; radius: number | null }>;
+    }>,
+  ): FormGroup {
     return new FormGroup({
       color: new FormControl<string>(color?.color ?? '#ffffff', {
         nonNullable: true,
@@ -514,11 +570,17 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       }),
       label: this.createLabelGroup(color?.label),
       extraSettings: this.createExtraSettingsControl(color?.extraSettings),
+      corners: this.createCornersArray(color?.corners),
     });
   }
 
   private cloneColorGroup(source: AbstractControl): FormGroup {
-    const raw = source.getRawValue() as { color: string; label: Partial<PhProductLabel> };
+    const raw = source.getRawValue() as {
+      color: string;
+      label: Partial<PhProductLabel>;
+      extraSettings?: ExtraSettingKey[];
+      corners?: Array<{ type: CornerType; radius: number | null }>;
+    };
     return this.createColorGroup(raw);
   }
 
@@ -527,7 +589,13 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       weight: number | null;
       label: Partial<PhProductLabel>;
       extraSettings?: ExtraSettingKey[];
-      colors: Array<{ color: string; label: Partial<PhProductLabel>; extraSettings?: ExtraSettingKey[] }>;
+      corners?: Array<{ type: CornerType; radius: number | null }>;
+      colors: Array<{
+        color: string;
+        label: Partial<PhProductLabel>;
+        extraSettings?: ExtraSettingKey[];
+        corners?: Array<{ type: CornerType; radius: number | null }>;
+      }>;
     }>,
   ): FormGroup {
     const colors = material?.colors?.length
@@ -541,6 +609,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       ]),
       label: this.createLabelGroup(material?.label),
       extraSettings: this.createExtraSettingsControl(material?.extraSettings),
+      corners: this.createCornersArray(material?.corners),
       colors,
     });
   }
@@ -550,11 +619,17 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       weight: number | null;
       label: Partial<PhProductLabel>;
       extraSettings?: ExtraSettingKey[];
+      corners?: Array<{ type: CornerType; radius: number | null }>;
       minLength: number | null;
       maxLength: number | null;
       minHeight: number | null;
       maxHeight: number | null;
-      colors: Array<{ color: string; label: Partial<PhProductLabel>; extraSettings?: ExtraSettingKey[] }>;
+      colors: Array<{
+        color: string;
+        label: Partial<PhProductLabel>;
+        extraSettings?: ExtraSettingKey[];
+        corners?: Array<{ type: CornerType; radius: number | null }>;
+      }>;
     }>,
   ): FormGroup {
     const dimValidators = [Validators.required, Validators.min(0)];
@@ -569,6 +644,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       ]),
       label: this.createLabelGroup(material?.label),
       extraSettings: this.createExtraSettingsControl(material?.extraSettings),
+      corners: this.createCornersArray(material?.corners),
       minLength: new FormControl<number | null>(material?.minLength ?? null, dimValidators),
       maxLength: new FormControl<number | null>(material?.maxLength ?? null, dimValidators),
       minHeight: new FormControl<number | null>(material?.minHeight ?? null, dimValidators),
@@ -590,11 +666,18 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       width: number | null;
       label: Partial<PhProductLabel>;
       extraSettings?: ExtraSettingKey[];
+      corners?: Array<{ type: CornerType; radius: number | null }>;
       materials: Array<{
         weight: number | null;
         label: Partial<PhProductLabel>;
         extraSettings?: ExtraSettingKey[];
-        colors: Array<{ color: string; label: Partial<PhProductLabel>; extraSettings?: ExtraSettingKey[] }>;
+        corners?: Array<{ type: CornerType; radius: number | null }>;
+        colors: Array<{
+          color: string;
+          label: Partial<PhProductLabel>;
+          extraSettings?: ExtraSettingKey[];
+          corners?: Array<{ type: CornerType; radius: number | null }>;
+        }>;
       }>;
     }>,
   ): FormGroup {
@@ -613,6 +696,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       ]),
       label: this.createLabelGroup(size?.label),
       extraSettings: this.createExtraSettingsControl(size?.extraSettings),
+      corners: this.createCornersArray(size?.corners),
       materials,
     });
   }
@@ -637,6 +721,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     queueMicrotask(() => {
       this.observeTreeRailFooters();
       this.syncTreeRailHeights();
+      requestAnimationFrame(() => this.syncTreeRailHeights());
     });
   }
 
@@ -647,7 +732,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
     this.railResizeObserver.disconnect();
     const root = this.elementRef.nativeElement;
-    root.querySelectorAll('.tree-branch__footer').forEach((footer) => {
+    root.querySelectorAll('.tree-branch__footer, .corners-branch__footer').forEach((footer) => {
       this.railResizeObserver?.observe(footer);
     });
   }
@@ -661,6 +746,23 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       }
 
       branch.style.setProperty('--tree-add-btn-height', `${footer.offsetHeight}px`);
+    });
+
+    root.querySelectorAll<HTMLElement>('.corners-branch').forEach((branch) => {
+      const footer = branch.querySelector<HTMLElement>('.corners-branch__footer');
+      const railEnd = branch.querySelector<HTMLElement>('.corners-branch__rail-end');
+      if (!footer) {
+        return;
+      }
+
+      branch.style.setProperty('--tree-add-btn-height', `${footer.offsetHeight}px`);
+
+      if (railEnd) {
+        const branchRect = branch.getBoundingClientRect();
+        const railEndRect = railEnd.getBoundingClientRect();
+        const bottomOffset = Math.max(0, branchRect.bottom - railEndRect.top);
+        branch.style.setProperty('--corners-rail-bottom', `${bottomOffset}px`);
+      }
     });
   }
 }

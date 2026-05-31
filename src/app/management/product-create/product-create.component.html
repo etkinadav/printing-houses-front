@@ -377,29 +377,87 @@
 </ng-template>
 
 <ng-template #extraSettingsRow let-group>
-  <div class="extra-settings-row">
-    <button
-      mat-raised-button
-      type="button"
-      class="tree-extra-btn rounded-pill"
-      [matMenuTriggerFor]="extraSettingsMenu">
-      {{ 'management.product-create.extra-settings' | translate }}
-    </button>
-    <mat-menu #extraSettingsMenu="matMenu" class="extra-settings-menu">
-      <div class="extra-settings-menu__list" (click)="$event.stopPropagation()">
-        <button
-          type="button"
-          class="extra-settings-menu__item"
-          *ngFor="let option of extraSettingOptions"
-          (click)="toggleExtraSetting(group, option, $event)">
-          <span class="extra-settings-menu__check-slot" aria-hidden="true">
-            <mat-icon *ngIf="isExtraSettingSelected(group, option)">check</mat-icon>
-          </span>
-          <span class="extra-settings-menu__label">
-            {{ 'management.product-create.extra-settings.' + option | translate }}
-          </span>
-        </button>
+  <div class="extra-settings-block">
+    <ng-container *ngIf="isExtraSettingSelected(group, 'corners')">
+      <ng-container *ngTemplateOutlet="cornersBranch; context: { $implicit: group }"></ng-container>
+    </ng-container>
+    <div class="extra-settings-row">
+      <button
+        mat-raised-button
+        type="button"
+        class="tree-extra-btn rounded-pill"
+        [matMenuTriggerFor]="extraSettingsMenu">
+        {{ 'management.product-create.extra-settings' | translate }}
+      </button>
+      <mat-menu #extraSettingsMenu="matMenu" class="extra-settings-menu">
+        <div class="extra-settings-menu__list" (click)="$event.stopPropagation()">
+          <button
+            type="button"
+            class="extra-settings-menu__item"
+            *ngFor="let option of extraSettingOptions"
+            (click)="toggleExtraSetting(group, option, $event)">
+            <span class="extra-settings-menu__check-slot" aria-hidden="true">
+              <mat-icon *ngIf="isExtraSettingSelected(group, option)">check</mat-icon>
+            </span>
+            <span class="extra-settings-menu__label">
+              {{ 'management.product-create.extra-settings.' + option | translate }}
+            </span>
+          </button>
+        </div>
+      </mat-menu>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #cornersBranch let-group>
+  <div class="corners-branch">
+    <div
+      *ngFor="let corner of getCorners(group).controls; let ci = index"
+      [formGroup]="$any(corner)"
+      class="corners-node">
+      <div class="corners-node__heading">
+        <span class="corners-node__prefix">
+          {{ 'management.product-create.corner-number' | translate: { n: ci + 1 } }}
+        </span>
+        <span *ngIf="getCorners(group).length > 1" class="tree-node__delete-wrap">
+          <button
+            mat-icon-button
+            type="button"
+            color="warn"
+            class="tree-node__delete"
+            (click)="removeCorner(group, ci)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </span>
       </div>
-    </mat-menu>
+      <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
+        <mat-label>{{ 'management.product-create.corner-type' | translate }}</mat-label>
+        <mat-select formControlName="type">
+          <mat-option value="rounded">
+            {{ 'management.product-create.corner-type.rounded' | translate }}
+          </mat-option>
+          <mat-option value="chamfer">
+            {{ 'management.product-create.corner-type.chamfer' | translate }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
+        <mat-label>{{ 'management.product-create.corner-radius' | translate }}</mat-label>
+        <input matInput type="number" formControlName="radius" />
+      </mat-form-field>
+    </div>
+
+    <div class="corners-branch__footer">
+      <span class="corners-branch__rail-end" aria-hidden="true"></span>
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        class="corners-add-btn text-white rounded-pill"
+        (click)="addCorner(group)">
+        <mat-icon>add</mat-icon>
+        {{ 'management.product-create.add-corner' | translate }}
+      </button>
+    </div>
   </div>
 </ng-template>
