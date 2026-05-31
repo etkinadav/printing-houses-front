@@ -385,6 +385,9 @@
     <ng-container *ngIf="isExtraSettingSelected(group, 'folding')">
       <ng-container *ngTemplateOutlet="foldingBranch; context: { $implicit: group }"></ng-container>
     </ng-container>
+    <ng-container *ngIf="isExtraSettingSelected(group, 'duplex')">
+      <ng-container *ngTemplateOutlet="duplexBranch; context: { $implicit: group }"></ng-container>
+    </ng-container>
     <div class="extra-settings-row">
       <button
         mat-raised-button
@@ -555,6 +558,50 @@
         (click)="addFolding(group)">
         <mat-icon>add</mat-icon>
         {{ 'management.product-create.add-folding' | translate }}
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #duplexBranch let-group>
+  <div class="duplex-branch">
+    <div
+      *ngFor="let duplex of getDuplexes(group).controls; let di = index"
+      [formGroup]="$any(duplex)"
+      class="duplex-node">
+      <div class="duplex-node__heading">
+        <span class="duplex-node__prefix">
+          {{ 'management.product-create.duplex-number' | translate: { n: di + 1 } }}
+        </span>
+        <span class="tree-node__delete-wrap">
+          <button
+            mat-icon-button
+            type="button"
+            color="warn"
+            class="tree-node__delete"
+            (click)="removeDuplex(group, di)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </span>
+      </div>
+      <div class="duplex-node__fields">
+        <mat-form-field appearance="outline" subscriptSizing="fixed" class="duplex-node__field">
+          <mat-label>{{ 'management.product-create.duplex-size' | translate }}</mat-label>
+          <input matInput type="number" formControlName="size" />
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div class="duplex-branch__footer">
+      <span class="duplex-branch__rail-end" aria-hidden="true"></span>
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        class="duplex-add-btn text-white rounded-pill"
+        (click)="addDuplex(group)">
+        <mat-icon>add</mat-icon>
+        {{ 'management.product-create.add-duplex' | translate }}
       </button>
     </div>
   </div>

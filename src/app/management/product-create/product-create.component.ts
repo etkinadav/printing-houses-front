@@ -37,7 +37,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   isSaving = false;
   categories: PhCategory[] = [];
   subCategories: PhSubCategory[] = [];
-  readonly extraSettingOptions: ExtraSettingKey[] = ['corners', 'bleed', 'folding'];
+  readonly extraSettingOptions: ExtraSettingKey[] = ['corners', 'bleed', 'folding', 'duplex'];
 
   form = new FormGroup({
     name_he: new FormControl<string>('', {
@@ -252,6 +252,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       if (key === 'folding') {
         this.getFoldings(group).clear();
       }
+      if (key === 'duplex') {
+        this.getDuplexes(group).clear();
+      }
     } else {
       current.push(key);
       if (key === 'corners' && this.getCorners(group).length === 0) {
@@ -263,9 +266,12 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       if (key === 'folding' && this.getFoldings(group).length === 0) {
         this.getFoldings(group).push(this.createFoldingGroup());
       }
+      if (key === 'duplex' && this.getDuplexes(group).length === 0) {
+        this.getDuplexes(group).push(this.createDuplexGroup());
+      }
     }
     control.setValue(current);
-    if (key === 'corners' || key === 'bleed' || key === 'folding') {
+    if (key === 'corners' || key === 'bleed' || key === 'folding' || key === 'duplex') {
       this.scheduleRailSync();
     }
   }
@@ -312,6 +318,29 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       return;
     }
     bleeds.removeAt(index);
+    this.scheduleRailSync();
+  }
+
+  getDuplexes(group: AbstractControl): FormArray {
+    return group.get('duplexes') as FormArray;
+  }
+
+  addDuplex(group: AbstractControl): void {
+    const duplexes = this.getDuplexes(group);
+    const last = duplexes.at(duplexes.length - 1);
+    duplexes.push(this.cloneDuplexGroup(last));
+    this.scheduleRailSync();
+  }
+
+  removeDuplex(group: AbstractControl, index: number): void {
+    const duplexes = this.getDuplexes(group);
+    if (duplexes.length <= 1) {
+      duplexes.clear();
+      this.uncheckExtraSetting(group, 'duplex');
+      this.scheduleRailSync();
+      return;
+    }
+    duplexes.removeAt(index);
     this.scheduleRailSync();
   }
 
@@ -599,6 +628,25 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     return this.createBleedGroup(source.getRawValue());
   }
 
+  private createDuplexesArray(
+    duplexes?: Array<{ size: number | null }>,
+  ): FormArray<FormGroup> {
+    if (!duplexes?.length) {
+      return new FormArray<FormGroup>([]);
+    }
+    return new FormArray<FormGroup>(duplexes.map((duplex) => this.createDuplexGroup(duplex)));
+  }
+
+  private createDuplexGroup(duplex?: Partial<{ size: number | null }>): FormGroup {
+    return new FormGroup({
+      size: new FormControl<number | null>(duplex?.size ?? null),
+    });
+  }
+
+  private cloneDuplexGroup(source: AbstractControl): FormGroup {
+    return this.createDuplexGroup(source.getRawValue());
+  }
+
   private createFoldingsArray(
     foldings?: Array<{ count: number; offset: number | null }>,
   ): FormArray<FormGroup> {
@@ -640,6 +688,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings?: ExtraSettingKey[];
       corners?: Array<{ type: CornerType; radius: number | null }>;
       bleeds?: Array<{ size: number | null }>;
+      duplexes?: Array<{ size: number | null }>;
       foldings?: Array<{ count: number; offset: number | null }>;
     }>,
   ): FormGroup {
@@ -652,6 +701,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings: this.createExtraSettingsControl(color?.extraSettings),
       corners: this.createCornersArray(color?.corners),
       bleeds: this.createBleedsArray(color?.bleeds),
+      duplexes: this.createDuplexesArray(color?.duplexes),
       foldings: this.createFoldingsArray(color?.foldings),
     });
   }
@@ -663,6 +713,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings?: ExtraSettingKey[];
       corners?: Array<{ type: CornerType; radius: number | null }>;
       bleeds?: Array<{ size: number | null }>;
+      duplexes?: Array<{ size: number | null }>;
       foldings?: Array<{ count: number; offset: number | null }>;
     };
     return this.createColorGroup(raw);
@@ -675,6 +726,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings?: ExtraSettingKey[];
       corners?: Array<{ type: CornerType; radius: number | null }>;
       bleeds?: Array<{ size: number | null }>;
+      duplexes?: Array<{ size: number | null }>;
       foldings?: Array<{ count: number; offset: number | null }>;
       colors: Array<{
         color: string;
@@ -682,6 +734,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         extraSettings?: ExtraSettingKey[];
         corners?: Array<{ type: CornerType; radius: number | null }>;
         bleeds?: Array<{ size: number | null }>;
+      duplexes?: Array<{ size: number | null }>;
         foldings?: Array<{ count: number; offset: number | null }>;
       }>;
     }>,
@@ -699,6 +752,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings: this.createExtraSettingsControl(material?.extraSettings),
       corners: this.createCornersArray(material?.corners),
       bleeds: this.createBleedsArray(material?.bleeds),
+      duplexes: this.createDuplexesArray(material?.duplexes),
       foldings: this.createFoldingsArray(material?.foldings),
       colors,
     });
@@ -711,6 +765,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings?: ExtraSettingKey[];
       corners?: Array<{ type: CornerType; radius: number | null }>;
       bleeds?: Array<{ size: number | null }>;
+      duplexes?: Array<{ size: number | null }>;
       foldings?: Array<{ count: number; offset: number | null }>;
       minLength: number | null;
       maxLength: number | null;
@@ -722,6 +777,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         extraSettings?: ExtraSettingKey[];
         corners?: Array<{ type: CornerType; radius: number | null }>;
         bleeds?: Array<{ size: number | null }>;
+      duplexes?: Array<{ size: number | null }>;
         foldings?: Array<{ count: number; offset: number | null }>;
       }>;
     }>,
@@ -740,6 +796,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings: this.createExtraSettingsControl(material?.extraSettings),
       corners: this.createCornersArray(material?.corners),
       bleeds: this.createBleedsArray(material?.bleeds),
+      duplexes: this.createDuplexesArray(material?.duplexes),
       foldings: this.createFoldingsArray(material?.foldings),
       minLength: new FormControl<number | null>(material?.minLength ?? null, dimValidators),
       maxLength: new FormControl<number | null>(material?.maxLength ?? null, dimValidators),
@@ -764,6 +821,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings?: ExtraSettingKey[];
       corners?: Array<{ type: CornerType; radius: number | null }>;
       bleeds?: Array<{ size: number | null }>;
+      duplexes?: Array<{ size: number | null }>;
       foldings?: Array<{ count: number; offset: number | null }>;
       materials: Array<{
         weight: number | null;
@@ -771,6 +829,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         extraSettings?: ExtraSettingKey[];
         corners?: Array<{ type: CornerType; radius: number | null }>;
         bleeds?: Array<{ size: number | null }>;
+      duplexes?: Array<{ size: number | null }>;
         foldings?: Array<{ count: number; offset: number | null }>;
         colors: Array<{
           color: string;
@@ -778,6 +837,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
           extraSettings?: ExtraSettingKey[];
           corners?: Array<{ type: CornerType; radius: number | null }>;
           bleeds?: Array<{ size: number | null }>;
+      duplexes?: Array<{ size: number | null }>;
           foldings?: Array<{ count: number; offset: number | null }>;
         }>;
       }>;
@@ -800,6 +860,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       extraSettings: this.createExtraSettingsControl(size?.extraSettings),
       corners: this.createCornersArray(size?.corners),
       bleeds: this.createBleedsArray(size?.bleeds),
+      duplexes: this.createDuplexesArray(size?.duplexes),
       foldings: this.createFoldingsArray(size?.foldings),
       materials,
     });
@@ -836,7 +897,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
     this.railResizeObserver.disconnect();
     const root = this.elementRef.nativeElement;
-    root.querySelectorAll('.tree-branch__footer, .corners-branch__footer, .bleed-branch__footer, .folding-branch__footer').forEach((footer) => {
+    root.querySelectorAll('.tree-branch__footer, .corners-branch__footer, .bleed-branch__footer, .folding-branch__footer, .duplex-branch__footer').forEach((footer) => {
       this.railResizeObserver?.observe(footer);
     });
   }
@@ -852,9 +913,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       branch.style.setProperty('--tree-add-btn-height', `${footer.offsetHeight}px`);
     });
 
-    root.querySelectorAll<HTMLElement>('.corners-branch, .bleed-branch, .folding-branch').forEach((branch) => {
-      const footer = branch.querySelector<HTMLElement>('.corners-branch__footer, .bleed-branch__footer, .folding-branch__footer');
-      const railEnd = branch.querySelector<HTMLElement>('.corners-branch__rail-end, .bleed-branch__rail-end, .folding-branch__rail-end');
+    root.querySelectorAll<HTMLElement>('.corners-branch, .bleed-branch, .folding-branch, .duplex-branch').forEach((branch) => {
+      const footer = branch.querySelector<HTMLElement>('.corners-branch__footer, .bleed-branch__footer, .folding-branch__footer, .duplex-branch__footer');
+      const railEnd = branch.querySelector<HTMLElement>('.corners-branch__rail-end, .bleed-branch__rail-end, .folding-branch__rail-end, .duplex-branch__rail-end');
       if (!footer) {
         return;
       }
