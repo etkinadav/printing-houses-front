@@ -285,10 +285,20 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   removeCorner(group: AbstractControl, index: number): void {
-    if (this.getCorners(group).length > 1) {
-      this.getCorners(group).removeAt(index);
+    const corners = this.getCorners(group);
+    if (corners.length <= 1) {
+      corners.clear();
+      this.uncheckExtraSetting(group, 'corners');
       this.scheduleRailSync();
+      return;
     }
+    corners.removeAt(index);
+    this.scheduleRailSync();
+  }
+
+  private uncheckExtraSetting(group: AbstractControl, key: ExtraSettingKey): void {
+    const control = group.get('extraSettings') as FormControl<ExtraSettingKey[]>;
+    control.setValue(control.value.filter((setting) => setting !== key));
   }
 
   onSave(): void {
