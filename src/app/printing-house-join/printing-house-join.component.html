@@ -22,6 +22,10 @@
           </mat-error>
         </mat-form-field>
 
+        <div class="printing-house-join-section-title">
+          {{ 'printing-house-join.address-title' | translate }}
+        </div>
+
         <div class="row g-2 w-100 m-0">
           <div class="col-12 col-md-6">
             <mat-form-field class="w-100" appearance="outline">
@@ -78,6 +82,28 @@
             <mat-form-field class="w-100" appearance="outline">
               <mat-label>{{ 'printing-house-join.notes' | translate }}</mat-label>
               <input matInput formControlName="notes" [placeholder]="'printing-house-join.notes' | translate" />
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div class="printing-house-join-map-wrap w-100">
+          <div class="map-wrapper">
+            <div #mapEl class="printing-house-join-map"></div>
+            <div class="printing-house-join-map-pin" aria-hidden="true"></div>
+          </div>
+        </div>
+
+        <div class="row g-2 w-100 m-0">
+          <div class="col-6">
+            <mat-form-field class="w-100" appearance="outline">
+              <mat-label>{{ 'printing-house-join.lon' | translate }}</mat-label>
+              <input matInput formControlName="lon" readonly />
+            </mat-form-field>
+          </div>
+          <div class="col-6">
+            <mat-form-field class="w-100" appearance="outline">
+              <mat-label>{{ 'printing-house-join.lat' | translate }}</mat-label>
+              <input matInput formControlName="lat" readonly />
             </mat-form-field>
           </div>
         </div>

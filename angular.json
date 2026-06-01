@@ -33,6 +33,7 @@
             ],
             "styles": [
               "@angular/material/prebuilt-themes/pink-bluegrey.css",
+              "node_modules/maplibre-gl/dist/maplibre-gl.css",
               "src/styles.scss"
             ],
             "scripts": []

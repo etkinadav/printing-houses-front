@@ -11,6 +11,49 @@
   max-width: 640px;
 }
 
+.printing-house-join-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.9;
+  margin-top: 0.25rem;
+}
+
+.printing-house-join-map-wrap {
+  margin-top: 0.25rem;
+}
+
+.map-wrapper {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--zx-gray-light-mid);
+  border: 1px solid rgba(85, 85, 85, 0.12);
+}
+
+.printing-house-join-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.printing-house-join-map-pin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 34px;
+  height: 34px;
+  transform: translate(-50%, -100%);
+  background-image: url('/assets/images/pin-icon-delivery.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.22));
+  z-index: 5;
+}
+
 .printing-house-join-save {
   --mdc-protected-button-container-color: var(--zx-green);
   --mdc-protected-button-label-text-color: #fff;
