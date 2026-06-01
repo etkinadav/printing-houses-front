@@ -15,12 +15,72 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
-          <mat-label>{{ 'printing-house-join.address' | translate }}</mat-label>
-          <input matInput formControlName="address" autocomplete="street-address" />
-          <mat-error *ngIf="form.controls.address.hasError('required')">
-            {{ 'printing-house-join.address-required' | translate }}
+          <mat-label>{{ 'printing-house-join.logo' | translate }}</mat-label>
+          <input matInput formControlName="logoUrl" placeholder="https://..." autocomplete="url" />
+          <mat-error *ngIf="form.controls.logoUrl.hasError('pattern')">
+            {{ 'printing-house-join.logo-invalid' | translate }}
           </mat-error>
         </mat-form-field>
+
+        <div class="row g-2 w-100 m-0">
+          <div class="col-12 col-md-6">
+            <mat-form-field class="w-100" appearance="outline">
+              <mat-label>{{ 'printing-house-join.city' | translate }}</mat-label>
+              <input matInput formControlName="city" [placeholder]="'printing-house-join.city' | translate" autocomplete="address-level2" />
+              <mat-error *ngIf="form.controls.city.hasError('required')">
+                {{ 'printing-house-join.city-required' | translate }}
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <mat-form-field class="w-100" appearance="outline">
+              <mat-label>{{ 'printing-house-join.street' | translate }}</mat-label>
+              <input matInput formControlName="street" [placeholder]="'printing-house-join.street' | translate" autocomplete="address-line1" />
+              <mat-error *ngIf="form.controls.street.hasError('required')">
+                {{ 'printing-house-join.street-required' | translate }}
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="col-4">
+            <mat-form-field class="w-100" appearance="outline">
+              <mat-label>{{ 'printing-house-join.house-number' | translate }}</mat-label>
+              <input matInput formControlName="houseNumber" [placeholder]="'printing-house-join.house-number' | translate" inputmode="numeric" />
+              <mat-error *ngIf="form.controls.houseNumber.hasError('required')">
+                {{ 'printing-house-join.house-number-required' | translate }}
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="col-4">
+            <mat-form-field class="w-100" appearance="outline">
+              <mat-label>{{ 'printing-house-join.apartment' | translate }}</mat-label>
+              <input matInput formControlName="apartment" [placeholder]="'printing-house-join.apartment' | translate" />
+            </mat-form-field>
+          </div>
+
+          <div class="col-4">
+            <mat-form-field class="w-100" appearance="outline">
+              <mat-label>{{ 'printing-house-join.floor' | translate }}</mat-label>
+              <input matInput formControlName="floor" [placeholder]="'printing-house-join.floor' | translate" inputmode="numeric" />
+            </mat-form-field>
+          </div>
+
+          <div class="col-4">
+            <mat-form-field class="w-100" appearance="outline">
+              <mat-label>{{ 'printing-house-join.postal-code' | translate }}</mat-label>
+              <input matInput formControlName="postalCode" [placeholder]="'printing-house-join.postal-code' | translate" inputmode="numeric" autocomplete="postal-code" />
+            </mat-form-field>
+          </div>
+
+          <div class="col-8">
+            <mat-form-field class="w-100" appearance="outline">
+              <mat-label>{{ 'printing-house-join.notes' | translate }}</mat-label>
+              <input matInput formControlName="notes" [placeholder]="'printing-house-join.notes' | translate" />
+            </mat-form-field>
+          </div>
+        </div>
 
         <button
           mat-raised-button

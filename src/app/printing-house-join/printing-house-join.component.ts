@@ -18,14 +18,44 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy {
   isRTL = true;
   isDarkMode = false;
 
+  private readonly imageUrlPattern = /^https?:\/\/.+/i;
+
   form = new FormGroup({
     name: new FormControl<string>('', {
       nonNullable: true,
       validators: [Validators.required, Validators.maxLength(120)],
     }),
-    address: new FormControl<string>('', {
+    logoUrl: new FormControl<string>('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(300)],
+      validators: [Validators.maxLength(500), Validators.pattern(this.imageUrlPattern)],
+    }),
+    city: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.maxLength(120)],
+    }),
+    street: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.maxLength(200)],
+    }),
+    houseNumber: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.maxLength(20)],
+    }),
+    apartment: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(20)],
+    }),
+    floor: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(20)],
+    }),
+    postalCode: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(20)],
+    }),
+    notes: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(500)],
     }),
   });
 
