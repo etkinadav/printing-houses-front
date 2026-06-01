@@ -8,6 +8,7 @@ import { PrivacyPolicyComponent } from './legal/privacy-policy/privacy-policy.co
 import { MyProfileComponent } from './my-profile/my-profile.component';
 import { ProductCreateComponent } from './management/product-create/product-create.component';
 import { CategoryEditComponent } from './management/category-edit/category-edit.component';
+import { PrintingHouseJoinComponent } from './printing-house-join/printing-house-join.component';
 
 import { AuthGuard } from './auth/auth.guard';
 
@@ -28,6 +29,7 @@ const routes: Routes = [
 
     { path: 'management/product-create', component: ProductCreateComponent },
     { path: 'management/category-edit', component: CategoryEditComponent },
+    { path: 'join/printing-house', component: PrintingHouseJoinComponent },
 
     { path: '**', redirectTo: '/' },
 ];

@@ -1,0 +1,36 @@
+<div class="printing-house-join-page px-3 py-4" [class.zx-rtl]="isRTL" [class.text-white]="isDarkMode">
+  <mat-card class="printing-house-join-card mx-auto">
+    <mat-card-header>
+      <mat-card-title>{{ 'printing-house-join.title' | translate }}</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="d-flex flex-column gap-3 mt-3">
+        <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
+          <mat-label>{{ 'printing-house-join.name' | translate }}</mat-label>
+          <input matInput formControlName="name" autocomplete="organization" />
+          <mat-error *ngIf="form.controls.name.hasError('required')">
+            {{ 'printing-house-join.name-required' | translate }}
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
+          <mat-label>{{ 'printing-house-join.address' | translate }}</mat-label>
+          <input matInput formControlName="address" autocomplete="street-address" />
+          <mat-error *ngIf="form.controls.address.hasError('required')">
+            {{ 'printing-house-join.address-required' | translate }}
+          </mat-error>
+        </mat-form-field>
+
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          [disabled]="form.invalid"
+          class="printing-house-join-save tree-add-btn tree-add-btn--block text-white rounded-pill">
+          {{ 'printing-house-join.submit' | translate }}
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

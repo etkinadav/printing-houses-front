@@ -1,0 +1,21 @@
+.printing-house-join-page {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.printing-house-join-card {
+  max-width: 640px;
+}
+
+.printing-house-join-save {
+  --mdc-protected-button-container-color: var(--zx-green);
+  --mdc-protected-button-label-text-color: #fff;
+  --mdc-protected-button-container-shape: 999px;
+  width: 100%;
+  margin-top: 0.25rem;
+  color: #fff !important;
+}

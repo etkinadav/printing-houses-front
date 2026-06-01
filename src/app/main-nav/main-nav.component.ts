@@ -326,6 +326,12 @@ export class MainNavComponent implements OnInit, OnDestroy {
     this.router.navigate(['/management/category-edit']);
   }
 
+  goToJoinPrintingHouse() {
+    this.closeDrawer();
+    this.closeProfileManu();
+    this.router.navigate(['/join/printing-house']);
+  }
+
   updateGreeting() {
     const currentHour = new Date().getHours();
     if (currentHour >= 6 && currentHour < 12) {

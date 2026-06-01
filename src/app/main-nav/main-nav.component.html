@@ -30,6 +30,20 @@
       </a>
 
       <a
+        tabindex="0"
+        role="button"
+        class="my-tab-focus"
+        mat-list-item
+        (click)="goToJoinPrintingHouse()">
+        <div class="w-100 h-100 d-flex align-items-center gap-2">
+          <mat-icon>print</mat-icon>
+          <span class="mat-list-item-small">
+            {{ 'main-nav.join-printing-house' | translate }}
+          </span>
+        </div>
+      </a>
+
+      <a
         *ngIf="canManageProducts()"
         tabindex="0"
         role="button"
