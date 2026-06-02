@@ -4,6 +4,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
 import { debounceTime, distinctUntilChanged, map, merge, Subscription } from 'rxjs';
 import * as maplibregl from 'maplibre-gl';
+import { Router } from '@angular/router';
 
 import { DirectionService } from '../direction.service';
 import { getMapStyleUrl, getMapTransformRequest } from '../maptiler/maptiler-style-url';
@@ -96,6 +97,7 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
     private translateService: TranslateService,
     private snackBar: MatSnackBar,
     private phPrintingHouseService: PhPrintingHouseService,
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -157,11 +159,7 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
 
     this.phPrintingHouseService.createPrintingHouse(payload).subscribe({
       next: () => {
-        this.snackBar.open(
-          this.translateService.instant('printing-house-join.submitted'),
-          undefined,
-          { duration: 3000 },
-        );
+        this.router.navigate(['/management/printing-house']);
       },
       error: () => {
         this.snackBar.open(
