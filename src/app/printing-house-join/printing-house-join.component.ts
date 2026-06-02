@@ -6,7 +6,7 @@ import { debounceTime, distinctUntilChanged, Subscription } from 'rxjs';
 import * as maplibregl from 'maplibre-gl';
 
 import { DirectionService } from '../direction.service';
-import { getMapTilerStyleUrl } from '../maptiler/maptiler-style-url';
+import { getMapStyleUrl, getMapTransformRequest } from '../maptiler/maptiler-style-url';
 
 @Component({
   selector: 'app-printing-house-join',
@@ -156,13 +156,17 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
     if (this.map && !((this.map as any)._removed)) return;
 
     const initialCenter: [number, number] = [34.7818, 32.0853]; // Tel Aviv
+    const styleUrl = getMapStyleUrl();
+
+    const transformRequest = getMapTransformRequest();
 
     this.map = new maplibregl.Map({
       container: this.mapEl.nativeElement,
-      style: getMapTilerStyleUrl(),
+      style: styleUrl,
       center: initialCenter,
       zoom: 12,
       attributionControl: false,
+      ...(transformRequest ? { transformRequest } : {}),
     });
 
     this.map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');

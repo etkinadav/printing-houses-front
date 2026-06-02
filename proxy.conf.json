@@ -1,1 +1,11 @@
-{}
+{
+  "/maptiler-api": {
+    "target": "https://api.maptiler.com",
+    "secure": true,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/maptiler-api": ""
+    },
+    "logLevel": "warn"
+  }
+}
