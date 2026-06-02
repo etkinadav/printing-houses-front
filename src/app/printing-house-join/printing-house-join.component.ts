@@ -182,8 +182,13 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
     };
 
     this.phPrintingHouseService.createPrintingHouse(payload).subscribe({
-      next: () => {
-        this.router.navigate(['/management/printing-house']);
+      next: (res) => {
+        const id = res.printingHouse?._id;
+        if (id) {
+          this.router.navigate(['/management/printing-house', id]);
+        } else {
+          this.router.navigate(['/management/printing-house']);
+        }
       },
       error: () => {
         this.snackBar.open(

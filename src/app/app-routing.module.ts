@@ -32,6 +32,7 @@ const routes: Routes = [
     { path: 'management/category-edit', component: CategoryEditComponent },
     { path: 'join/printing-house', component: PrintingHouseJoinComponent, canActivate: [AuthGuard] },
     { path: 'management/printing-house', component: PrintingHouseManagementComponent, canActivate: [AuthGuard] },
+    { path: 'management/printing-house/:id', component: PrintingHouseManagementComponent, canActivate: [AuthGuard] },
 
     { path: '**', redirectTo: '/' },
 ];

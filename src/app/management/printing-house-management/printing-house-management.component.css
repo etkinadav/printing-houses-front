@@ -18,3 +18,84 @@
   margin-top: 0.25rem;
 }
 
+.printing-house-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.printing-house-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.printing-house-field__label {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.printing-house-field__value {
+  font-size: 14px;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.printing-house-logo-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.printing-house-management-map-wrap {
+  margin-top: 0.25rem;
+}
+
+.map-wrapper {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--zx-gray-light-mid);
+  border: 1px solid rgba(85, 85, 85, 0.12);
+}
+
+.printing-house-management-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.printing-house-management-map-pin {
+  width: 34px;
+  height: 34px;
+  transform: translateY(-50%);
+  background-image: url('/assets/images/pin-icon-delivery.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.22));
+}
+
+.logo-crop-viewport {
+  width: 220px;
+  height: 220px;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  background: var(--zx-gray-light-light-light);
+  border: 1px solid rgba(85, 85, 85, 0.14);
+}
+
+.logo-crop-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center;
+  will-change: transform;
+  pointer-events: none;
+  user-select: none;
+}
+

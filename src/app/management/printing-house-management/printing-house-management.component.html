@@ -21,19 +21,23 @@
           {{ 'management.printing-house.basic' | translate }}
         </div>
 
-        <div class="row g-2 w-100 m-0">
-          <div class="col-12 col-md-6">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>{{ 'printing-house-join.name' | translate }}</mat-label>
-              <input matInput [value]="printingHouse.name" readonly />
-            </mat-form-field>
+        <div class="printing-house-fields">
+          <div class="printing-house-field">
+            <div class="printing-house-field__label">{{ 'printing-house-join.name' | translate }}</div>
+            <div class="printing-house-field__value">{{ printingHouse.name }}</div>
           </div>
+        </div>
 
-          <div class="col-12 col-md-6">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>{{ 'printing-house-join.logo' | translate }}</mat-label>
-              <input matInput [value]="printingHouse.logo?.url || printingHouse.logoUrl || ''" readonly />
-            </mat-form-field>
+        <div *ngIf="logoUrl" class="printing-house-logo-block">
+          <div class="printing-house-field__label">{{ 'printing-house-join.logo' | translate }}</div>
+          <div class="logo-crop-viewport">
+            <img
+              #logoImg
+              class="logo-crop-img"
+              [src]="logoUrl"
+              alt="Logo"
+              (load)="onLogoImgLoad()"
+              [style.transform]="'translate(-50%, -50%) translate(' + logoOffsetX + 'px,' + logoOffsetY + 'px) scale(' + (logoCoverScale * logoZoom) + ')'" />
           </div>
         </div>
 
@@ -41,50 +45,34 @@
           {{ 'printing-house-join.address-title' | translate }}
         </div>
 
-        <div class="row g-2 w-100 m-0">
-          <div class="col-12 col-md-6">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>{{ 'printing-house-join.city' | translate }}</mat-label>
-              <input matInput [value]="printingHouse.address.city" readonly />
-            </mat-form-field>
+        <div class="printing-house-fields">
+          <div class="printing-house-field">
+            <div class="printing-house-field__label">{{ 'printing-house-join.city' | translate }}</div>
+            <div class="printing-house-field__value">{{ printingHouse.address.city }}</div>
           </div>
-          <div class="col-12 col-md-6">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>{{ 'printing-house-join.street' | translate }}</mat-label>
-              <input matInput [value]="printingHouse.address.street" readonly />
-            </mat-form-field>
+          <div class="printing-house-field">
+            <div class="printing-house-field__label">{{ 'printing-house-join.street' | translate }}</div>
+            <div class="printing-house-field__value">{{ printingHouse.address.street }}</div>
           </div>
-
-          <div class="col-4">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>{{ 'printing-house-join.house-number' | translate }}</mat-label>
-              <input matInput [value]="printingHouse.address.houseNumber" readonly />
-            </mat-form-field>
+          <div class="printing-house-field">
+            <div class="printing-house-field__label">{{ 'printing-house-join.house-number' | translate }}</div>
+            <div class="printing-house-field__value">{{ printingHouse.address.houseNumber }}</div>
           </div>
-          <div class="col-4">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>{{ 'printing-house-join.apartment' | translate }}</mat-label>
-              <input matInput [value]="printingHouse.address.apartment || ''" readonly />
-            </mat-form-field>
+          <div class="printing-house-field">
+            <div class="printing-house-field__label">{{ 'printing-house-join.apartment' | translate }}</div>
+            <div class="printing-house-field__value">{{ printingHouse.address.apartment || '' }}</div>
           </div>
-          <div class="col-4">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>{{ 'printing-house-join.floor' | translate }}</mat-label>
-              <input matInput [value]="printingHouse.address.floor || ''" readonly />
-            </mat-form-field>
+          <div class="printing-house-field">
+            <div class="printing-house-field__label">{{ 'printing-house-join.floor' | translate }}</div>
+            <div class="printing-house-field__value">{{ printingHouse.address.floor || '' }}</div>
           </div>
-
-          <div class="col-4">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>{{ 'printing-house-join.postal-code' | translate }}</mat-label>
-              <input matInput [value]="printingHouse.address.postalCode || ''" readonly />
-            </mat-form-field>
+          <div class="printing-house-field">
+            <div class="printing-house-field__label">{{ 'printing-house-join.postal-code' | translate }}</div>
+            <div class="printing-house-field__value">{{ printingHouse.address.postalCode || '' }}</div>
           </div>
-          <div class="col-8">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>{{ 'printing-house-join.notes' | translate }}</mat-label>
-              <input matInput [value]="printingHouse.address.notes || ''" readonly />
-            </mat-form-field>
+          <div class="printing-house-field">
+            <div class="printing-house-field__label">{{ 'printing-house-join.notes' | translate }}</div>
+            <div class="printing-house-field__value">{{ printingHouse.address.notes || '' }}</div>
           </div>
         </div>
 
@@ -92,18 +80,9 @@
           {{ 'management.printing-house.location' | translate }}
         </div>
 
-        <div class="row g-2 w-100 m-0">
-          <div class="col-6">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>{{ 'printing-house-join.lon' | translate }}</mat-label>
-              <input matInput [value]="printingHouse.location.lon" readonly />
-            </mat-form-field>
-          </div>
-          <div class="col-6">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>{{ 'printing-house-join.lat' | translate }}</mat-label>
-              <input matInput [value]="printingHouse.location.lat" readonly />
-            </mat-form-field>
+        <div class="printing-house-management-map-wrap w-100">
+          <div class="map-wrapper">
+            <div #mapEl class="printing-house-management-map"></div>
           </div>
         </div>
       </div>
