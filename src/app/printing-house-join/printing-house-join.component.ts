@@ -2,7 +2,7 @@ import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild } fr
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
-import { debounceTime, distinctUntilChanged, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, map, merge, Subscription } from 'rxjs';
 import * as maplibregl from 'maplibre-gl';
 
 import { DirectionService } from '../direction.service';
@@ -25,9 +25,21 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
 
   @ViewChild('mapEl') mapEl?: ElementRef<HTMLDivElement>;
   private map?: maplibregl.Map;
-  private suppressGeocode = false;
-  private suppressMapMove = false;
-  private mapMoveEndTmr?: any;
+  private suppressAddressToMap = false;
+  private suppressMapToAddress = false;
+  private mapMoveEndTmr?: ReturnType<typeof setTimeout>;
+  private geocodeRequestId = 0;
+  private reverseGeocodeRequestId = 0;
+
+  private readonly addressFieldKeys = [
+    'city',
+    'street',
+    'houseNumber',
+    'apartment',
+    'floor',
+    'postalCode',
+    'notes',
+  ] as const;
 
   form = new FormGroup({
     name: new FormControl<string>('', {
@@ -92,14 +104,16 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
       this.isDarkMode = isDarkMode;
     });
 
-    this.addressSub = this.form.valueChanges
+    const addressChanges = this.addressFieldKeys.map((key) => this.form.controls[key].valueChanges);
+    this.addressSub = merge(...addressChanges)
       .pipe(
         debounceTime(450),
-        distinctUntilChanged((a, b) => JSON.stringify(this.addressPartsOf(a)) === JSON.stringify(this.addressPartsOf(b))),
+        map(() => this.addressPartsOf(this.form.getRawValue())),
+        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
       )
       .subscribe(() => {
-        if (this.suppressGeocode) return;
-        void this.geocodeAndFlyToAddress();
+        if (this.suppressAddressToMap) return;
+        void this.geocodeAddressToMap();
       });
   }
 
@@ -177,14 +191,11 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
     });
 
     this.map.on('moveend', () => {
-      if (this.suppressMapMove) return;
+      if (this.suppressMapToAddress) return;
       clearTimeout(this.mapMoveEndTmr);
       this.mapMoveEndTmr = setTimeout(() => {
-        const c = this.map!.getCenter();
-        this.suppressGeocode = true;
-        this.setCoordsFromCenter(c.lat, c.lng, { emit: true });
-        this.suppressGeocode = false;
-      }, 80);
+        void this.reverseGeocodeMapToAddress();
+      }, 300);
     });
   }
 
@@ -195,22 +206,19 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
     this.form.controls.lon.setValue(lonStr, { emitEvent: opts.emit });
   }
 
-  private async geocodeAndFlyToAddress(): Promise<void> {
-    // require minimal address to avoid hammering
-    if (!this.form.controls.city.value.trim() || !this.form.controls.street.value.trim()) return;
+  private async geocodeAddressToMap(): Promise<void> {
+    const v = this.addressPartsOf(this.form.getRawValue());
+    if (!v.city && !v.street) return;
 
+    const requestId = ++this.geocodeRequestId;
     const q = this.buildAddressQuery();
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&addressdetails=1&accept-language=he,en`;
 
     try {
-      const res = await fetch(url, {
-        headers: {
-          'Accept': 'application/json',
-          // Nominatim requires a valid User-Agent / Referer in some setups; browser sends it implicitly.
-        },
-      });
-      if (!res.ok) return;
-      const data: any[] = await res.json();
+      const res = await fetch(url, { headers: this.nominatimHeaders() });
+      if (!res.ok || requestId !== this.geocodeRequestId) return;
+
+      const data: { lat?: string; lon?: string }[] = await res.json();
       const first = data?.[0];
       if (!first?.lat || !first?.lon) return;
 
@@ -218,15 +226,115 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
       const lon = Number(first.lon);
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
 
-      this.suppressMapMove = true;
-      this.map?.flyTo({ center: [lon, lat], zoom: 16, essential: true });
-      this.suppressMapMove = false;
+      this.suppressMapToAddress = true;
+      this.setCoordsFromCenter(lat, lon, { emit: false });
 
-      this.suppressGeocode = true;
-      this.setCoordsFromCenter(lat, lon, { emit: true });
-      this.suppressGeocode = false;
+      const map = this.map;
+      if (!map) {
+        this.suppressMapToAddress = false;
+        return;
+      }
+
+      const finish = () => {
+        this.suppressMapToAddress = false;
+      };
+      map.once('moveend', finish);
+      map.flyTo({ center: [lon, lat], zoom: 16, essential: true });
     } catch {
-      // swallow network errors (front-only)
+      this.suppressMapToAddress = false;
     }
+  }
+
+  private async reverseGeocodeMapToAddress(): Promise<void> {
+    if (!this.map) return;
+
+    const requestId = ++this.reverseGeocodeRequestId;
+    const center = this.map.getCenter();
+    const lat = center.lat;
+    const lon = center.lng;
+
+    this.setCoordsFromCenter(lat, lon, { emit: false });
+
+    const structured = await this.fetchStructuredAddressFromCoordinates(lat, lon);
+    if (!structured || requestId !== this.reverseGeocodeRequestId) return;
+
+    this.suppressAddressToMap = true;
+    this.form.patchValue(
+      {
+        city: structured.city,
+        street: structured.street,
+        houseNumber: structured.houseNumber,
+        postalCode: structured.postalCode,
+      },
+      { emitEvent: true },
+    );
+    this.suppressAddressToMap = false;
+  }
+
+  private nominatimHeaders(): HeadersInit {
+    return {
+      Accept: 'application/json',
+      'User-Agent': 'Eazix-PrintingHouses-Front',
+    };
+  }
+
+  private async fetchStructuredAddressFromCoordinates(
+    lat: number,
+    lon: number,
+  ): Promise<{ city: string; street: string; houseNumber: string; postalCode: string } | null> {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&accept-language=he,en`;
+
+    try {
+      const res = await fetch(url, { headers: this.nominatimHeaders() });
+      if (!res.ok) return null;
+
+      const data = await res.json();
+      if (!data?.address) return null;
+
+      const addr = data.address;
+      return {
+        city: this.resolveSettlementFromNominatim(addr),
+        street: String(addr.road || addr.street || addr.pedestrian || addr.footway || addr.path || '').trim(),
+        houseNumber: String(addr.house_number || '').trim(),
+        postalCode: String(addr.postcode || '').trim(),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /** Israeli settlements: prefer village/hamlet over regional council names (from phprint). */
+  private resolveSettlementFromNominatim(addr: Record<string, unknown>): string {
+    const v = (s: unknown) => (s && String(s).trim()) || '';
+    const village = v(addr['village']);
+    const hamlet = v(addr['hamlet']);
+    const locality = v(addr['locality']);
+    const town = v(addr['town']);
+    const city = v(addr['city']);
+    const municipality = v(addr['municipality']);
+
+    const badAdminPrefixes = ['מועצה אזורית', 'מועצה מקומית', 'עיריית', 'עיריה'];
+    const isBadAdmin = (s: string) => badAdminPrefixes.some((p) => s.startsWith(p));
+    const cityIsBadAdmin = city && isBadAdmin(city);
+    const munIsBadAdmin = municipality && isBadAdmin(municipality);
+
+    if (cityIsBadAdmin || munIsBadAdmin) {
+      return village || hamlet || locality || town || city || municipality || '';
+    }
+
+    return (
+      village ||
+      hamlet ||
+      locality ||
+      town ||
+      city ||
+      municipality ||
+      v(addr['residential']) ||
+      v(addr['state_district']) ||
+      v(addr['state']) ||
+      v(addr['county']) ||
+      v(addr['suburb']) ||
+      ''
+    );
   }
 }
