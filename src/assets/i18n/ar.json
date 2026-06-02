@@ -34,7 +34,7 @@
     "printing-house-join.notes": "ملاحظات",
     "printing-house-join.lon": "خط الطول",
     "printing-house-join.lat": "خط العرض",
-    "printing-house-join.submit": "إرسال",
+    "printing-house-join.submit": "إنشاء مطبعة",
     "printing-house-join.submitted": "تم حفظ التفاصيل محليًا (سيتم ربط الخادم لاحقًا)",
     "management.category-edit.title": "تحرير الفئات",
     "management.category-edit.category-number": "فئة {{n}}",
