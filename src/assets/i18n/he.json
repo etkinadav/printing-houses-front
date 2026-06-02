@@ -36,6 +36,7 @@
     "printing-house-join.lat": "קו רוחב",
     "printing-house-join.submit": "צור בית דפוס",
     "printing-house-join.submitted": "הפרטים נשמרו מקומית (חיבור לשרת יתווסף בהמשך)",
+    "printing-house-join.submit-failed": "שמירת בית הדפוס נכשלה",
     "management.category-edit.title": "עריכת קטגוריות",
     "management.category-edit.category-number": "קטגוריה {{n}}",
     "management.category-edit.subcategory-number": "תת קטגוריה {{n}}",

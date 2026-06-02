@@ -7,6 +7,7 @@ import * as maplibregl from 'maplibre-gl';
 
 import { DirectionService } from '../direction.service';
 import { getMapStyleUrl, getMapTransformRequest } from '../maptiler/maptiler-style-url';
+import { PhPrintingHouseService } from '../ph-printing-house/ph-printing-house.service';
 
 @Component({
   selector: 'app-printing-house-join',
@@ -94,6 +95,7 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
     private directionService: DirectionService,
     private translateService: TranslateService,
     private snackBar: MatSnackBar,
+    private phPrintingHouseService: PhPrintingHouseService,
   ) {}
 
   ngOnInit(): void {
@@ -135,11 +137,40 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
       return;
     }
 
-    this.snackBar.open(
-      this.translateService.instant('printing-house-join.submitted'),
-      undefined,
-      { duration: 3000 },
-    );
+    const payload = {
+      name: this.form.controls.name.value,
+      logoUrl: this.form.controls.logoUrl.value,
+      address: {
+        city: this.form.controls.city.value,
+        street: this.form.controls.street.value,
+        houseNumber: this.form.controls.houseNumber.value,
+        apartment: this.form.controls.apartment.value,
+        floor: this.form.controls.floor.value,
+        postalCode: this.form.controls.postalCode.value,
+        notes: this.form.controls.notes.value,
+      },
+      location: {
+        lat: Number(this.form.controls.lat.value),
+        lon: Number(this.form.controls.lon.value),
+      },
+    };
+
+    this.phPrintingHouseService.createPrintingHouse(payload).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translateService.instant('printing-house-join.submitted'),
+          undefined,
+          { duration: 3000 },
+        );
+      },
+      error: () => {
+        this.snackBar.open(
+          this.translateService.instant('printing-house-join.submit-failed'),
+          undefined,
+          { duration: 4000 },
+        );
+      },
+    });
   }
 
   private addressPartsOf(v: any) {

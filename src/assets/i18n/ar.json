@@ -36,6 +36,7 @@
     "printing-house-join.lat": "خط العرض",
     "printing-house-join.submit": "إنشاء مطبعة",
     "printing-house-join.submitted": "تم حفظ التفاصيل محليًا (سيتم ربط الخادم لاحقًا)",
+    "printing-house-join.submit-failed": "فشل إنشاء المطبعة",
     "management.category-edit.title": "تحرير الفئات",
     "management.category-edit.category-number": "فئة {{n}}",
     "management.category-edit.subcategory-number": "فئة فرعية {{n}}",
