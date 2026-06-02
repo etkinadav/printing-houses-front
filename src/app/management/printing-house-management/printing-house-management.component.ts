@@ -27,6 +27,7 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
   logoCoverScale = 1;
 
   @ViewChild('mapEl') mapEl?: ElementRef<HTMLDivElement>;
+  @ViewChild('mapPin') mapPinEl?: ElementRef<HTMLDivElement>;
   @ViewChild('logoImg') logoImg?: ElementRef<HTMLImageElement>;
 
   private map?: maplibregl.Map;
@@ -197,15 +198,22 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
 
   private setMarkerAndCenter(lat: number, lon: number): void {
     const map = this.map;
-    if (!map) return;
+    const pinEl = this.mapPinEl?.nativeElement;
+    if (!map || !pinEl) return;
 
-    const el = document.createElement('div');
-    el.className = 'printing-house-management-map-pin';
+    pinEl.hidden = false;
 
-    this.marker?.remove();
-    this.marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
-      .setLngLat([lon, lat])
-      .addTo(map);
+    if (!this.marker) {
+      this.marker = new maplibregl.Marker({
+        element: pinEl,
+        anchor: 'bottom',
+        draggable: false,
+      })
+        .setLngLat([lon, lat])
+        .addTo(map);
+    } else {
+      this.marker.setLngLat([lon, lat]);
+    }
 
     map.jumpTo({ center: [lon, lat], zoom: 15 });
   }

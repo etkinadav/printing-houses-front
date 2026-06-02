@@ -71,7 +71,6 @@
 .printing-house-management-map-pin {
   width: 34px;
   height: 34px;
-  transform: translateY(-50%);
   background-image: url('/assets/images/pin-icon-delivery.svg');
   background-size: contain;
   background-repeat: no-repeat;
