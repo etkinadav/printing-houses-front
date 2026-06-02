@@ -33,6 +33,20 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
   private geocodeRequestId = 0;
   private reverseGeocodeRequestId = 0;
 
+  @ViewChild('logoCropViewport') logoCropViewport?: ElementRef<HTMLDivElement>;
+  @ViewChild('logoCropImg') logoCropImg?: ElementRef<HTMLImageElement>;
+  logoZoom = 1;
+  logoOffsetX = 0;
+  logoOffsetY = 0;
+  private logoNaturalW = 0;
+  private logoNaturalH = 0;
+  logoCoverScale = 1;
+  private logoIsDragging = false;
+  private logoDragStartX = 0;
+  private logoDragStartY = 0;
+  private logoDragStartOffsetX = 0;
+  private logoDragStartOffsetY = 0;
+
   private readonly addressFieldKeys = [
     'city',
     'street',
@@ -133,6 +147,11 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
     this.initMap();
   }
 
+  get hasValidLogoUrl(): boolean {
+    const v = this.form.controls.logoUrl.value;
+    return !!v && !this.form.controls.logoUrl.hasError('pattern');
+  }
+
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -141,7 +160,12 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
 
     const payload = {
       name: this.form.controls.name.value,
-      logoUrl: this.form.controls.logoUrl.value,
+      logo: {
+        url: this.form.controls.logoUrl.value,
+        zoom: this.logoZoom,
+        offsetX: this.logoOffsetX,
+        offsetY: this.logoOffsetY,
+      },
       address: {
         city: this.form.controls.city.value,
         street: this.form.controls.street.value,
@@ -169,6 +193,73 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
         );
       },
     });
+  }
+
+  onLogoImgLoad(): void {
+    const img = this.logoCropImg?.nativeElement;
+    if (!img) return;
+    this.logoNaturalW = img.naturalWidth || 0;
+    this.logoNaturalH = img.naturalHeight || 0;
+    this.recomputeLogoCoverScale();
+    this.resetLogoCrop();
+  }
+
+  onLogoZoomChange(value: number): void {
+    this.logoZoom = value;
+    this.clampLogoOffsets();
+  }
+
+  resetLogoCrop(): void {
+    this.logoZoom = 1;
+    this.logoOffsetX = 0;
+    this.logoOffsetY = 0;
+  }
+
+  onLogoPointerDown(event: PointerEvent): void {
+    if (!this.hasValidLogoUrl) return;
+    if (!this.logoCropViewport?.nativeElement) return;
+    this.logoIsDragging = true;
+    this.logoDragStartX = event.clientX;
+    this.logoDragStartY = event.clientY;
+    this.logoDragStartOffsetX = this.logoOffsetX;
+    this.logoDragStartOffsetY = this.logoOffsetY;
+    this.logoCropViewport.nativeElement.setPointerCapture(event.pointerId);
+  }
+
+  onLogoPointerMove(event: PointerEvent): void {
+    if (!this.logoIsDragging) return;
+    this.logoOffsetX = this.logoDragStartOffsetX + (event.clientX - this.logoDragStartX);
+    this.logoOffsetY = this.logoDragStartOffsetY + (event.clientY - this.logoDragStartY);
+    this.clampLogoOffsets();
+  }
+
+  onLogoPointerUp(event: PointerEvent): void {
+    if (!this.logoIsDragging) return;
+    this.logoIsDragging = false;
+    this.logoCropViewport?.nativeElement.releasePointerCapture(event.pointerId);
+  }
+
+  private recomputeLogoCoverScale(): void {
+    const viewport = this.logoCropViewport?.nativeElement;
+    if (!viewport || !this.logoNaturalW || !this.logoNaturalH) return;
+    const vw = viewport.clientWidth;
+    const vh = viewport.clientHeight;
+    if (!vw || !vh) return;
+    this.logoCoverScale = Math.max(vw / this.logoNaturalW, vh / this.logoNaturalH);
+  }
+
+  private clampLogoOffsets(): void {
+    const viewport = this.logoCropViewport?.nativeElement;
+    if (!viewport || !this.logoNaturalW || !this.logoNaturalH) return;
+    const vw = viewport.clientWidth;
+    const vh = viewport.clientHeight;
+    const scale = this.logoCoverScale * this.logoZoom;
+    const dw = this.logoNaturalW * scale;
+    const dh = this.logoNaturalH * scale;
+    const boundX = Math.max(0, (dw - vw) / 2);
+    const boundY = Math.max(0, (dh - vh) / 2);
+    this.logoOffsetX = Math.min(boundX, Math.max(-boundX, this.logoOffsetX));
+    this.logoOffsetY = Math.min(boundY, Math.max(-boundY, this.logoOffsetY));
   }
 
   private addressPartsOf(v: any) {

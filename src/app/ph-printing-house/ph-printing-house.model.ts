@@ -13,9 +13,16 @@ export interface PhPrintingHouseLocation {
   lon: number;
 }
 
+export interface PhPrintingHouseLogo {
+  url: string;
+  zoom: number;
+  offsetX: number;
+  offsetY: number;
+}
+
 export interface CreatePhPrintingHousePayload {
   name: string;
-  logoUrl?: string;
+  logo?: PhPrintingHouseLogo;
   address: PhPrintingHouseAddress;
   location: PhPrintingHouseLocation;
 }
@@ -25,6 +32,7 @@ export interface PhPrintingHouse {
   createdByUserId: string;
   name: string;
   logoUrl?: string;
+  logo?: PhPrintingHouseLogo;
   address: PhPrintingHouseAddress;
   location: PhPrintingHouseLocation;
   createdAt?: string;

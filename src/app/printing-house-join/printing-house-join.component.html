@@ -22,6 +22,40 @@
           </mat-error>
         </mat-form-field>
 
+        <div *ngIf="hasValidLogoUrl" class="printing-house-join-logo-editor w-100">
+          <div class="printing-house-join-section-title">
+            {{ 'printing-house-join.logo-preview' | translate }}
+          </div>
+
+          <div
+            #logoCropViewport
+            class="logo-crop-viewport"
+            (pointerdown)="onLogoPointerDown($event)"
+            (pointermove)="onLogoPointerMove($event)"
+            (pointerup)="onLogoPointerUp($event)"
+            (pointercancel)="onLogoPointerUp($event)">
+            <img
+              #logoCropImg
+              class="logo-crop-img"
+              [src]="form.controls.logoUrl.value"
+              (load)="onLogoImgLoad()"
+              alt="Logo preview"
+              [style.transform]="'translate(-50%, -50%) translate(' + logoOffsetX + 'px,' + logoOffsetY + 'px) scale(' + (logoCoverScale * logoZoom) + ')'" />
+          </div>
+
+          <div class="logo-crop-controls d-flex align-items-center gap-3">
+            <div class="logo-crop-zoom-label">
+              {{ 'printing-house-join.logo-zoom' | translate }}
+            </div>
+            <mat-slider class="flex-grow-1" min="1" max="3" step="0.01">
+              <input matSliderThumb [value]="logoZoom" (valueChange)="onLogoZoomChange($event)" />
+            </mat-slider>
+            <button mat-stroked-button type="button" (click)="resetLogoCrop()">
+              {{ 'printing-house-join.logo-reset' | translate }}
+            </button>
+          </div>
+        </div>
+
         <div class="printing-house-join-section-title">
           {{ 'printing-house-join.address-title' | translate }}
         </div>

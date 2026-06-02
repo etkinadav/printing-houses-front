@@ -18,6 +18,50 @@
   margin-top: 0.25rem;
 }
 
+.printing-house-join-logo-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.logo-crop-viewport {
+  width: 220px;
+  height: 220px;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  background: var(--zx-gray-light-light-light);
+  border: 1px solid rgba(85, 85, 85, 0.14);
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+
+.logo-crop-viewport:active {
+  cursor: grabbing;
+}
+
+.logo-crop-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center;
+  will-change: transform;
+  pointer-events: none;
+  user-select: none;
+}
+
+.logo-crop-controls {
+  width: 100%;
+}
+
+.logo-crop-zoom-label {
+  min-width: 48px;
+  font-size: 12px;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
 .printing-house-join-map-wrap {
   margin-top: 0.25rem;
 }
