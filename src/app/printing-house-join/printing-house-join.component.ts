@@ -258,7 +258,6 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
     const structured = await this.fetchStructuredAddressFromCoordinates(lat, lon);
     if (!structured || requestId !== this.reverseGeocodeRequestId) return;
 
-    this.suppressAddressToMap = true;
     this.form.patchValue(
       {
         city: structured.city,
@@ -266,9 +265,9 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
         houseNumber: structured.houseNumber,
         postalCode: structured.postalCode,
       },
-      { emitEvent: true },
+      // Do not emit events here, otherwise the address change triggers geocoding and re-animates the map.
+      { emitEvent: false },
     );
-    this.suppressAddressToMap = false;
   }
 
   private nominatimHeaders(): HeadersInit {
