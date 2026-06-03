@@ -29,12 +29,14 @@
 }
 
 .ph-mgmt-header {
+  position: relative;
   flex-shrink: 0;
   width: 100%;
-  padding: 16px 20px;
+  padding: 16px 20px 28px;
   color: #fff;
   background: linear-gradient(135deg, var(--zx-green) 0%, var(--zx-green-dark) 100%);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  overflow: visible;
 }
 
 .ph-mgmt-header--dark {
@@ -49,6 +51,7 @@
   gap: 16px;
   max-width: 1200px;
   margin: 0 auto;
+  padding-inline-end: 96px;
 }
 
 .ph-mgmt-header__logo {
@@ -94,17 +97,26 @@
   word-break: break-word;
 }
 
-.ph-mgmt-map {
-  flex-shrink: 0;
-  width: 100%;
+.ph-mgmt-header__map {
+  position: absolute;
+  z-index: 3;
+  inset-inline-end: 14px;
+  bottom: -22px;
+  width: 88px;
+  height: 88px;
+  pointer-events: none;
 }
 
 .map-wrapper {
   position: relative;
   width: 100%;
-  height: 120px;
+  height: 100%;
   overflow: hidden;
+  border-radius: 50%;
   background: var(--zx-gray-light-mid);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  border: 3px solid rgba(255, 255, 255, 0.92);
+  pointer-events: auto;
 }
 
 .printing-house-management-map {
@@ -115,8 +127,8 @@
 }
 
 .printing-house-management-map-pin {
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   background-image: url('/assets/images/pin-icon-delivery.svg');
   background-size: contain;
   background-repeat: no-repeat;
@@ -136,11 +148,21 @@
 
 @media only screen and (min-width: 992px) {
   .ph-mgmt-header {
-    padding: 24px 32px;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    padding: 0;
+    min-height: 200px;
+    overflow: hidden;
   }
 
   .ph-mgmt-header__inner {
-    gap: 24px;
+    flex: 0 0 60%;
+    max-width: none;
+    margin: 0;
+    padding: 24px 32px;
+    padding-inline-start: 32px;
+    align-self: center;
   }
 
   .ph-mgmt-header__logo {
@@ -157,8 +179,24 @@
     font-size: 1.0625rem;
   }
 
+  .ph-mgmt-header__map {
+    position: relative;
+    inset-inline-end: auto;
+    bottom: auto;
+    flex: 0 0 40%;
+    width: 40%;
+    height: auto;
+    min-height: 200px;
+    align-self: stretch;
+    pointer-events: auto;
+  }
+
   .map-wrapper {
-    height: 220px;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    min-height: 200px;
+    height: 100%;
   }
 
   .printing-house-management-map-pin {

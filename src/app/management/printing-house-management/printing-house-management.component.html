@@ -32,13 +32,13 @@
           <p *ngIf="addressLine" class="ph-mgmt-header__address">{{ addressLine }}</p>
         </div>
       </div>
-    </header>
 
-    <div class="ph-mgmt-map">
-      <div class="map-wrapper">
-        <div #mapEl class="printing-house-management-map"></div>
-        <div #mapPin class="printing-house-management-map-pin" aria-hidden="true" hidden></div>
+      <div #mapWrap class="ph-mgmt-header__map">
+        <div class="map-wrapper">
+          <div #mapEl class="printing-house-management-map"></div>
+          <div #mapPin class="printing-house-management-map-pin" aria-hidden="true" hidden></div>
+        </div>
       </div>
-    </div>
+    </header>
   </ng-container>
 </div>

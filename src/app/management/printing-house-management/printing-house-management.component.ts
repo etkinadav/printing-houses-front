@@ -29,6 +29,7 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
   logoImgTransform = '';
 
   @ViewChild('mapEl') mapEl?: ElementRef<HTMLDivElement>;
+  @ViewChild('mapWrap') mapWrap?: ElementRef<HTMLDivElement>;
   @ViewChild('mapPin') mapPinEl?: ElementRef<HTMLDivElement>;
   @ViewChild('logoViewport') logoViewport?: ElementRef<HTMLDivElement>;
   @ViewChild('logoImg') logoImg?: ElementRef<HTMLImageElement>;
@@ -39,6 +40,7 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
   private logoNaturalW = 0;
   private logoNaturalH = 0;
   private logoResizeObserver?: ResizeObserver;
+  private mapResizeObserver?: ResizeObserver;
 
   private directionSub?: Subscription;
   private darkModeSub?: Subscription;
@@ -96,6 +98,7 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
     this.directionSub?.unsubscribe();
     this.darkModeSub?.unsubscribe();
     this.logoResizeObserver?.disconnect();
+    this.mapResizeObserver?.disconnect();
     this.marker?.remove();
     this.map?.remove();
   }
@@ -103,6 +106,7 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
   ngAfterViewInit(): void {
     this.scheduleMapInit();
     this.setupLogoViewportObserver();
+    this.setupMapResizeObserver();
   }
 
   load(): void {
@@ -122,7 +126,9 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
         this.scheduleMapInit();
         setTimeout(() => {
           this.setupLogoViewportObserver();
+          this.setupMapResizeObserver();
           this.updateLogoTransform();
+          this.map?.resize();
         }, 0);
       },
       error: (err) => {
@@ -140,6 +146,19 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
     this.logoNaturalH = img.naturalHeight || 0;
     this.updateLogoTransform();
     setTimeout(() => this.map?.resize(), 0);
+  }
+
+  private setupMapResizeObserver(): void {
+    const el = this.mapWrap?.nativeElement;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+
+    this.mapResizeObserver?.disconnect();
+    this.mapResizeObserver = new ResizeObserver(() => {
+      if (this.map && !(this.map as any)._removed) {
+        this.map.resize();
+      }
+    });
+    this.mapResizeObserver.observe(el);
   }
 
   private setupLogoViewportObserver(): void {
