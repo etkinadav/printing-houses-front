@@ -347,9 +347,6 @@
   height: 1.125rem;
   padding: 0;
   line-height: 1.125rem;
-  color: var(--zx-green) !important;
-  --mdc-icon-button-icon-color: var(--zx-green);
-  --mat-icon-button-state-layer-color: var(--zx-green);
   --mdc-icon-button-state-layer-size: 1.125rem;
   --mdc-icon-button-icon-size: 1.125rem;
 }
@@ -359,16 +356,68 @@
   width: 1.125rem;
   height: 1.125rem;
   line-height: 1.125rem;
+}
+
+.tree-node--size .tree-node__delete,
+.tree-node--material .tree-node__delete,
+.tree-node--color .tree-node__delete {
+  color: var(--zx-green) !important;
+  --mdc-icon-button-icon-color: var(--zx-green);
+  --mat-icon-button-state-layer-color: var(--zx-green);
+}
+
+.tree-node--size .tree-node__delete .mat-icon,
+.tree-node--material .tree-node__delete .mat-icon,
+.tree-node--color .tree-node__delete .mat-icon {
   color: var(--zx-green);
 }
 
-:host ::ng-deep .tree-node__delete.mat-mdc-icon-button {
+:host ::ng-deep .tree-node--size .tree-node__delete.mat-mdc-icon-button,
+:host ::ng-deep .tree-node--material .tree-node__delete.mat-mdc-icon-button,
+:host ::ng-deep .tree-node--color .tree-node__delete.mat-mdc-icon-button {
   color: var(--zx-green);
   --mdc-icon-button-icon-color: var(--zx-green);
 }
 
-:host ::ng-deep .tree-node__delete.mat-mdc-icon-button .mat-icon {
+:host ::ng-deep .tree-node--size .tree-node__delete.mat-mdc-icon-button .mat-icon,
+:host ::ng-deep .tree-node--material .tree-node__delete.mat-mdc-icon-button .mat-icon,
+:host ::ng-deep .tree-node--color .tree-node__delete.mat-mdc-icon-button .mat-icon {
   color: var(--zx-green);
+}
+
+.corners-branch .tree-node__delete,
+.bleed-branch .tree-node__delete,
+.folding-branch .tree-node__delete,
+.duplex-branch .tree-node__delete,
+.double-sided-branch .tree-node__delete {
+  color: var(--zx-pink) !important;
+  --mdc-icon-button-icon-color: var(--zx-pink);
+  --mat-icon-button-state-layer-color: var(--zx-pink);
+}
+
+.corners-branch .tree-node__delete .mat-icon,
+.bleed-branch .tree-node__delete .mat-icon,
+.folding-branch .tree-node__delete .mat-icon,
+.duplex-branch .tree-node__delete .mat-icon,
+.double-sided-branch .tree-node__delete .mat-icon {
+  color: var(--zx-pink);
+}
+
+:host ::ng-deep .corners-branch .tree-node__delete.mat-mdc-icon-button,
+:host ::ng-deep .bleed-branch .tree-node__delete.mat-mdc-icon-button,
+:host ::ng-deep .folding-branch .tree-node__delete.mat-mdc-icon-button,
+:host ::ng-deep .duplex-branch .tree-node__delete.mat-mdc-icon-button,
+:host ::ng-deep .double-sided-branch .tree-node__delete.mat-mdc-icon-button {
+  color: var(--zx-pink);
+  --mdc-icon-button-icon-color: var(--zx-pink);
+}
+
+:host ::ng-deep .corners-branch .tree-node__delete.mat-mdc-icon-button .mat-icon,
+:host ::ng-deep .bleed-branch .tree-node__delete.mat-mdc-icon-button .mat-icon,
+:host ::ng-deep .folding-branch .tree-node__delete.mat-mdc-icon-button .mat-icon,
+:host ::ng-deep .duplex-branch .tree-node__delete.mat-mdc-icon-button .mat-icon,
+:host ::ng-deep .double-sided-branch .tree-node__delete.mat-mdc-icon-button .mat-icon {
+  color: var(--zx-pink);
 }
 
 :host ::ng-deep .tree-node__delete.mat-mdc-icon-button .mat-mdc-button-touch-target {
@@ -457,8 +506,15 @@
   transform: translateY(1px);
 }
 
-.extra-settings-block {
+.extra-settings-block:has(> .corners-branch, > .bleed-branch, > .folding-branch, > .duplex-branch, > .double-sided-branch) {
+  display: flex;
+  flex-direction: column;
   width: 100%;
+  margin-top: 0.65rem;
+}
+
+.tree-node--color .extra-settings-block:has(> .corners-branch, > .bleed-branch, > .folding-branch, > .duplex-branch, > .double-sided-branch) {
+  margin-top: 1rem;
 }
 
 /* ── Corners branch (pink rail) ── */
@@ -478,10 +534,17 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0;
   width: 100%;
   margin-bottom: 0.35rem;
   padding-inline-start: var(--tree-branch-padding);
+}
+
+.corners-branch__footer,
+.bleed-branch__footer,
+.duplex-branch__footer,
+.folding-branch__footer {
+  margin-top: 0.35rem;
 }
 
 .corners-branch::before {
@@ -609,7 +672,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0;
   width: 100%;
   margin-bottom: 0.35rem;
   padding-inline-start: var(--tree-branch-padding);
@@ -834,7 +897,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0;
   width: 100%;
   margin-bottom: 0.35rem;
   padding-inline-start: var(--tree-branch-padding);
