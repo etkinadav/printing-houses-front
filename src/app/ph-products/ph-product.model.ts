@@ -1,4 +1,11 @@
 import { PhCategory } from '../ph-categories/ph-category.model';
+import { PhPrintingHouse } from '../ph-printing-house/ph-printing-house.model';
+
+/** Populated on public catalog (`GET /ph-products`). */
+export type PhProductPrintingHouseSummary = Pick<
+  PhPrintingHouse,
+  '_id' | 'name' | 'logoUrl' | 'logo' | 'address'
+>;
 
 export type DimensionsFlexability = 'fixed' | 'dynamic';
 export type ExtraSettingKey = 'corners' | 'bleed' | 'folding' | 'duplex' | 'double-sided';
@@ -84,7 +91,7 @@ export interface PhProductProperties {
 
 export interface PhProduct {
   _id: string;
-  printingHouseId?: string;
+  printingHouseId?: string | PhProductPrintingHouseSummary;
   name_he: string;
   name_en?: string;
   name_ar?: string;

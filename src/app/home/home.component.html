@@ -57,11 +57,30 @@
               class="home-catalog-product"
             >
               <span class="home-catalog-product-name">{{ getProductDisplayName(product) }}</span>
-              <span
-                *ngFor="let line of getProductExtraSettingLines(product)"
-                class="home-catalog-product-extra">
-                {{ line }}
-              </span>
+              <div
+                *ngIf="hasPrintingHouseInfo(product)"
+                class="home-catalog-product-ph"
+              >
+                <app-ph-logo-crop
+                  *ngIf="getPrintingHouseLogoUrl(product)"
+                  [imageUrl]="getPrintingHouseLogoUrl(product)"
+                  [logo]="getPrintingHouseLogo(product)"
+                  size="2.125rem"
+                />
+                <div
+                  *ngIf="getPrintingHouseName(product) || getPrintingHouseCity(product)"
+                  class="home-catalog-product-ph-text"
+                >
+                  <span
+                    *ngIf="getPrintingHouseName(product)"
+                    class="home-catalog-product-ph-name"
+                  >{{ getPrintingHouseName(product) }}</span>
+                  <span
+                    *ngIf="getPrintingHouseCity(product)"
+                    class="home-catalog-product-ph-city"
+                  >{{ getPrintingHouseCity(product) }}</span>
+                </div>
+              </div>
             </li>
           </ul>
         </div>

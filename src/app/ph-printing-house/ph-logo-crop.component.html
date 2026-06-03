@@ -1,0 +1,15 @@
+<div
+  #logoViewport
+  class="ph-logo-crop-viewport logo-crop-viewport"
+  [style.--ph-logo-crop-size]="size"
+>
+  <img
+    *ngIf="imageUrl"
+    #logoImg
+    class="logo-crop-img"
+    [src]="imageUrl"
+    alt=""
+    (load)="onLogoImgLoad()"
+    [style.transform]="logoImgTransform"
+  />
+</div>

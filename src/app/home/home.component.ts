@@ -18,9 +18,8 @@ import { PhProductsService } from '../ph-products/ph-products.service';
 import {
   PhCategoryGroup,
   PhProduct,
+  PhProductPrintingHouseSummary,
 } from '../ph-products/ph-product.model';
-import { collectProductExtraSettingLines } from '../ph-products/ph-product-spec.util';
-
 /** Forward / reverse playback speed multiplier (0.5 = half speed). */
 const PLAYBACK_SPEED = 0.5;
 
@@ -157,10 +156,42 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     return product.name_he;
   }
 
-  getProductExtraSettingLines(product: PhProduct): string[] {
-    return collectProductExtraSettingLines(product, (key, params) =>
-      this.translateService.instant(key, params),
+  getPrintingHouseLogoUrl(product: PhProduct): string {
+    const ph = this.resolvePrintingHouse(product);
+    if (!ph) {
+      return '';
+    }
+    return (ph.logo?.url || ph.logoUrl || '').trim();
+  }
+
+  getPrintingHouseLogo(product: PhProduct): PhProductPrintingHouseSummary['logo'] {
+    return this.resolvePrintingHouse(product)?.logo;
+  }
+
+  getPrintingHouseName(product: PhProduct): string {
+    const ph = this.resolvePrintingHouse(product);
+    return (ph?.name || '').trim();
+  }
+
+  getPrintingHouseCity(product: PhProduct): string {
+    const ph = this.resolvePrintingHouse(product);
+    return (ph?.address?.city || '').trim();
+  }
+
+  hasPrintingHouseInfo(product: PhProduct): boolean {
+    return (
+      !!this.getPrintingHouseName(product) ||
+      !!this.getPrintingHouseCity(product) ||
+      !!this.getPrintingHouseLogoUrl(product)
     );
+  }
+
+  private resolvePrintingHouse(product: PhProduct): PhProductPrintingHouseSummary | null {
+    const ref = product.printingHouseId;
+    if (!ref || typeof ref === 'string') {
+      return null;
+    }
+    return ref;
   }
 
   private buildCategoryGroups(

@@ -35,6 +35,7 @@ import { ProductCreateComponent } from './management/product-create/product-crea
 import { CategoryEditComponent } from './management/category-edit/category-edit.component';
 import { PrintingHouseJoinComponent } from './printing-house-join/printing-house-join.component';
 import { PrintingHouseManagementComponent } from './management/printing-house-management/printing-house-management.component';
+import { PhLogoCropComponent } from './ph-printing-house/ph-logo-crop.component';
 
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 
@@ -57,6 +58,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
     CategoryEditComponent,
     PrintingHouseJoinComponent,
     PrintingHouseManagementComponent,
+    PhLogoCropComponent,
   ],
   imports: [
     BrowserModule,
