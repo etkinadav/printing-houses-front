@@ -218,18 +218,53 @@
   border-radius: 8px;
 }
 
+/* Horizontal separator between sibling sizes / materials / colors */
+.tree-node--has-siblings {
+  overflow: visible;
+}
+
+.tree-node-divider {
+  --tree-divider-pull: calc(var(--tree-branch-padding) - var(--tree-rail-inset));
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  align-self: stretch;
+  height: 0;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  border-block-start: var(--tree-rail-width) solid var(--zx-green);
+  background: none;
+  margin-inline-start: calc(-1 * var(--tree-divider-pull));
+  width: calc(100% + var(--tree-divider-pull));
+  margin-block: 0 0.35rem;
+  pointer-events: none;
+  box-sizing: border-box;
+  line-height: 0;
+  font-size: 0;
+}
+
+.tree-branch--sizes,
+.tree-branch--materials,
+.tree-branch--colors {
+  overflow: visible;
+}
+
 .tree-node--size {
-  padding: 0.75rem 0.75rem 0 0;
+  padding-block: 0.75rem 0;
+  padding-inline: 0 0.75rem;
   background: transparent;
 }
 
 .tree-node--material {
-  padding: 0.65rem 0.65rem 0 0;
+  padding-block: 0.65rem 0;
+  padding-inline: 0 0.65rem;
   background: transparent;
 }
 
 .tree-node--color {
-  padding: 0.5rem 0.5rem 0.5rem 0;
+  padding-block: 0.5rem;
+  padding-inline: 0 0.5rem;
   border: none;
   background: none;
 }

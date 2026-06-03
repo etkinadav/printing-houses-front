@@ -57,10 +57,15 @@
           <!-- FIXED: tree of sizes → materials → colors -->
           <div *ngIf="flexability === 'fixed'" class="property-tree">
             <div class="tree-branch tree-branch--sizes">
+            <ng-container *ngFor="let sizeGroup of sizes.controls; let si = index; let first = first">
             <div
-              *ngFor="let sizeGroup of sizes.controls; let si = index"
               [formGroup]="$any(sizeGroup)"
-              class="tree-node tree-node--size">
+              class="tree-node tree-node--size"
+              [class.tree-node--has-siblings]="sizes.length > 1">
+              <div
+                *ngIf="sizes.length > 1 && !first"
+                class="tree-node-divider"
+                aria-hidden="true"></div>
               <div
                 *ngIf="sizes.length > 1 || getMaterials(sizeGroup).length > 1"
                 class="tree-node__header">
@@ -146,6 +151,7 @@
                 </ng-container>
               </div>
             </div>
+            </ng-container>
 
             <div class="tree-branch__footer">
               <span class="tree-branch__rail-end" aria-hidden="true"></span>
@@ -203,10 +209,15 @@
 
 <ng-template #materialsTree let-materials let-withDimensions="withDimensions" let-isRoot="isRoot">
   <div class="tree-branch tree-branch--materials" [class.tree-branch--root]="isRoot">
+    <ng-container *ngFor="let material of materials.controls; let mi = index; let first = first">
     <div
-      *ngFor="let material of materials.controls; let mi = index"
       [formGroup]="$any(material)"
-      class="tree-node tree-node--material">
+      class="tree-node tree-node--material"
+      [class.tree-node--has-siblings]="materials.length > 1">
+      <div
+        *ngIf="materials.length > 1 && !first"
+        class="tree-node-divider"
+        aria-hidden="true"></div>
       <div
         *ngIf="materials.length > 1 || !withDimensions"
         class="tree-node__header">
@@ -314,6 +325,7 @@
         </ng-container>
       </div>
     </div>
+    </ng-container>
 
     <div class="tree-branch__footer">
       <span class="tree-branch__rail-end" aria-hidden="true"></span>
@@ -332,10 +344,15 @@
 
 <ng-template #colorsTree let-colors>
   <div class="tree-branch tree-branch--colors">
+    <ng-container *ngFor="let color of colors.controls; let ci = index; let first = first">
     <div
-      *ngFor="let color of colors.controls; let ci = index"
       [formGroup]="$any(color)"
-      class="tree-node tree-node--color">
+      class="tree-node tree-node--color"
+      [class.tree-node--has-siblings]="colors.length > 1">
+      <div
+        *ngIf="colors.length > 1 && !first"
+        class="tree-node-divider"
+        aria-hidden="true"></div>
       <div class="tree-node__header">
         <div class="tree-node__header-body">
           <div class="size-title-row size-title-row--color">
@@ -375,6 +392,7 @@
       </div>
       <ng-container *ngTemplateOutlet="extraSettingsPanels; context: { $implicit: color }"></ng-container>
     </div>
+    </ng-container>
 
     <div class="tree-branch__footer">
       <span class="tree-branch__rail-end" aria-hidden="true"></span>
