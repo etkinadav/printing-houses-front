@@ -58,7 +58,8 @@
   --tree-rail-join-overlap: 1px;
   --tree-rail-inset: 0.4rem;
   --tree-branch-padding: 1.125rem;
-  --tree-add-btn-height: var(--mdc-protected-button-container-height, 40px);
+  --tree-compact-add-height: 32px;
+  --tree-add-btn-height: var(--tree-compact-add-height);
   --tree-rail-span-width: calc(var(--tree-rail-cap) + var(--tree-rail-corner-radius));
   --tree-rail-top-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 7'%3E%3Cpath d='M 15 1 L 6 1 A 5 5 0 0 0 1 6 L 1 7' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E");
   --tree-rail-bottom-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 7'%3E%3Cpath d='M 1 0 L 1 1.5 A 5 5 0 0 0 6 3.5 L 15 3.5' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E");
@@ -179,12 +180,18 @@
   border-inline-start-color: var(--zx-pink);
 }
 
-.tree-branch__footer {
+.tree-branch__footer,
+.corners-branch__footer,
+.bleed-branch__footer,
+.duplex-branch__footer,
+.folding-branch__footer {
   position: relative;
   display: inline-flex;
   align-self: flex-start;
   align-items: center;
+  justify-content: flex-start;
   min-height: 0;
+  line-height: 0;
   padding-inline-start: 0;
 }
 
@@ -498,17 +505,71 @@
   border-inline-start: none;
 }
 
-.tree-add-btn {
-  --mdc-protected-button-container-color: var(--zx-green);
-  --mdc-protected-button-label-text-color: #fff;
-  --mdc-protected-button-container-shape: 999px;
-  align-self: flex-start;
+.tree-add-btn:not(.tree-add-btn--block),
+.corners-add-btn,
+.bleed-add-btn,
+.duplex-add-btn,
+.folding-add-btn {
+  --tree-compact-add-height: 32px;
+  --mdc-protected-button-container-height: var(--tree-compact-add-height);
+  --mat-protected-button-container-height: var(--tree-compact-add-height);
+  --mdc-protected-button-horizontal-padding: 10px;
+  --mat-protected-button-horizontal-padding: 10px;
+  --mdc-protected-button-label-text-size: 0.8125rem;
+  --mdc-typography-button-font-size: 0.8125rem;
+  --mdc-typography-button-letter-spacing: 0;
+  min-height: var(--tree-compact-add-height);
+  height: var(--tree-compact-add-height);
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  align-self: center;
   margin: 0;
   color: #fff !important;
 }
 
-.tree-add-btn .mat-icon {
+.tree-add-btn:not(.tree-add-btn--block) {
+  --mdc-protected-button-container-color: var(--zx-green);
+  --mdc-protected-button-label-text-color: #fff;
+  --mdc-protected-button-container-shape: 999px;
+}
+
+.tree-add-btn:not(.tree-add-btn--block) .mat-icon,
+.corners-add-btn .mat-icon,
+.bleed-add-btn .mat-icon,
+.duplex-add-btn .mat-icon,
+.folding-add-btn .mat-icon {
   color: #fff;
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+  line-height: 1;
+  margin: 0;
+}
+
+:host ::ng-deep .tree-add-btn:not(.tree-add-btn--block).mat-mdc-raised-button,
+:host ::ng-deep .corners-add-btn.mat-mdc-raised-button,
+:host ::ng-deep .bleed-add-btn.mat-mdc-raised-button,
+:host ::ng-deep .duplex-add-btn.mat-mdc-raised-button,
+:host ::ng-deep .folding-add-btn.mat-mdc-raised-button {
+  height: var(--tree-compact-add-height);
+  padding-block: 0;
+}
+
+:host ::ng-deep .tree-add-btn:not(.tree-add-btn--block).mat-mdc-raised-button .mat-mdc-button-touch-target,
+:host ::ng-deep .corners-add-btn.mat-mdc-raised-button .mat-mdc-button-touch-target,
+:host ::ng-deep .bleed-add-btn.mat-mdc-raised-button .mat-mdc-button-touch-target,
+:host ::ng-deep .duplex-add-btn.mat-mdc-raised-button .mat-mdc-button-touch-target,
+:host ::ng-deep .folding-add-btn.mat-mdc-raised-button .mat-mdc-button-touch-target {
+  height: var(--tree-compact-add-height);
+}
+
+:host ::ng-deep .tree-add-btn:not(.tree-add-btn--block).mat-mdc-raised-button .mdc-button__label,
+:host ::ng-deep .corners-add-btn.mat-mdc-raised-button .mdc-button__label,
+:host ::ng-deep .bleed-add-btn.mat-mdc-raised-button .mdc-button__label,
+:host ::ng-deep .duplex-add-btn.mat-mdc-raised-button .mdc-button__label,
+:host ::ng-deep .folding-add-btn.mat-mdc-raised-button .mdc-button__label {
+  line-height: 1.2;
+  gap: 0.2rem;
 }
 
 .tree-extra-btn {
@@ -591,7 +652,8 @@
   --tree-rail-join-overlap: 1px;
   --tree-rail-inset: 0.4rem;
   --tree-branch-padding: 1.125rem;
-  --tree-add-btn-height: var(--mdc-protected-button-container-height, 40px);
+  --tree-compact-add-height: 32px;
+  --tree-add-btn-height: var(--tree-compact-add-height);
   --corners-rail-bottom: calc(var(--tree-add-btn-height) / 2 - var(--tree-rail-corner-block) / 2);
   --tree-rail-span-width: calc(var(--tree-rail-cap) + var(--tree-rail-corner-radius));
   --tree-rail-top-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 7'%3E%3Cpath d='M 15 1 L 6 1 A 5 5 0 0 0 1 6 L 1 7' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E");
@@ -624,15 +686,6 @@
   box-sizing: border-box;
 }
 
-.corners-branch__footer {
-  position: relative;
-  display: inline-flex;
-  align-self: flex-start;
-  align-items: center;
-  min-height: 0;
-  padding-inline-start: 0;
-}
-
 .corners-branch__rail-end {
   position: absolute;
   inset-inline-start: calc(var(--tree-rail-inset) - var(--tree-branch-padding));
@@ -653,16 +706,13 @@
   transform: scaleX(-1);
 }
 
-.corners-add-btn {
+.corners-add-btn,
+.bleed-add-btn,
+.duplex-add-btn,
+.folding-add-btn {
   --mdc-protected-button-container-color: var(--zx-pink);
   --mdc-protected-button-label-text-color: #fff;
   --mdc-protected-button-container-shape: 999px;
-  margin: 0;
-  color: #fff !important;
-}
-
-.corners-add-btn .mat-icon {
-  color: #fff;
 }
 
 .corners-node {
@@ -728,7 +778,8 @@
   --tree-rail-join-overlap: 1px;
   --tree-rail-inset: 0.4rem;
   --tree-branch-padding: 1.125rem;
-  --tree-add-btn-height: var(--mdc-protected-button-container-height, 40px);
+  --tree-compact-add-height: 32px;
+  --tree-add-btn-height: var(--tree-compact-add-height);
   --corners-rail-bottom: calc(var(--tree-add-btn-height) / 2 - var(--tree-rail-corner-block) / 2);
   --tree-rail-span-width: calc(var(--tree-rail-cap) + var(--tree-rail-corner-radius));
   --tree-rail-top-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 7'%3E%3Cpath d='M 15 1 L 6 1 A 5 5 0 0 0 1 6 L 1 7' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E");
@@ -755,16 +806,6 @@
   box-sizing: border-box;
 }
 
-.bleed-branch__footer,
-.duplex-branch__footer {
-  position: relative;
-  display: inline-flex;
-  align-self: flex-start;
-  align-items: center;
-  min-height: 0;
-  padding-inline-start: 0;
-}
-
 .bleed-branch__rail-end,
 .duplex-branch__rail-end {
   position: absolute;
@@ -786,20 +827,6 @@
 :dir(rtl) .bleed-branch__rail-end,
 :dir(rtl) .duplex-branch__rail-end {
   transform: scaleX(-1);
-}
-
-.bleed-add-btn,
-.duplex-add-btn {
-  --mdc-protected-button-container-color: var(--zx-pink);
-  --mdc-protected-button-label-text-color: #fff;
-  --mdc-protected-button-container-shape: 999px;
-  margin: 0;
-  color: #fff !important;
-}
-
-.bleed-add-btn .mat-icon,
-.duplex-add-btn .mat-icon {
-  color: #fff;
 }
 
 .bleed-node,
@@ -952,7 +979,8 @@
   --tree-rail-join-overlap: 1px;
   --tree-rail-inset: 0.4rem;
   --tree-branch-padding: 1.125rem;
-  --tree-add-btn-height: var(--mdc-protected-button-container-height, 40px);
+  --tree-compact-add-height: 32px;
+  --tree-add-btn-height: var(--tree-compact-add-height);
   --corners-rail-bottom: calc(var(--tree-add-btn-height) / 2 - var(--tree-rail-corner-block) / 2);
   --tree-rail-span-width: calc(var(--tree-rail-cap) + var(--tree-rail-corner-radius));
   --tree-rail-top-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 7'%3E%3Cpath d='M 15 1 L 6 1 A 5 5 0 0 0 1 6 L 1 7' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E");
@@ -978,15 +1006,6 @@
   box-sizing: border-box;
 }
 
-.folding-branch__footer {
-  position: relative;
-  display: inline-flex;
-  align-self: flex-start;
-  align-items: center;
-  min-height: 0;
-  padding-inline-start: 0;
-}
-
 .folding-branch__rail-end {
   position: absolute;
   inset-inline-start: calc(var(--tree-rail-inset) - var(--tree-branch-padding));
@@ -1005,18 +1024,6 @@
 .zx-rtl .folding-branch__rail-end,
 :dir(rtl) .folding-branch__rail-end {
   transform: scaleX(-1);
-}
-
-.folding-add-btn {
-  --mdc-protected-button-container-color: var(--zx-pink);
-  --mdc-protected-button-label-text-color: #fff;
-  --mdc-protected-button-container-shape: 999px;
-  margin: 0;
-  color: #fff !important;
-}
-
-.folding-add-btn .mat-icon {
-  color: #fff;
 }
 
 .folding-node {
