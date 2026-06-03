@@ -333,6 +333,10 @@
   --mdc-text-button-container-height: 22px;
 }
 
+.tree-extra-btn-row {
+  margin-bottom: 0.5rem;
+}
+
 :host ::ng-deep .tree-extra-btn--compact.mat-mdc-button {
   border: none;
   box-shadow: none;

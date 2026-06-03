@@ -258,9 +258,9 @@
       </ng-container>
 
       <div *ngIf="withDimensions" class="tree-node__fields tree-node__fields--under-title">
-        <ng-container *ngIf="materials.length === 1">
+        <div *ngIf="materials.length === 1" class="tree-extra-btn-row">
           <ng-container *ngTemplateOutlet="extraSettingsBtn; context: { $implicit: material }"></ng-container>
-        </ng-container>
+        </div>
         <mat-form-field
           *ngIf="materials.length === 1"
           appearance="outline"
