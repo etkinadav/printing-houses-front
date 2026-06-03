@@ -241,6 +241,16 @@
   --mdc-icon-button-icon-color: var(--zx-green-dark, var(--zx-green));
 }
 
+.ph-mgmt-products__icon-btn--delete {
+  color: var(--zx-green);
+  --mdc-icon-button-icon-color: var(--zx-green);
+}
+
+.ph-mgmt-products__icon-btn--delete:hover {
+  color: var(--zx-green-dark, var(--zx-green));
+  --mdc-icon-button-icon-color: var(--zx-green-dark, var(--zx-green));
+}
+
 .printing-house-management-page--dark .ph-mgmt-products__card {
   background: var(--zx-v-dark-gb);
   border-color: rgba(255, 255, 255, 0.12);
@@ -254,8 +264,9 @@
 
 .ph-mgmt-products__name {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 600;
+  color: var(--zx-green);
   word-break: break-word;
 }
 
@@ -264,7 +275,7 @@
   font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.35;
-  opacity: 0.72;
+  color: var(--zx-green);
   word-break: break-word;
 }
 
@@ -297,6 +308,14 @@
   width: 100%;
 }
 
+.ph-spec-tree__row--color-own-line {
+  width: 100%;
+}
+
+.ph-spec-tree__item:has(> .ph-spec-tree__row--color-own-line) + .ph-spec-tree__item {
+  margin-top: 8px;
+}
+
 .ph-spec-tree__label {
   font-weight: 600;
   opacity: 0.88;
@@ -309,6 +328,11 @@
 .ph-spec-tree__detail {
   font-weight: 500;
   word-break: break-word;
+}
+
+.ph-spec-tree__detail--bold {
+  font-weight: 600;
+  opacity: 0.88;
 }
 
 .ph-spec-color-pills {

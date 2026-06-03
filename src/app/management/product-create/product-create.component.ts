@@ -20,9 +20,19 @@ import {
   ExtraSettingMode,
   DimensionsFlexability,
   ExtraSettingKey,
+  PhBleed,
+  PhColor,
+  PhCorner,
+  PhDuplex,
+  PhExtraSettingMode,
+  PhFolding,
+  PhMaterial,
+  PhDynamicMaterial,
   PhProduct,
   PhProductLabel,
   PhProductProperties,
+  PhSize,
+  PhTreeExtraSettings,
 } from '../../ph-products/ph-product.model';
 
 @Component({
@@ -557,12 +567,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       return {
         dimensionsFlexability: 'fixed',
         fixed: {
-          sizes: this.sizes.controls.map((sizeGroup) => ({
-            length: Number(sizeGroup.get('length')!.value),
-            width: Number(sizeGroup.get('width')!.value),
-            label: this.readSizeLabelForSave(sizeGroup.get('label')!),
-            materials: this.readMaterials(this.getMaterials(sizeGroup)),
-          })),
+          sizes: this.sizes.controls.map((sizeGroup) => this.readSize(sizeGroup)),
         },
       };
     }
@@ -575,7 +580,17 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     };
   }
 
-  private readDynamicMaterials(materials: FormArray) {
+  private readSize(sizeGroup: AbstractControl): PhSize {
+    return {
+      length: Number(sizeGroup.get('length')!.value),
+      width: Number(sizeGroup.get('width')!.value),
+      label: this.readSizeLabelForSave(sizeGroup.get('label')!),
+      materials: this.readMaterials(this.getMaterials(sizeGroup)),
+      ...this.readTreeExtras(sizeGroup),
+    };
+  }
+
+  private readDynamicMaterials(materials: FormArray): PhDynamicMaterial[] {
     return materials.controls.map((materialGroup) => ({
       weight: Number(materialGroup.get('weight')!.value),
       label: this.readMaterialLabelForSave(materialGroup, materials),
@@ -583,22 +598,89 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       maxLength: Number(materialGroup.get('maxLength')!.value),
       minHeight: Number(materialGroup.get('minHeight')!.value),
       maxHeight: Number(materialGroup.get('maxHeight')!.value),
-      colors: this.getColors(materialGroup).controls.map((colorGroup) => ({
-        color: String(colorGroup.get('color')!.value),
-        label: this.readLabel(colorGroup.get('label')!),
-      })),
+      colors: this.readColors(materialGroup),
+      ...this.readTreeExtras(materialGroup),
     }));
   }
 
-  private readMaterials(materials: FormArray) {
+  private readMaterials(materials: FormArray): PhMaterial[] {
     return materials.controls.map((materialGroup) => ({
       weight: Number(materialGroup.get('weight')!.value),
       label: this.readLabel(materialGroup.get('label')!),
-      colors: this.getColors(materialGroup).controls.map((colorGroup) => ({
-        color: String(colorGroup.get('color')!.value),
-        label: this.readLabel(colorGroup.get('label')!),
-      })),
+      colors: this.readColors(materialGroup),
+      ...this.readTreeExtras(materialGroup),
     }));
+  }
+
+  private readColors(materialGroup: AbstractControl): PhColor[] {
+    return this.getColors(materialGroup).controls.map((colorGroup) => ({
+      color: String(colorGroup.get('color')!.value),
+      label: this.readLabel(colorGroup.get('label')!),
+      ...this.readTreeExtras(colorGroup),
+    }));
+  }
+
+  private readNumericOrNull(control: AbstractControl | null): number | null {
+    if (!control) {
+      return null;
+    }
+    const value = control.value;
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+    return Number(value);
+  }
+
+  private readExtraSettingMode(group: AbstractControl, key: string): PhExtraSettingMode {
+    const mode = group.get(key)?.get('mode')?.value as ExtraSettingMode | undefined;
+    return { mode: mode ?? 'required' };
+  }
+
+  private readTreeExtras(group: AbstractControl): PhTreeExtraSettings {
+    const selected = (group.get('extraSettings')?.value as ExtraSettingKey[]) ?? [];
+    if (!selected.length) {
+      return {};
+    }
+
+    const extras: PhTreeExtraSettings = {
+      extraSettings: [...selected],
+    };
+
+    if (selected.includes('corners')) {
+      extras.cornersSetting = this.readExtraSettingMode(group, 'cornersSetting');
+      extras.corners = this.getCorners(group).controls.map((cornerGroup) => ({
+        type: cornerGroup.get('type')!.value as CornerType,
+        radius: this.readNumericOrNull(cornerGroup.get('radius')),
+      })) as PhCorner[];
+    }
+
+    if (selected.includes('bleed')) {
+      extras.bleedSetting = this.readExtraSettingMode(group, 'bleedSetting');
+      extras.bleeds = this.getBleeds(group).controls.map((bleedGroup) => ({
+        size: this.readNumericOrNull(bleedGroup.get('size')),
+      })) as PhBleed[];
+    }
+
+    if (selected.includes('folding')) {
+      extras.foldingSetting = this.readExtraSettingMode(group, 'foldingSetting');
+      extras.foldings = this.getFoldings(group).controls.map((foldingGroup) => ({
+        count: Number(foldingGroup.get('count')!.value),
+        offset: this.readNumericOrNull(foldingGroup.get('offset')),
+      })) as PhFolding[];
+    }
+
+    if (selected.includes('duplex')) {
+      extras.duplexSetting = this.readExtraSettingMode(group, 'duplexSetting');
+      extras.duplexes = this.getDuplexes(group).controls.map((duplexGroup) => ({
+        size: this.readNumericOrNull(duplexGroup.get('size')),
+      })) as PhDuplex[];
+    }
+
+    if (selected.includes('double-sided')) {
+      extras.doubleSided = this.readExtraSettingMode(group, 'doubleSided');
+    }
+
+    return extras;
   }
 
   private readLabel(labelGroup: AbstractControl): PhProductLabel {

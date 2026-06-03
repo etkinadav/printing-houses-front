@@ -11,12 +11,48 @@ export interface PhProductLabel {
   he: string;
 }
 
-export interface PhColor {
+export interface PhExtraSettingMode {
+  mode: ExtraSettingMode;
+}
+
+export interface PhCorner {
+  type: CornerType;
+  radius: number | null;
+}
+
+export interface PhBleed {
+  size: number | null;
+}
+
+export interface PhDuplex {
+  size: number | null;
+}
+
+export interface PhFolding {
+  count: number;
+  offset: number | null;
+}
+
+/** Extra settings attached to a size, material, or color tree node. */
+export interface PhTreeExtraSettings {
+  extraSettings?: ExtraSettingKey[];
+  cornersSetting?: PhExtraSettingMode;
+  bleedSetting?: PhExtraSettingMode;
+  foldingSetting?: PhExtraSettingMode;
+  duplexSetting?: PhExtraSettingMode;
+  corners?: PhCorner[];
+  bleeds?: PhBleed[];
+  duplexes?: PhDuplex[];
+  foldings?: PhFolding[];
+  doubleSided?: PhExtraSettingMode;
+}
+
+export interface PhColor extends PhTreeExtraSettings {
   color: string;
   label: PhProductLabel;
 }
 
-export interface PhMaterial {
+export interface PhMaterial extends PhTreeExtraSettings {
   weight: number;
   label: PhProductLabel;
   colors: PhColor[];
@@ -29,7 +65,7 @@ export interface PhDynamicMaterial extends PhMaterial {
   maxHeight: number;
 }
 
-export interface PhSize {
+export interface PhSize extends PhTreeExtraSettings {
   length: number;
   width: number;
   label: PhProductLabel;

@@ -57,6 +57,11 @@
               class="home-catalog-product"
             >
               <span class="home-catalog-product-name">{{ getProductDisplayName(product) }}</span>
+              <span
+                *ngFor="let line of getProductExtraSettingLines(product)"
+                class="home-catalog-product-extra">
+                {{ line }}
+              </span>
             </li>
           </ul>
         </div>

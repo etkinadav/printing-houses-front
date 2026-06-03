@@ -19,6 +19,7 @@ import {
   PhCategoryGroup,
   PhProduct,
 } from '../ph-products/ph-product.model';
+import { collectProductExtraSettingLines } from '../ph-products/ph-product-spec.util';
 
 /** Forward / reverse playback speed multiplier (0.5 = half speed). */
 const PLAYBACK_SPEED = 0.5;
@@ -154,6 +155,12 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   getProductDisplayName(product: PhProduct): string {
     return product.name_he;
+  }
+
+  getProductExtraSettingLines(product: PhProduct): string[] {
+    return collectProductExtraSettingLines(product, (key, params) =>
+      this.translateService.instant(key, params),
+    );
   }
 
   private buildCategoryGroups(

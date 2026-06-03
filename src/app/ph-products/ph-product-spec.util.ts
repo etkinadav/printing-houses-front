@@ -1,10 +1,16 @@
 import { PhCategory, PhLabel, PhSubCategory } from '../ph-categories/ph-category.model';
 import {
+  PhBleed,
   PhColor,
+  PhCorner,
+  PhDuplex,
   PhDynamicMaterial,
+  PhExtraSettingMode,
+  PhFolding,
   PhMaterial,
   PhProduct,
   PhSize,
+  PhTreeExtraSettings,
 } from './ph-product.model';
 
 export interface ProductSpecColorPill {
@@ -17,8 +23,10 @@ export interface ProductSpecNode {
   detail?: string;
   colorPills?: ProductSpecColorPill[];
   children?: ProductSpecNode[];
-  /** When false, label renders without bold (materials). */
+  /** When false, label renders without bold (extras, color rows). */
   emphasis?: boolean;
+  /** When true, detail line uses bold weight (e.g. size dimensions). */
+  detailBold?: boolean;
 }
 
 /** Black on light backgrounds, white on dark. */
@@ -87,6 +95,206 @@ function resolveCategoryLabels(
   };
 }
 
+function formatExtraMode(mode: PhExtraSettingMode['mode'] | undefined, t: TranslateFn): string {
+  return t(
+    mode === 'optional'
+      ? 'management.printing-house.spec.extra-mode.optional'
+      : 'management.printing-house.spec.extra-mode.required',
+  );
+}
+
+function formatCmValue(value: number | null | undefined, t: TranslateFn): string | null {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return null;
+  }
+  return t('management.printing-house.spec.extra-size-cm', { value: Number(value) });
+}
+
+function formatCornerValues(corners: PhCorner[], t: TranslateFn): string {
+  const parts = corners.map((corner) => {
+    const cm = formatCmValue(corner.radius, t);
+    if (cm) {
+      return cm;
+    }
+    return t(`management.product-create.corner-type.${corner.type}`);
+  });
+  return parts.filter(Boolean).join(', ');
+}
+
+function formatSizedValues(entries: PhBleed[] | PhDuplex[], t: TranslateFn): string {
+  return entries
+    .map((entry) => formatCmValue(entry.size, t))
+    .filter((v): v is string => !!v)
+    .join(', ');
+}
+
+function formatFoldingValues(foldings: PhFolding[], t: TranslateFn): string {
+  return foldings
+    .map((folding) => {
+      const countPart = t('management.printing-house.spec.extra-folding-count', {
+        count: folding.count,
+      });
+      const offsetCm = formatCmValue(folding.offset, t);
+      if (offsetCm) {
+        return t('management.printing-house.spec.extra-folding-with-offset', {
+          countPart,
+          offset: offsetCm,
+        });
+      }
+      return countPart;
+    })
+    .join(', ');
+}
+
+function formatExtraSettingLine(name: string, values: string, mode: string, t: TranslateFn): string {
+  return t('management.printing-house.spec.extra-line', { name, values, mode });
+}
+
+function buildExtraSettingSpecNodes(node: PhTreeExtraSettings, t: TranslateFn): ProductSpecNode[] {
+  const selected = node.extraSettings ?? [];
+  if (!selected.length) {
+    return [];
+  }
+
+  const nodes: ProductSpecNode[] = [];
+
+  if (selected.includes('corners') && node.corners?.length) {
+    const values = formatCornerValues(node.corners, t);
+    if (values) {
+      nodes.push({
+        label: formatExtraSettingLine(
+          t('management.product-create.extra-settings.corners'),
+          values,
+          formatExtraMode(node.cornersSetting?.mode, t),
+          t,
+        ),
+        emphasis: false,
+      });
+    }
+  }
+
+  if (selected.includes('bleed') && node.bleeds?.length) {
+    const values = formatSizedValues(node.bleeds, t);
+    if (values) {
+      nodes.push({
+        label: formatExtraSettingLine(
+          t('management.product-create.extra-settings.bleed'),
+          values,
+          formatExtraMode(node.bleedSetting?.mode, t),
+          t,
+        ),
+        emphasis: false,
+      });
+    }
+  }
+
+  if (selected.includes('folding') && node.foldings?.length) {
+    const values = formatFoldingValues(node.foldings, t);
+    if (values) {
+      nodes.push({
+        label: formatExtraSettingLine(
+          t('management.product-create.extra-settings.folding'),
+          values,
+          formatExtraMode(node.foldingSetting?.mode, t),
+          t,
+        ),
+        emphasis: false,
+      });
+    }
+  }
+
+  if (selected.includes('duplex') && node.duplexes?.length) {
+    const values = formatSizedValues(node.duplexes, t);
+    if (values) {
+      nodes.push({
+        label: formatExtraSettingLine(
+          t('management.product-create.extra-settings.duplex'),
+          values,
+          formatExtraMode(node.duplexSetting?.mode, t),
+          t,
+        ),
+        emphasis: false,
+      });
+    }
+  }
+
+  if (selected.includes('double-sided')) {
+    nodes.push({
+      label: t('management.printing-house.spec.extra-line-mode-only', {
+        name: t('management.product-create.extra-settings.double-sided'),
+        mode: formatExtraMode(node.doubleSided?.mode, t),
+      }),
+      emphasis: false,
+    });
+  }
+
+  return nodes;
+}
+
+function colorToPill(color: PhColor): ProductSpecColorPill {
+  return {
+    name: color.label?.he?.trim() || '—',
+    hex: color.color?.trim() || '#cccccc',
+  };
+}
+
+function appendMaterialColorChildren(material: PhMaterial, children: ProductSpecNode[], t: TranslateFn): void {
+  const colors = material.colors || [];
+  const splitColorsToRows = colors.some((color) => buildExtraSettingSpecNodes(color, t).length > 0);
+
+  if (splitColorsToRows) {
+    for (const color of colors) {
+      const extraNodes = buildExtraSettingSpecNodes(color, t);
+      children.push({
+        label: '',
+        colorPills: [colorToPill(color)],
+        children: extraNodes.length ? extraNodes : undefined,
+        emphasis: false,
+      });
+    }
+  } else if (colors.length) {
+    children.push({
+      label: '',
+      colorPills: colors.map(colorToPill),
+      emphasis: false,
+    });
+  }
+
+  children.push(...buildExtraSettingSpecNodes(material, t));
+}
+
+function collectExtraSettingLinesFromNode(node: PhTreeExtraSettings, t: TranslateFn): string[] {
+  return buildExtraSettingSpecNodes(node, t).map((n) => n.label);
+}
+
+export function collectProductExtraSettingLines(product: PhProduct, t: TranslateFn): string[] {
+  const lines: string[] = [];
+  const flex = product.properties?.dimensionsFlexability ?? 'fixed';
+
+  if (flex === 'fixed' && product.properties?.fixed?.sizes?.length) {
+    for (const size of product.properties.fixed.sizes) {
+      lines.push(...collectExtraSettingLinesFromNode(size, t));
+      for (const material of size.materials || []) {
+        lines.push(...collectExtraSettingLinesFromNode(material, t));
+        for (const color of material.colors || []) {
+          lines.push(...collectExtraSettingLinesFromNode(color, t));
+        }
+      }
+    }
+  }
+
+  if (flex === 'dynamic' && product.properties?.dynamic?.materials?.length) {
+    for (const material of product.properties.dynamic.materials) {
+      lines.push(...collectExtraSettingLinesFromNode(material, t));
+      for (const color of material.colors || []) {
+        lines.push(...collectExtraSettingLinesFromNode(color, t));
+      }
+    }
+  }
+
+  return lines;
+}
+
 function mapColorPills(colors: PhColor[]): ProductSpecColorPill[] | undefined {
   if (!colors?.length) return undefined;
   return colors.map((c) => ({
@@ -127,10 +335,11 @@ function formatMaterialDisplayLine(
 function buildMaterialNodes(materials: PhMaterial[], t: TranslateFn): ProductSpecNode[] {
   return (materials || []).map((material, index) => {
     const rawName = material.label?.he?.trim() || '';
+    const children: ProductSpecNode[] = [];
+    appendMaterialColorChildren(material, children, t);
     return {
       label: formatMaterialDisplayLine(rawName, material.weight, undefined, t, index, false),
-      colorPills: mapColorPills(material.colors || []),
-      emphasis: false,
+      children: children.length ? children : undefined,
     };
   });
 }
@@ -150,16 +359,10 @@ function buildDynamicMaterialNodes(
       minH: material.minHeight,
       maxH: material.maxHeight,
     });
-    const pills = mapColorPills(material.colors || []);
-    const children: ProductSpecNode[] = [
-      { label: range, emphasis: false },
-    ];
-    if (pills?.length) {
-      children.push({ label: '', colorPills: pills, emphasis: false });
-    }
+    const children: ProductSpecNode[] = [{ label: range }];
+    appendMaterialColorChildren(material, children, t);
     return {
       label: formatMaterialDisplayLine(rawName, material.weight, productName, t, index, stripProductName),
-      emphasis: false,
       children,
     };
   });
@@ -175,18 +378,20 @@ function buildSizeNodes(sizes: PhSize[], t: TranslateFn, productName?: string): 
       width: size.width,
     });
     const materials = buildMaterialNodes(size.materials || [], t);
+    const sizeExtras = buildExtraSettingSpecNodes(size, t);
+    const children: ProductSpecNode[] = [...sizeExtras, ...materials];
 
     if (singleSize) {
       const sizeLabel = size.label?.he?.trim() || '';
       if (!sizeLabel || sizeLabel === productNameTrim) {
-        return { label: dims, children: materials, emphasis: false };
+        return { label: dims, children: children.length ? children : undefined };
       }
       let shortLabel = sizeLabel;
       if (productNameTrim && sizeLabel.startsWith(productNameTrim)) {
         shortLabel = sizeLabel.slice(productNameTrim.length).trim();
       }
       const label = shortLabel ? `${shortLabel} ${dims}` : dims;
-      return { label, children: materials, emphasis: false };
+      return { label, children: children.length ? children : undefined };
     }
 
     const sizeLabel = size.label?.he?.trim() || '';
@@ -194,8 +399,8 @@ function buildSizeNodes(sizes: PhSize[], t: TranslateFn, productName?: string): 
     return {
       label: name,
       detail: dims,
-      children: materials,
-      emphasis: false,
+      detailBold: true,
+      children: children.length ? children : undefined,
     };
   });
 }

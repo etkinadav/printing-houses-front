@@ -175,13 +175,13 @@
   color: #f5f5f5;
 }
 
-.home-catalog-product-material {
+.home-catalog-product-extra {
   font-size: 0.68rem;
   line-height: 1.2;
   color: var(--zx-gray-mid, #757575);
   word-break: break-word;
 }
 
-.home-catalog-nav-dark .home-catalog-product-material {
+.home-catalog-nav-dark .home-catalog-product-extra {
   color: var(--zx-gray-light-mid, #b1b1b1);
 }
