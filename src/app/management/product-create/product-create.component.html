@@ -90,7 +90,7 @@
                     <div
                       *ngIf="sizes.length === 1"
                       class="size-title-row__field size-title-row__field--readonly">
-                      <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
+                      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-100">
                         <input
                           matInput
                           [formControl]="productNameControl"
@@ -103,7 +103,7 @@
                       *ngIf="sizes.length > 1"
                       [formGroup]="$any(sizeGroup.get('label'))"
                       class="size-title-row__field">
-                      <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
+                      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-100">
                         <input
                           matInput
                           formControlName="he"
@@ -123,14 +123,14 @@
                   <ng-container *ngTemplateOutlet="extraSettingsBtn; context: { $implicit: sizeGroup }"></ng-container>
                 </ng-container>
                 <div class="d-flex gap-2">
-                  <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-50">
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-50">
                     <mat-label>{{ 'management.product-create.length' | translate }}</mat-label>
                     <input matInput type="number" formControlName="length" />
                     <mat-error *ngIf="sizeGroup.get('length')?.hasError('required')">
                       {{ 'management.product-create.length-required' | translate }}
                     </mat-error>
                   </mat-form-field>
-                  <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-50">
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-50">
                     <mat-label>{{ 'management.product-create.width' | translate }}</mat-label>
                     <input matInput type="number" formControlName="width" />
                     <mat-error *ngIf="sizeGroup.get('width')?.hasError('required')">
@@ -238,7 +238,7 @@
               </span>
             </div>
             <div [formGroup]="$any(material.get('label'))" class="size-title-row__field">
-              <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-100">
                 <input
                   matInput
                   formControlName="he"
@@ -251,7 +251,7 @@
             </div>
             <mat-form-field
               appearance="outline"
-              subscriptSizing="fixed"
+              subscriptSizing="dynamic"
               class="material-weight-field">
               <mat-label>{{ 'management.product-create.weight' | translate }}</mat-label>
               <input matInput type="number" formControlName="weight" />
@@ -273,7 +273,7 @@
         <mat-form-field
           *ngIf="materials.length === 1"
           appearance="outline"
-          subscriptSizing="fixed"
+          subscriptSizing="dynamic"
           class="w-100 material-weight-field material-weight-field--solo">
           <mat-label>{{ 'management.product-create.weight' | translate }}</mat-label>
           <input matInput type="number" formControlName="weight" />
@@ -283,14 +283,14 @@
         </mat-form-field>
 
         <div class="d-flex gap-2">
-            <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-50">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-50">
               <mat-label>{{ 'management.product-create.min-length' | translate }}</mat-label>
               <input matInput type="number" formControlName="minLength" />
               <mat-error *ngIf="material.get('minLength')?.hasError('required')">
                 {{ 'management.product-create.min-length-required' | translate }}
               </mat-error>
             </mat-form-field>
-            <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-50">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-50">
               <mat-label>{{ 'management.product-create.max-length' | translate }}</mat-label>
               <input matInput type="number" formControlName="maxLength" />
               <mat-error *ngIf="material.get('maxLength')?.hasError('required')">
@@ -299,14 +299,14 @@
             </mat-form-field>
           </div>
           <div class="d-flex gap-2">
-            <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-50">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-50">
               <mat-label>{{ 'management.product-create.min-height' | translate }}</mat-label>
               <input matInput type="number" formControlName="minHeight" />
               <mat-error *ngIf="material.get('minHeight')?.hasError('required')">
                 {{ 'management.product-create.min-height-required' | translate }}
               </mat-error>
             </mat-form-field>
-            <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-50">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-50">
               <mat-label>{{ 'management.product-create.max-height' | translate }}</mat-label>
               <input matInput type="number" formControlName="maxHeight" />
               <mat-error *ngIf="material.get('maxHeight')?.hasError('required')">

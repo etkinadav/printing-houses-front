@@ -355,6 +355,11 @@
   margin-block-end: 0;
 }
 
+:host ::ng-deep .tree-node--size .mat-mdc-form-field-subscript-wrapper,
+:host ::ng-deep .tree-node--material .mat-mdc-form-field-subscript-wrapper {
+  min-height: 8px;
+}
+
 :host ::ng-deep .tree-node--color .mat-mdc-form-field-subscript-wrapper,
 :host ::ng-deep .corners-branch .mat-mdc-form-field-subscript-wrapper,
 :host ::ng-deep .bleed-branch .mat-mdc-form-field-subscript-wrapper,
@@ -483,7 +488,7 @@
 
 .tree-node__fields--under-title {
   margin-top: 0.35rem;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0;
 }
 
 .tree-node--material > .tree-node__children--from-material-title {
