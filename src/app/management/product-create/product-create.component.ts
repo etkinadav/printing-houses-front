@@ -55,6 +55,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   subCategories: PhSubCategory[] = [];
   readonly extraSettingOptions: ExtraSettingKey[] = ['corners', 'bleed', 'folding', 'duplex', 'double-sided'];
 
+  private readonly positiveNumberValidators = [Validators.required, Validators.min(0)];
+
   form = new FormGroup({
     name_he: new FormControl<string>('', {
       nonNullable: true,
@@ -129,6 +131,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       this.applyFlexabilityState(value);
     });
     this.applyFlexabilityState(this.flexabilityControl.value);
+    this.syncAllTreeExtraValidators();
 
     this.phCategoriesService.getAllCategories().subscribe({
       next: (response) => {
@@ -201,6 +204,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     this.applyFlexabilityState(flex);
     this.syncSizeLabelValidators();
     this.syncMaterialHeaderLabelValidators();
+    this.syncAllTreeExtraValidators();
     this.scheduleRailSync();
   }
 
@@ -266,6 +270,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     this.sizes.push(this.cloneSizeGroup(last));
     this.syncSizeLabelValidators();
     this.syncMaterialHeaderLabelValidators();
+    this.syncAllTreeExtraValidators();
     this.scheduleRailSync();
   }
 
@@ -280,6 +285,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       this.sizes.removeAt(index);
       this.syncSizeLabelValidators();
       this.syncMaterialHeaderLabelValidators();
+      this.syncAllTreeExtraValidators();
       this.scheduleRailSync();
     }
   }
@@ -288,6 +294,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     const last = materials.at(materials.length - 1);
     materials.push(this.cloneMaterialGroup(last, withDimensions));
     this.syncMaterialHeaderLabelValidators();
+    this.syncAllTreeExtraValidators();
     this.scheduleRailSync();
   }
 
@@ -295,6 +302,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     if (materials.length > 1) {
       materials.removeAt(index);
       this.syncMaterialHeaderLabelValidators();
+      this.syncAllTreeExtraValidators();
       this.scheduleRailSync();
     }
   }
@@ -302,12 +310,14 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   addColor(colors: FormArray): void {
     const last = colors.at(colors.length - 1);
     colors.push(this.cloneColorGroup(last));
+    this.syncAllTreeExtraValidators();
     this.scheduleRailSync();
   }
 
   removeColor(colors: FormArray, index: number): void {
     if (colors.length > 1) {
       colors.removeAt(index);
+      this.syncAllTreeExtraValidators();
       this.scheduleRailSync();
     }
   }
@@ -373,6 +383,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       }
     }
     control.setValue(current);
+    this.syncTreeExtraValidators(group);
     if (key === 'corners' || key === 'bleed' || key === 'folding' || key === 'duplex' || key === 'double-sided') {
       this.scheduleRailSync();
     }
@@ -385,6 +396,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   addCorner(group: AbstractControl): void {
     const last = this.getCorners(group).at(this.getCorners(group).length - 1);
     this.getCorners(group).push(this.cloneCornerGroup(last));
+    this.syncTreeExtraValidators(group);
     this.scheduleRailSync();
   }
 
@@ -397,6 +409,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       return;
     }
     corners.removeAt(index);
+    this.syncTreeExtraValidators(group);
     this.scheduleRailSync();
   }
 
@@ -408,6 +421,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     const bleeds = this.getBleeds(group);
     const last = bleeds.at(bleeds.length - 1);
     bleeds.push(this.cloneBleedGroup(last));
+    this.syncTreeExtraValidators(group);
     this.scheduleRailSync();
   }
 
@@ -420,6 +434,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       return;
     }
     bleeds.removeAt(index);
+    this.syncTreeExtraValidators(group);
     this.scheduleRailSync();
   }
 
@@ -431,6 +446,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     const duplexes = this.getDuplexes(group);
     const last = duplexes.at(duplexes.length - 1);
     duplexes.push(this.cloneDuplexGroup(last));
+    this.syncTreeExtraValidators(group);
     this.scheduleRailSync();
   }
 
@@ -443,6 +459,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       return;
     }
     duplexes.removeAt(index);
+    this.syncTreeExtraValidators(group);
     this.scheduleRailSync();
   }
 
@@ -479,6 +496,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     const foldings = this.getFoldings(group);
     const last = foldings.at(foldings.length - 1);
     foldings.push(this.cloneFoldingGroup(last));
+    this.syncTreeExtraValidators(group);
     this.scheduleRailSync();
   }
 
@@ -491,6 +509,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       return;
     }
     foldings.removeAt(index);
+    this.syncTreeExtraValidators(group);
     this.scheduleRailSync();
   }
 
@@ -498,6 +517,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     const control = group.get('extraSettings') as FormControl<ExtraSettingKey[]>;
     control.setValue(control.value.filter((setting) => setting !== key));
     this.resetExtraSettingMode(group, key);
+    this.syncTreeExtraValidators(group);
   }
 
   private resetExtraSettingMode(group: AbstractControl, key: ExtraSettingKey): void {
@@ -521,6 +541,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   onSave(): void {
+    this.syncAllTreeExtraValidators();
     if (this.form.invalid || this.isSaving) {
       this.form.markAllAsTouched();
       return;
@@ -817,6 +838,102 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     }
   }
 
+  private syncAllTreeExtraValidators(): void {
+    for (const sizeGroup of this.sizes.controls) {
+      this.syncTreeExtraValidatorsDeep(sizeGroup);
+    }
+    for (const materialGroup of this.dynamicMaterials.controls) {
+      this.syncTreeExtraValidatorsDeep(materialGroup);
+    }
+    this.form.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private syncTreeExtraValidatorsDeep(group: AbstractControl): void {
+    if (group.get('extraSettings')) {
+      this.syncTreeExtraValidators(group);
+    }
+    const colors = group.get('colors') as FormArray | null;
+    if (colors) {
+      for (const colorGroup of colors.controls) {
+        this.syncTreeExtraValidatorsDeep(colorGroup);
+      }
+    }
+    const materials = group.get('materials') as FormArray | null;
+    if (materials) {
+      for (const materialGroup of materials.controls) {
+        this.syncTreeExtraValidatorsDeep(materialGroup);
+      }
+    }
+  }
+
+  private syncTreeExtraValidators(group: AbstractControl): void {
+    const selected = (group.get('extraSettings')?.value as ExtraSettingKey[]) ?? [];
+
+    this.applyExtraArrayValidators(this.getCorners(group), 'radius', selected.includes('corners'));
+    this.applyExtraArrayValidators(this.getBleeds(group), 'size', selected.includes('bleed'));
+    this.applyExtraArrayValidators(this.getDuplexes(group), 'size', selected.includes('duplex'));
+    this.applyFoldingValidators(group, selected.includes('folding'));
+
+    group.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private applyExtraArrayValidators(
+    array: FormArray,
+    fieldName: string,
+    active: boolean,
+  ): void {
+    if (active) {
+      array.setValidators([Validators.required, Validators.minLength(1)]);
+    } else {
+      array.clearValidators();
+    }
+    array.updateValueAndValidity({ emitEvent: false });
+
+    for (const item of array.controls) {
+      const field = item.get(fieldName);
+      if (!field) {
+        continue;
+      }
+      if (active) {
+        field.setValidators(this.positiveNumberValidators);
+      } else {
+        field.clearValidators();
+      }
+      field.updateValueAndValidity({ emitEvent: false });
+    }
+  }
+
+  private applyFoldingValidators(group: AbstractControl, active: boolean): void {
+    const foldings = this.getFoldings(group);
+    if (active) {
+      foldings.setValidators([Validators.required, Validators.minLength(1)]);
+    } else {
+      foldings.clearValidators();
+    }
+    foldings.updateValueAndValidity({ emitEvent: false });
+
+    for (const item of foldings.controls) {
+      const count = item.get('count');
+      const offset = item.get('offset');
+      if (count) {
+        if (active) {
+          count.setValidators([Validators.required, Validators.min(1)]);
+        } else {
+          count.clearValidators();
+        }
+        count.updateValueAndValidity({ emitEvent: false });
+      }
+      if (offset) {
+        if (active) {
+          offset.setValidators(this.positiveNumberValidators);
+        } else {
+          offset.clearValidators();
+        }
+        offset.updateValueAndValidity({ emitEvent: false });
+      }
+    }
+  }
+
   private createExtraSettingsControl(values?: ExtraSettingKey[]): FormControl<ExtraSettingKey[]> {
     return new FormControl<ExtraSettingKey[]>(values ?? [], { nonNullable: true });
   }
@@ -910,11 +1027,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     folding?: Partial<{ count: number; offset: number | null }>,
   ): FormGroup {
     return new FormGroup({
-      count: new FormControl<number>(folding?.count ?? 1, {
-        nonNullable: true,
-        validators: [Validators.required, Validators.min(1)],
-      }),
-      offset: new FormControl<number | null>(folding?.offset ?? 0),
+      count: new FormControl<number>(folding?.count ?? 1, { nonNullable: true }),
+      offset: new FormControl<number | null>(folding?.offset ?? null),
     });
   }
 

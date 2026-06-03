@@ -504,6 +504,9 @@
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="corners-node__field corners-node__field--radius">
           <mat-label>{{ 'management.product-create.corner-radius' | translate }}</mat-label>
           <input matInput type="number" formControlName="radius" />
+          <mat-error *ngIf="corner.get('radius')?.hasError('required')">
+            {{ 'management.product-create.corner-radius-required' | translate }}
+          </mat-error>
         </mat-form-field>
       </div>
     </div>
@@ -556,6 +559,9 @@
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="bleed-node__field">
           <mat-label>{{ 'management.product-create.bleed-size' | translate }}</mat-label>
           <input matInput type="number" formControlName="size" />
+          <mat-error *ngIf="bleed.get('size')?.hasError('required')">
+            {{ 'management.product-create.bleed-size-required' | translate }}
+          </mat-error>
         </mat-form-field>
       </div>
     </div>
@@ -608,10 +614,16 @@
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="folding-node__field folding-node__field--count">
           <mat-label>{{ 'management.product-create.folding-count' | translate }}</mat-label>
           <input matInput type="number" step="1" min="1" formControlName="count" />
+          <mat-error *ngIf="folding.get('count')?.hasError('required')">
+            {{ 'management.product-create.folding-count-required' | translate }}
+          </mat-error>
         </mat-form-field>
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="folding-node__field folding-node__field--offset">
           <mat-label>{{ 'management.product-create.folding-offset' | translate }}</mat-label>
           <input matInput type="number" formControlName="offset" />
+          <mat-error *ngIf="folding.get('offset')?.hasError('required')">
+            {{ 'management.product-create.folding-offset-required' | translate }}
+          </mat-error>
         </mat-form-field>
       </div>
     </div>
@@ -664,6 +676,9 @@
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="duplex-node__field">
           <mat-label>{{ 'management.product-create.duplex-size' | translate }}</mat-label>
           <input matInput type="number" formControlName="size" />
+          <mat-error *ngIf="duplex.get('size')?.hasError('required')">
+            {{ 'management.product-create.duplex-size-required' | translate }}
+          </mat-error>
         </mat-form-field>
       </div>
     </div>
