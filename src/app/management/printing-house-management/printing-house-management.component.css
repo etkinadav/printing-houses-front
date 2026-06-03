@@ -148,6 +148,85 @@
   user-select: none;
 }
 
+.ph-mgmt-products {
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 20px 32px;
+}
+
+.ph-mgmt-products__title {
+  margin: 0 0 16px;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.ph-mgmt-products__loading {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.ph-mgmt-products__error {
+  margin: 0;
+  font-size: 0.875rem;
+  opacity: 0.85;
+}
+
+.ph-mgmt-products__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ph-mgmt-products__item--add .ph-mgmt-products__add-btn {
+  width: 100%;
+  min-height: 52px;
+  border-style: dashed;
+  border-width: 2px;
+  font-weight: 600;
+}
+
+.ph-mgmt-products__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid rgba(85, 85, 85, 0.14);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.printing-house-management-page--dark .ph-mgmt-products__card {
+  background: var(--zx-v-dark-gb);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.ph-mgmt-products__name {
+  font-size: 1rem;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.ph-mgmt-products__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+@media only screen and (min-width: 576px) {
+  .ph-mgmt-products__card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
 @media only screen and (min-width: 992px) {
   .ph-mgmt-header {
     --ph-logo-size: 144px;

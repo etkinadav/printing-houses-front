@@ -28,7 +28,17 @@ const routes: Routes = [
 
     { path: 'social', component: SocialComponent },
 
-    { path: 'management/product-create', component: ProductCreateComponent },
+    { path: 'management/product-create', component: ProductCreateComponent, canActivate: [AuthGuard] },
+    {
+      path: 'management/printing-house/:printingHouseId/product/create',
+      component: ProductCreateComponent,
+      canActivate: [AuthGuard],
+    },
+    {
+      path: 'management/printing-house/:printingHouseId/product/:productId/edit',
+      component: ProductCreateComponent,
+      canActivate: [AuthGuard],
+    },
     { path: 'management/category-edit', component: CategoryEditComponent },
     { path: 'join/printing-house', component: PrintingHouseJoinComponent, canActivate: [AuthGuard] },
     { path: 'management/printing-house', component: PrintingHouseManagementComponent, canActivate: [AuthGuard] },

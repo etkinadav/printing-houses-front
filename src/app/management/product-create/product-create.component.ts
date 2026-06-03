@@ -1,4 +1,5 @@
 import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   AbstractControl,
   FormArray,
@@ -19,6 +20,7 @@ import {
   DoubleSidedMode,
   DimensionsFlexability,
   ExtraSettingKey,
+  PhProduct,
   PhProductLabel,
   PhProductProperties,
 } from '../../ph-products/ph-product.model';
@@ -36,6 +38,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   isDarkMode = false;
   isLoading = true;
   isSaving = false;
+  printingHouseId = '';
+  productId = '';
+  isEditMode = false;
   categories: PhCategory[] = [];
   subCategories: PhSubCategory[] = [];
   readonly extraSettingOptions: ExtraSettingKey[] = ['corners', 'bleed', 'folding', 'duplex', 'double-sided'];
@@ -80,9 +85,20 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     private translateService: TranslateService,
     private snackBar: MatSnackBar,
     private elementRef: ElementRef<HTMLElement>,
+    private route: ActivatedRoute,
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
+    this.printingHouseId = this.route.snapshot.paramMap.get('printingHouseId') ?? '';
+    this.productId = this.route.snapshot.paramMap.get('productId') ?? '';
+    this.isEditMode = !!this.productId;
+
+    if (!this.printingHouseId) {
+      void this.router.navigate(['/management/printing-house']);
+      return;
+    }
+
     this.directionSub = this.directionService.direction$.subscribe((direction) => {
       this.isRTL = direction === 'rtl';
     });
@@ -107,12 +123,69 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     this.phCategoriesService.getAllCategories().subscribe({
       next: (response) => {
         this.categories = response.categories ?? [];
-        this.isLoading = false;
+        if (this.isEditMode) {
+          this.loadProductForEdit();
+        } else {
+          this.isLoading = false;
+        }
       },
       error: () => {
         this.isLoading = false;
       },
     });
+  }
+
+  private loadProductForEdit(): void {
+    this.phProductsService.getProductById(this.productId).subscribe({
+      next: (res) => {
+        this.populateFormFromProduct(res.product);
+        this.isLoading = false;
+      },
+      error: () => {
+        this.isLoading = false;
+        void this.router.navigate(['/management/printing-house', this.printingHouseId]);
+      },
+    });
+  }
+
+  private populateFormFromProduct(product: PhProduct): void {
+    this.sizes.clear();
+    this.dynamicMaterials.clear();
+
+    const categoryId =
+      typeof product.category === 'string' ? product.category : product.category?._id ?? '';
+    const flex = product.properties.dimensionsFlexability;
+
+    this.form.patchValue({
+      name_he: product.name_he,
+      category: categoryId,
+      subCategory: product.subCategory,
+      properties: { dimensionsFlexability: flex },
+    });
+
+    this.onCategoryChange(categoryId);
+
+    if (flex === 'fixed' && product.properties.fixed?.sizes?.length) {
+      for (const size of product.properties.fixed.sizes) {
+        this.sizes.push(this.createSizeGroup(size));
+      }
+    } else if (product.properties.dynamic?.materials?.length) {
+      for (const material of product.properties.dynamic.materials) {
+        this.dynamicMaterials.push(this.createDynamicMaterialGroup(material));
+      }
+    }
+
+    if (!this.sizes.length) {
+      this.sizes.push(this.createSizeGroup());
+    }
+    if (!this.dynamicMaterials.length) {
+      this.dynamicMaterials.push(this.createDynamicMaterialGroup());
+    }
+
+    this.applyFlexabilityState(flex);
+    this.syncSizeLabelValidators();
+    this.syncMaterialHeaderLabelValidators();
+    this.scheduleRailSync();
   }
 
   ngOnDestroy(): void {
@@ -396,27 +469,34 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     const value = this.form.getRawValue();
 
     const name = value.name_he.trim();
-    this.phProductsService
-      .createProduct({
-        name_he: name,
-        category: value.category,
-        subCategory: value.subCategory,
-        properties: this.buildProperties(),
-      })
-      .subscribe({
-        next: () => {
-          this.isSaving = false;
-          this.resetForm();
-          this.snackBar.open(
-            this.translateService.instant('management.product-create.saved'),
-            undefined,
-            { duration: 3000 },
-          );
-        },
-        error: () => {
-          this.isSaving = false;
-        },
-      });
+    const body = {
+      name_he: name,
+      category: value.category,
+      subCategory: value.subCategory,
+      properties: this.buildProperties(),
+    };
+
+    const request$ = this.isEditMode
+      ? this.phProductsService.updateProduct(this.productId, body)
+      : this.phProductsService.createProduct({
+          printingHouseId: this.printingHouseId,
+          ...body,
+        });
+
+    request$.subscribe({
+      next: () => {
+        this.isSaving = false;
+        this.snackBar.open(
+          this.translateService.instant('management.product-create.saved'),
+          undefined,
+          { duration: 3000 },
+        );
+        void this.router.navigate(['/management/printing-house', this.printingHouseId]);
+      },
+      error: () => {
+        this.isSaving = false;
+      },
+    });
   }
 
   private buildProperties(): PhProductProperties {

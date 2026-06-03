@@ -40,5 +40,46 @@
         </div>
       </div>
     </header>
+
+    <section class="ph-mgmt-products">
+      <h2 class="ph-mgmt-products__title">{{ 'management.printing-house.products' | translate }}</h2>
+
+      <div *ngIf="productsLoading" class="ph-mgmt-products__loading">
+        <mat-spinner diameter="32"></mat-spinner>
+      </div>
+
+      <p *ngIf="!productsLoading && productsLoadFailed" class="ph-mgmt-products__error">
+        {{ 'management.printing-house.products-load-failed' | translate }}
+        <button mat-button type="button" (click)="loadProducts()">
+          {{ 'management.printing-house.retry' | translate }}
+        </button>
+      </p>
+
+      <ul *ngIf="!productsLoading && !productsLoadFailed" class="ph-mgmt-products__list">
+        <li class="ph-mgmt-products__item ph-mgmt-products__item--add">
+          <button
+            mat-stroked-button
+            type="button"
+            class="ph-mgmt-products__add-btn"
+            (click)="onAddProduct()">
+            {{ 'management.printing-house.add-product' | translate }}
+          </button>
+        </li>
+
+        <li *ngFor="let product of products" class="ph-mgmt-products__item">
+          <div class="ph-mgmt-products__card">
+            <span class="ph-mgmt-products__name">{{ product.name_he }}</span>
+            <div class="ph-mgmt-products__actions">
+              <button mat-button type="button" (click)="onEditProduct(product._id)">
+                {{ 'management.printing-house.edit-product' | translate }}
+              </button>
+              <button mat-button color="warn" type="button" (click)="onDeleteProduct(product)">
+                {{ 'management.printing-house.delete-product' | translate }}
+              </button>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </section>
   </ng-container>
 </div>

@@ -46,6 +46,7 @@ export interface PhProductProperties {
 
 export interface PhProduct {
   _id: string;
+  printingHouseId?: string;
   name_he: string;
   name_en?: string;
   name_ar?: string;
@@ -65,6 +66,14 @@ export interface PhCategoryGroup {
 }
 
 export interface CreatePhProductPayload {
+  printingHouseId: string;
+  name_he: string;
+  category: string;
+  subCategory: string;
+  properties: PhProductProperties;
+}
+
+export interface UpdatePhProductPayload {
   name_he: string;
   category: string;
   subCategory: string;

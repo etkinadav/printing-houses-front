@@ -38,6 +38,7 @@ export interface PhPrintingHouse {
   logo?: PhPrintingHouseLogo;
   address: PhPrintingHouseAddress;
   location: PhPrintingHouseLocation;
+  productIds?: string[];
   createdAt?: string;
   updatedAt?: string;
 }

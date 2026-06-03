@@ -1,7 +1,9 @@
 <div class="product-create-page px-3 py-4" [class.zx-rtl]="isRTL" [class.text-white]="isDarkMode">
   <mat-card class="product-create-card mx-auto">
     <mat-card-header>
-      <mat-card-title>{{ 'management.product-create.title' | translate }}</mat-card-title>
+      <mat-card-title>{{
+        (isEditMode ? 'management.product-create.title-edit' : 'management.product-create.title') | translate
+      }}</mat-card-title>
     </mat-card-header>
 
     <mat-card-content>

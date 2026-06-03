@@ -1,10 +1,13 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Subscription } from 'rxjs';
 import * as maplibregl from 'maplibre-gl';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
 
 import { DirectionService } from '../../direction.service';
+import { PhProductsService } from '../../ph-products/ph-products.service';
+import { PhProduct } from '../../ph-products/ph-product.model';
 import { PhPrintingHouseService } from '../../ph-printing-house/ph-printing-house.service';
 import { PhPrintingHouse } from '../../ph-printing-house/ph-printing-house.model';
 import { buildLogoCropTransform } from '../../ph-printing-house/logo-crop.util';
@@ -23,8 +26,11 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
   isDarkMode = false;
   isLoading = true;
   hasError = false;
+  productsLoading = false;
+  productsLoadFailed = false;
 
   printingHouse?: PhPrintingHouse;
+  products: PhProduct[] = [];
 
   logoImgTransform = '';
 
@@ -48,10 +54,17 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
   constructor(
     private directionService: DirectionService,
     private phPrintingHouseService: PhPrintingHouseService,
+    private phProductsService: PhProductsService,
     private route: ActivatedRoute,
+    private router: Router,
     private cdr: ChangeDetectorRef,
     private translate: TranslateService,
+    private snackBar: MatSnackBar,
   ) {}
+
+  get printingHouseId(): string {
+    return this.printingHouse?._id ?? '';
+  }
 
   get addressLine(): string {
     const addr = this.printingHouse?.address;
@@ -122,6 +135,7 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
       next: (res) => {
         this.printingHouse = res.printingHouse;
         this.isLoading = false;
+        this.loadProducts();
         this.cdr.detectChanges();
         this.scheduleMapInit();
         setTimeout(() => {
@@ -135,6 +149,65 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
         console.error('load printing house failed', err);
         this.hasError = true;
         this.isLoading = false;
+      },
+    });
+  }
+
+  loadProducts(): void {
+    const id = this.printingHouseId;
+    if (!id) return;
+
+    this.productsLoading = true;
+    this.productsLoadFailed = false;
+
+    this.phProductsService.getProductsByPrintingHouse(id).subscribe({
+      next: (res) => {
+        this.products = res.products ?? [];
+        this.productsLoading = false;
+      },
+      error: () => {
+        this.products = [];
+        this.productsLoading = false;
+        this.productsLoadFailed = true;
+      },
+    });
+  }
+
+  onAddProduct(): void {
+    if (!this.printingHouseId) return;
+    void this.router.navigate([
+      '/management/printing-house',
+      this.printingHouseId,
+      'product',
+      'create',
+    ]);
+  }
+
+  onEditProduct(productId: string): void {
+    if (!this.printingHouseId) return;
+    void this.router.navigate([
+      '/management/printing-house',
+      this.printingHouseId,
+      'product',
+      productId,
+      'edit',
+    ]);
+  }
+
+  onDeleteProduct(product: PhProduct): void {
+    const msg = this.translate.instant('management.printing-house.delete-product-confirm', {
+      name: product.name_he,
+    });
+    if (!confirm(msg)) return;
+
+    this.phProductsService.deleteProduct(product._id).subscribe({
+      next: () => this.loadProducts(),
+      error: () => {
+        this.snackBar.open(
+          this.translate.instant('management.printing-house.delete-product-failed'),
+          undefined,
+          { duration: 4000 },
+        );
       },
     });
   }
