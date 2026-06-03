@@ -141,28 +141,42 @@
 
 .tree-branch--sizes::after,
 .tree-branch--materials::after,
-.tree-branch--colors::after {
+.tree-branch--colors::after,
+.corners-branch::after,
+.bleed-branch::after,
+.duplex-branch::after,
+.double-sided-branch::after,
+.folding-branch::after {
   content: '';
   position: absolute;
   inset-inline-start: var(--tree-rail-inset);
+  inset-inline-end: 0;
   top: 0;
-  width: var(--tree-rail-span-width);
+  width: auto;
   height: var(--tree-rail-corner-block);
-  background-color: var(--zx-green);
-  pointer-events: none;
   box-sizing: border-box;
-  -webkit-mask: var(--tree-rail-top-mask) no-repeat left top / 100% 100%;
-  mask: var(--tree-rail-top-mask) no-repeat left top / 100% 100%;
-  transform-origin: inline-start top;
+  background: transparent;
+  border: none;
+  border-block-start: var(--tree-rail-width) solid;
+  border-inline-start: var(--tree-rail-width) solid;
+  border-start-start-radius: var(--tree-rail-corner-radius);
+  pointer-events: none;
 }
 
-.zx-rtl .tree-branch--sizes::after,
-.zx-rtl .tree-branch--materials::after,
-.zx-rtl .tree-branch--colors::after,
-:dir(rtl) .tree-branch--sizes::after,
-:dir(rtl) .tree-branch--materials::after,
-:dir(rtl) .tree-branch--colors::after {
-  transform: scaleX(-1);
+.tree-branch--sizes::after,
+.tree-branch--materials::after,
+.tree-branch--colors::after {
+  border-block-start-color: var(--zx-green);
+  border-inline-start-color: var(--zx-green);
+}
+
+.corners-branch::after,
+.bleed-branch::after,
+.duplex-branch::after,
+.double-sided-branch::after,
+.folding-branch::after {
+  border-block-start-color: var(--zx-pink);
+  border-inline-start-color: var(--zx-pink);
 }
 
 .tree-branch__footer {
@@ -420,26 +434,6 @@
   box-sizing: border-box;
 }
 
-.corners-branch::after {
-  content: '';
-  position: absolute;
-  inset-inline-start: var(--tree-rail-inset);
-  top: 0;
-  width: var(--tree-rail-span-width);
-  height: var(--tree-rail-corner-block);
-  background-color: var(--zx-pink);
-  pointer-events: none;
-  box-sizing: border-box;
-  -webkit-mask: var(--tree-rail-top-mask) no-repeat left top / 100% 100%;
-  mask: var(--tree-rail-top-mask) no-repeat left top / 100% 100%;
-  transform-origin: inline-start top;
-}
-
-.zx-rtl .corners-branch::after,
-:dir(rtl) .corners-branch::after {
-  transform: scaleX(-1);
-}
-
 .corners-branch__footer {
   position: relative;
   display: inline-flex;
@@ -572,29 +566,6 @@
   box-sizing: border-box;
 }
 
-.bleed-branch::after,
-.duplex-branch::after {
-  content: '';
-  position: absolute;
-  inset-inline-start: var(--tree-rail-inset);
-  top: 0;
-  width: var(--tree-rail-span-width);
-  height: var(--tree-rail-corner-block);
-  background-color: var(--zx-pink);
-  pointer-events: none;
-  box-sizing: border-box;
-  -webkit-mask: var(--tree-rail-top-mask) no-repeat left top / 100% 100%;
-  mask: var(--tree-rail-top-mask) no-repeat left top / 100% 100%;
-  transform-origin: inline-start top;
-}
-
-.zx-rtl .bleed-branch::after,
-.zx-rtl .duplex-branch::after,
-:dir(rtl) .bleed-branch::after,
-:dir(rtl) .duplex-branch::after {
-  transform: scaleX(-1);
-}
-
 .bleed-branch__footer,
 .duplex-branch__footer {
   position: relative;
@@ -722,26 +693,6 @@
   box-sizing: border-box;
 }
 
-.double-sided-branch::after {
-  content: '';
-  position: absolute;
-  inset-inline-start: var(--tree-rail-inset);
-  top: 0;
-  width: var(--tree-rail-span-width);
-  height: var(--tree-rail-corner-block);
-  background-color: var(--zx-pink);
-  pointer-events: none;
-  box-sizing: border-box;
-  -webkit-mask: var(--tree-rail-top-mask) no-repeat left top / 100% 100%;
-  mask: var(--tree-rail-top-mask) no-repeat left top / 100% 100%;
-  transform-origin: inline-start top;
-}
-
-.zx-rtl .double-sided-branch::after,
-:dir(rtl) .double-sided-branch::after {
-  transform: scaleX(-1);
-}
-
 .double-sided-branch__footer {
   position: relative;
   display: block;
@@ -837,26 +788,6 @@
   border-inline-start: var(--tree-rail-width) solid var(--zx-pink);
   pointer-events: none;
   box-sizing: border-box;
-}
-
-.folding-branch::after {
-  content: '';
-  position: absolute;
-  inset-inline-start: var(--tree-rail-inset);
-  top: 0;
-  width: var(--tree-rail-span-width);
-  height: var(--tree-rail-corner-block);
-  background-color: var(--zx-pink);
-  pointer-events: none;
-  box-sizing: border-box;
-  -webkit-mask: var(--tree-rail-top-mask) no-repeat left top / 100% 100%;
-  mask: var(--tree-rail-top-mask) no-repeat left top / 100% 100%;
-  transform-origin: inline-start top;
-}
-
-.zx-rtl .folding-branch::after,
-:dir(rtl) .folding-branch::after {
-  transform: scaleX(-1);
 }
 
 .folding-branch__footer {
