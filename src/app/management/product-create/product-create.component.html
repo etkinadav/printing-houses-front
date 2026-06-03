@@ -70,6 +70,8 @@
                       <span class="size-title-row__prefix">
                         {{ 'management.product-create.size-number' | translate: { n: si + 1 } }}
                       </span>
+                      <ng-container
+                        *ngTemplateOutlet="extraSettingsBtn; context: { $implicit: sizeGroup }"></ng-container>
                       <span *ngIf="sizes.length > 1" class="tree-node__delete-wrap">
                         <button
                           mat-icon-button
@@ -113,6 +115,9 @@
               </div>
 
               <div class="tree-node__fields tree-node__fields--under-title">
+                <ng-container *ngIf="sizes.length === 1 && getMaterials(sizeGroup).length <= 1">
+                  <ng-container *ngTemplateOutlet="extraSettingsBtn; context: { $implicit: sizeGroup }"></ng-container>
+                </ng-container>
                 <div class="d-flex gap-2">
                   <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-50">
                     <mat-label>{{ 'management.product-create.length' | translate }}</mat-label>
@@ -129,7 +134,7 @@
                     </mat-error>
                   </mat-form-field>
                 </div>
-                <ng-container *ngTemplateOutlet="extraSettingsRow; context: { $implicit: sizeGroup }"></ng-container>
+                <ng-container *ngTemplateOutlet="extraSettingsPanels; context: { $implicit: sizeGroup }"></ng-container>
               </div>
 
               <div class="tree-node__children tree-node__children--from-size-title">
@@ -211,6 +216,7 @@
               <span class="size-title-row__prefix">
                 {{ 'management.product-create.material-number' | translate: { n: mi + 1 } }}
               </span>
+              <ng-container *ngTemplateOutlet="extraSettingsBtn; context: { $implicit: material }"></ng-container>
               <span *ngIf="materials.length > 1" class="tree-node__delete-wrap">
                 <button
                   mat-icon-button
@@ -248,10 +254,13 @@
         </div>
       </div>
       <ng-container *ngIf="!withDimensions">
-        <ng-container *ngTemplateOutlet="extraSettingsRow; context: { $implicit: material }"></ng-container>
+        <ng-container *ngTemplateOutlet="extraSettingsPanels; context: { $implicit: material }"></ng-container>
       </ng-container>
 
       <div *ngIf="withDimensions" class="tree-node__fields tree-node__fields--under-title">
+        <ng-container *ngIf="materials.length === 1">
+          <ng-container *ngTemplateOutlet="extraSettingsBtn; context: { $implicit: material }"></ng-container>
+        </ng-container>
         <mat-form-field
           *ngIf="materials.length === 1"
           appearance="outline"
@@ -296,7 +305,7 @@
               </mat-error>
             </mat-form-field>
           </div>
-          <ng-container *ngTemplateOutlet="extraSettingsRow; context: { $implicit: material }"></ng-container>
+          <ng-container *ngTemplateOutlet="extraSettingsPanels; context: { $implicit: material }"></ng-container>
       </div>
 
       <div class="tree-node__children" [class.tree-node__children--from-material-title]="withDimensions">
@@ -334,6 +343,7 @@
               <span class="size-title-row__prefix">
                 {{ 'management.product-create.color-number' | translate: { n: ci + 1 } }}
               </span>
+              <ng-container *ngTemplateOutlet="extraSettingsBtn; context: { $implicit: color }"></ng-container>
               <span *ngIf="colors.length > 1" class="tree-node__delete-wrap">
                 <button
                   mat-icon-button
@@ -360,10 +370,10 @@
                 </mat-form-field>
               </div>
             </div>
-            <ng-container *ngTemplateOutlet="extraSettingsRow; context: { $implicit: color }"></ng-container>
           </div>
         </div>
       </div>
+      <ng-container *ngTemplateOutlet="extraSettingsPanels; context: { $implicit: color }"></ng-container>
     </div>
 
     <div class="tree-branch__footer">
@@ -376,7 +386,33 @@
   </div>
 </ng-template>
 
-<ng-template #extraSettingsRow let-group>
+<ng-template #extraSettingsBtn let-group>
+  <button
+    mat-button
+    type="button"
+    class="tree-extra-btn tree-extra-btn--compact rounded-pill"
+    [matMenuTriggerFor]="extraSettingsMenu">
+    {{ 'management.product-create.extra-settings' | translate }}
+  </button>
+  <mat-menu #extraSettingsMenu="matMenu" class="extra-settings-menu">
+    <div class="extra-settings-menu__list" (click)="$event.stopPropagation()">
+      <button
+        type="button"
+        class="extra-settings-menu__item"
+        *ngFor="let option of extraSettingOptions"
+        (click)="toggleExtraSetting(group, option, $event)">
+        <span class="extra-settings-menu__check-slot" aria-hidden="true">
+          <mat-icon *ngIf="isExtraSettingSelected(group, option)">check</mat-icon>
+        </span>
+        <span class="extra-settings-menu__label">
+          {{ 'management.product-create.extra-settings.' + option | translate }}
+        </span>
+      </button>
+    </div>
+  </mat-menu>
+</ng-template>
+
+<ng-template #extraSettingsPanels let-group>
   <div class="extra-settings-block">
     <ng-container *ngIf="isExtraSettingSelected(group, 'corners')">
       <ng-container *ngTemplateOutlet="cornersBranch; context: { $implicit: group }"></ng-container>
@@ -393,31 +429,6 @@
     <ng-container *ngIf="isExtraSettingSelected(group, 'double-sided')">
       <ng-container *ngTemplateOutlet="doubleSidedBranch; context: { $implicit: group }"></ng-container>
     </ng-container>
-    <div class="extra-settings-row">
-      <button
-        mat-raised-button
-        type="button"
-        class="tree-extra-btn rounded-pill"
-        [matMenuTriggerFor]="extraSettingsMenu">
-        {{ 'management.product-create.extra-settings' | translate }}
-      </button>
-      <mat-menu #extraSettingsMenu="matMenu" class="extra-settings-menu">
-        <div class="extra-settings-menu__list" (click)="$event.stopPropagation()">
-          <button
-            type="button"
-            class="extra-settings-menu__item"
-            *ngFor="let option of extraSettingOptions"
-            (click)="toggleExtraSetting(group, option, $event)">
-            <span class="extra-settings-menu__check-slot" aria-hidden="true">
-              <mat-icon *ngIf="isExtraSettingSelected(group, option)">check</mat-icon>
-            </span>
-            <span class="extra-settings-menu__label">
-              {{ 'management.product-create.extra-settings.' + option | translate }}
-            </span>
-          </button>
-        </div>
-      </mat-menu>
-    </div>
   </div>
 </ng-template>
 

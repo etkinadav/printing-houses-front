@@ -134,7 +134,7 @@
     "management.product-create.max-length-required": "الطول الأقصى حقل مطلوب",
     "management.product-create.min-height-required": "الارتفاع الأدنى حقل مطلوب",
     "management.product-create.max-height-required": "الارتفاع الأقصى حقل مطلوب",
-    "management.product-create.extra-settings": "إعدادات إضافية",
+    "management.product-create.extra-settings": "إعدادات",
     "management.product-create.extra-settings.corners": "زوايا",
     "management.product-create.extra-settings.bleed": "بيليد",
     "management.product-create.extra-settings.folding": "طي",

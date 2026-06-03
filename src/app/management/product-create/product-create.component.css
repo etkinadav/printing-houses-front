@@ -316,20 +316,30 @@
 }
 
 .tree-extra-btn {
-  --mdc-protected-button-container-color: #fff;
-  --mdc-protected-button-label-text-color: var(--zx-green);
-  --mdc-protected-button-container-shape: 999px;
   margin: 0;
+  flex-shrink: 0;
   color: var(--zx-green) !important;
-  border: 1px solid var(--zx-green);
+  border: none;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.tree-extra-btn--compact {
+  min-height: 22px;
+  height: 22px;
+  padding: 0 8px;
+  font-size: 0.7rem;
+  line-height: 1;
+  --mdc-text-button-container-height: 22px;
+}
+
+:host ::ng-deep .tree-extra-btn--compact.mat-mdc-button {
+  border: none;
   box-shadow: none;
 }
 
-.extra-settings-row {
-  display: flex;
-  justify-content: flex-end;
-  width: 100%;
-  margin-top: 0.35rem;
+:host ::ng-deep .tree-extra-btn--compact.mat-mdc-button .mat-mdc-button-touch-target {
+  height: 22px;
 }
 
 .extra-settings-block {
@@ -983,7 +993,8 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
   flex: 0 0 100%;
   width: 100%;
   line-height: 1.3;

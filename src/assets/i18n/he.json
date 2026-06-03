@@ -134,7 +134,7 @@
     "management.product-create.max-length-required": "אורך מקסימלי הינו שדה חובה",
     "management.product-create.min-height-required": "גובה מינימלי הינו שדה חובה",
     "management.product-create.max-height-required": "גובה מקסימלי הינו שדה חובה",
-    "management.product-create.extra-settings": "הגדרות נוספות",
+    "management.product-create.extra-settings": "הגדרות",
     "management.product-create.extra-settings.corners": "פינות",
     "management.product-create.extra-settings.bleed": "בליד",
     "management.product-create.extra-settings.folding": "קיפול",

@@ -134,7 +134,7 @@
 	"management.product-create.max-length-required": "Max length is a required field",
 	"management.product-create.min-height-required": "Min height is a required field",
 	"management.product-create.max-height-required": "Max height is a required field",
-	"management.product-create.extra-settings": "Additional settings",
+	"management.product-create.extra-settings": "Settings",
 	"management.product-create.extra-settings.corners": "Corners",
 	"management.product-create.extra-settings.bleed": "Bleed",
 	"management.product-create.extra-settings.folding": "Folding",
