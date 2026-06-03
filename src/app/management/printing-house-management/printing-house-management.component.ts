@@ -2,10 +2,12 @@ import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnI
 import { Subscription } from 'rxjs';
 import * as maplibregl from 'maplibre-gl';
 import { ActivatedRoute } from '@angular/router';
+import { TranslateService } from '@ngx-translate/core';
 
 import { DirectionService } from '../../direction.service';
 import { PhPrintingHouseService } from '../../ph-printing-house/ph-printing-house.service';
 import { PhPrintingHouse } from '../../ph-printing-house/ph-printing-house.model';
+import { buildLogoCropTransform } from '../../ph-printing-house/logo-crop.util';
 import { getMapStyleUrl, getMapTransformRequest } from '../../maptiler/maptiler-style-url';
 
 @Component({
@@ -24,15 +26,19 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
 
   printingHouse?: PhPrintingHouse;
 
-  logoCoverScale = 1;
+  logoImgTransform = '';
 
   @ViewChild('mapEl') mapEl?: ElementRef<HTMLDivElement>;
   @ViewChild('mapPin') mapPinEl?: ElementRef<HTMLDivElement>;
+  @ViewChild('logoViewport') logoViewport?: ElementRef<HTMLDivElement>;
   @ViewChild('logoImg') logoImg?: ElementRef<HTMLImageElement>;
 
   private map?: maplibregl.Map;
   private marker?: maplibregl.Marker;
   private mapInitScheduled = false;
+  private logoNaturalW = 0;
+  private logoNaturalH = 0;
+  private logoResizeObserver?: ResizeObserver;
 
   private directionSub?: Subscription;
   private darkModeSub?: Subscription;
@@ -42,26 +48,37 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
     private phPrintingHouseService: PhPrintingHouseService,
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef,
+    private translate: TranslateService,
   ) {}
+
+  get addressLine(): string {
+    const addr = this.printingHouse?.address;
+    if (!addr) return '';
+
+    const parts: string[] = [];
+    const streetLine = [addr.street, addr.houseNumber].filter((v) => !!v?.trim()).join(' ');
+    if (streetLine) parts.push(streetLine);
+    if (addr.city?.trim()) parts.push(addr.city.trim());
+
+    const apartment = addr.apartment?.trim();
+    if (apartment) {
+      parts.push(`${this.translate.instant('printing-house-join.apartment')} ${apartment}`);
+    }
+
+    const floor = addr.floor?.trim();
+    if (floor) {
+      parts.push(`${this.translate.instant('printing-house-join.floor')} ${floor}`);
+    }
+
+    const notes = addr.notes?.trim();
+    if (notes) parts.push(notes);
+
+    return parts.join(', ');
+  }
 
   get logoUrl(): string {
     const ph = this.printingHouse;
     return (ph?.logo?.url || ph?.logoUrl || '').trim();
-  }
-
-  get logoZoom(): number {
-    const z = this.printingHouse?.logo?.zoom;
-    return typeof z === 'number' && Number.isFinite(z) ? z : 1;
-  }
-
-  get logoOffsetX(): number {
-    const v = this.printingHouse?.logo?.offsetX;
-    return typeof v === 'number' && Number.isFinite(v) ? v : 0;
-  }
-
-  get logoOffsetY(): number {
-    const v = this.printingHouse?.logo?.offsetY;
-    return typeof v === 'number' && Number.isFinite(v) ? v : 0;
   }
 
   ngOnInit(): void {
@@ -78,12 +95,14 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
   ngOnDestroy(): void {
     this.directionSub?.unsubscribe();
     this.darkModeSub?.unsubscribe();
+    this.logoResizeObserver?.disconnect();
     this.marker?.remove();
     this.map?.remove();
   }
 
   ngAfterViewInit(): void {
     this.scheduleMapInit();
+    this.setupLogoViewportObserver();
   }
 
   load(): void {
@@ -101,6 +120,10 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
         this.isLoading = false;
         this.cdr.detectChanges();
         this.scheduleMapInit();
+        setTimeout(() => {
+          this.setupLogoViewportObserver();
+          this.updateLogoTransform();
+        }, 0);
       },
       error: (err) => {
         console.error('load printing house failed', err);
@@ -113,16 +136,42 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
   onLogoImgLoad(): void {
     const img = this.logoImg?.nativeElement;
     if (!img) return;
-    const w = img.naturalWidth || 0;
-    const h = img.naturalHeight || 0;
-    const viewport = img.parentElement;
-    if (!viewport || !w || !h) {
-      this.logoCoverScale = 1;
-      return;
+    this.logoNaturalW = img.naturalWidth || 0;
+    this.logoNaturalH = img.naturalHeight || 0;
+    this.updateLogoTransform();
+    setTimeout(() => this.map?.resize(), 0);
+  }
+
+  private setupLogoViewportObserver(): void {
+    const el = this.logoViewport?.nativeElement;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+
+    this.logoResizeObserver?.disconnect();
+    this.logoResizeObserver = new ResizeObserver(() => this.updateLogoTransform());
+    this.logoResizeObserver.observe(el);
+  }
+
+  private updateLogoTransform(): void {
+    const viewport = this.logoViewport?.nativeElement;
+    if (!viewport) return;
+
+    const img = this.logoImg?.nativeElement;
+    if (img?.complete && img.naturalWidth) {
+      this.logoNaturalW = img.naturalWidth;
+      this.logoNaturalH = img.naturalHeight;
     }
-    const vw = viewport.clientWidth || 220;
-    const vh = viewport.clientHeight || 220;
-    this.logoCoverScale = Math.max(vw / w, vh / h);
+
+    const vw = viewport.clientWidth;
+    const vh = viewport.clientHeight;
+    if (!vw || !vh) return;
+
+    this.logoImgTransform = buildLogoCropTransform(
+      this.printingHouse?.logo,
+      vw,
+      vh,
+      this.logoNaturalW,
+      this.logoNaturalH,
+    );
   }
 
   private scheduleMapInit(): void {
@@ -177,8 +226,6 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
     });
 
     this.map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
-    this.map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
-
     this.map.on('error', (e) => {
       console.error('Map error on management page', e);
     });

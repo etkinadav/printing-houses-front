@@ -1,93 +1,44 @@
-<div class="printing-house-management-page px-3 py-4" [class.zx-rtl]="isRTL" [class.text-white]="isDarkMode">
-  <mat-card class="printing-house-management-card mx-auto">
-    <mat-card-header>
-      <mat-card-title>{{ 'management.printing-house.title' | translate }}</mat-card-title>
-    </mat-card-header>
+<div
+  class="printing-house-management-page"
+  [class.zx-rtl]="isRTL"
+  [class.printing-house-management-page--dark]="isDarkMode">
+  <div *ngIf="isLoading" class="ph-mgmt-state">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
 
-    <mat-card-content>
-      <div *ngIf="isLoading" class="d-flex justify-content-center py-5">
-        <mat-spinner diameter="40"></mat-spinner>
-      </div>
+  <div *ngIf="!isLoading && hasError" class="ph-mgmt-state ph-mgmt-state--error">
+    <div>{{ 'management.printing-house.load-failed' | translate }}</div>
+    <button mat-stroked-button color="primary" type="button" (click)="load()">
+      {{ 'management.printing-house.retry' | translate }}
+    </button>
+  </div>
 
-      <div *ngIf="!isLoading && hasError" class="d-flex flex-column align-items-center gap-3 py-4">
-        <div>{{ 'management.printing-house.load-failed' | translate }}</div>
-        <button mat-stroked-button color="primary" type="button" (click)="load()">
-          {{ 'management.printing-house.retry' | translate }}
-        </button>
-      </div>
-
-      <div *ngIf="!isLoading && !hasError && printingHouse" class="d-flex flex-column gap-3 mt-3">
-        <div class="printing-house-management-section-title">
-          {{ 'management.printing-house.basic' | translate }}
+  <ng-container *ngIf="!isLoading && !hasError && printingHouse">
+    <header class="ph-mgmt-header" [class.ph-mgmt-header--dark]="isDarkMode">
+      <div class="ph-mgmt-header__inner">
+        <div *ngIf="logoUrl" #logoViewport class="ph-mgmt-header__logo logo-crop-viewport">
+          <img
+            #logoImg
+            class="logo-crop-img"
+            [src]="logoUrl"
+            alt=""
+            (load)="onLogoImgLoad()"
+            [style.transform]="logoImgTransform" />
         </div>
+        <div *ngIf="!logoUrl" class="ph-mgmt-header__logo ph-mgmt-header__logo--placeholder" aria-hidden="true"></div>
 
-        <div class="printing-house-fields">
-          <div class="printing-house-field">
-            <div class="printing-house-field__label">{{ 'printing-house-join.name' | translate }}</div>
-            <div class="printing-house-field__value">{{ printingHouse.name }}</div>
-          </div>
-        </div>
-
-        <div *ngIf="logoUrl" class="printing-house-logo-block">
-          <div class="printing-house-field__label">{{ 'printing-house-join.logo' | translate }}</div>
-          <div class="logo-crop-viewport">
-            <img
-              #logoImg
-              class="logo-crop-img"
-              [src]="logoUrl"
-              alt="Logo"
-              (load)="onLogoImgLoad()"
-              [style.transform]="'translate(-50%, -50%) translate(' + logoOffsetX + 'px,' + logoOffsetY + 'px) scale(' + (logoCoverScale * logoZoom) + ')'" />
-          </div>
-        </div>
-
-        <div class="printing-house-management-section-title">
-          {{ 'printing-house-join.address-title' | translate }}
-        </div>
-
-        <div class="printing-house-fields">
-          <div class="printing-house-field">
-            <div class="printing-house-field__label">{{ 'printing-house-join.city' | translate }}</div>
-            <div class="printing-house-field__value">{{ printingHouse.address.city }}</div>
-          </div>
-          <div class="printing-house-field">
-            <div class="printing-house-field__label">{{ 'printing-house-join.street' | translate }}</div>
-            <div class="printing-house-field__value">{{ printingHouse.address.street }}</div>
-          </div>
-          <div class="printing-house-field">
-            <div class="printing-house-field__label">{{ 'printing-house-join.house-number' | translate }}</div>
-            <div class="printing-house-field__value">{{ printingHouse.address.houseNumber }}</div>
-          </div>
-          <div class="printing-house-field">
-            <div class="printing-house-field__label">{{ 'printing-house-join.apartment' | translate }}</div>
-            <div class="printing-house-field__value">{{ printingHouse.address.apartment || '' }}</div>
-          </div>
-          <div class="printing-house-field">
-            <div class="printing-house-field__label">{{ 'printing-house-join.floor' | translate }}</div>
-            <div class="printing-house-field__value">{{ printingHouse.address.floor || '' }}</div>
-          </div>
-          <div class="printing-house-field">
-            <div class="printing-house-field__label">{{ 'printing-house-join.postal-code' | translate }}</div>
-            <div class="printing-house-field__value">{{ printingHouse.address.postalCode || '' }}</div>
-          </div>
-          <div class="printing-house-field">
-            <div class="printing-house-field__label">{{ 'printing-house-join.notes' | translate }}</div>
-            <div class="printing-house-field__value">{{ printingHouse.address.notes || '' }}</div>
-          </div>
-        </div>
-
-        <div class="printing-house-management-section-title">
-          {{ 'management.printing-house.location' | translate }}
-        </div>
-
-        <div class="printing-house-management-map-wrap w-100">
-          <div class="map-wrapper">
-            <div #mapEl class="printing-house-management-map"></div>
-            <div #mapPin class="printing-house-management-map-pin" aria-hidden="true" hidden></div>
-          </div>
+        <div class="ph-mgmt-header__info">
+          <h1 class="ph-mgmt-header__name">{{ printingHouse.name }}</h1>
+          <p *ngIf="addressLine" class="ph-mgmt-header__address">{{ addressLine }}</p>
         </div>
       </div>
-    </mat-card-content>
-  </mat-card>
+    </header>
+
+    <div class="ph-mgmt-map">
+      <div class="map-wrapper">
+        <div #mapEl class="printing-house-management-map"></div>
+        <div #mapPin class="printing-house-management-map-pin" aria-hidden="true" hidden></div>
+      </div>
+    </div>
+  </ng-container>
 </div>
-

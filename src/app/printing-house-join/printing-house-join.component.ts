@@ -9,6 +9,7 @@ import { Router } from '@angular/router';
 import { DirectionService } from '../direction.service';
 import { getMapStyleUrl, getMapTransformRequest } from '../maptiler/maptiler-style-url';
 import { PhPrintingHouseService } from '../ph-printing-house/ph-printing-house.service';
+import { offsetPxToRatio } from '../ph-printing-house/logo-crop.util';
 
 @Component({
   selector: 'app-printing-house-join',
@@ -158,13 +159,18 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
       return;
     }
 
+    const cropViewport = this.logoCropViewport?.nativeElement;
+    const cropVw = cropViewport?.clientWidth || 220;
+    const cropVh = cropViewport?.clientHeight || 220;
+
     const payload = {
       name: this.form.controls.name.value,
       logo: {
         url: this.form.controls.logoUrl.value,
         zoom: this.logoZoom,
-        offsetX: this.logoOffsetX,
-        offsetY: this.logoOffsetY,
+        offsetX: offsetPxToRatio(this.logoOffsetX, cropVw),
+        offsetY: offsetPxToRatio(this.logoOffsetY, cropVh),
+        offsetsNormalized: true,
       },
       address: {
         city: this.form.controls.city.value,

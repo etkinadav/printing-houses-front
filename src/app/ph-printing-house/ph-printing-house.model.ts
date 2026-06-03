@@ -16,8 +16,11 @@ export interface PhPrintingHouseLocation {
 export interface PhPrintingHouseLogo {
   url: string;
   zoom: number;
+  /** Offset as ratio of viewport width (when offsetsNormalized) or legacy px at 220px box. */
   offsetX: number;
+  /** Offset as ratio of viewport height (when offsetsNormalized) or legacy px at 220px box. */
   offsetY: number;
+  offsetsNormalized?: boolean;
 }
 
 export interface CreatePhPrintingHousePayload {
