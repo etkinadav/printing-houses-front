@@ -398,14 +398,16 @@ function buildSizeNodes(sizes: PhSize[], t: TranslateFn, productName?: string): 
     if (singleSize) {
       const sizeLabel = size.label?.he?.trim() || '';
       if (!sizeLabel || sizeLabel === productNameTrim) {
-        return { label: dims, children: children.length ? children : undefined };
+        return { label: dims, emphasis: false, children: children.length ? children : undefined };
       }
       let shortLabel = sizeLabel;
       if (productNameTrim && sizeLabel.startsWith(productNameTrim)) {
         shortLabel = sizeLabel.slice(productNameTrim.length).trim();
       }
-      const label = shortLabel ? `${shortLabel} ${dims}` : dims;
-      return { label, children: children.length ? children : undefined };
+      if (shortLabel) {
+        return { label: shortLabel, detail: dims, children: children.length ? children : undefined };
+      }
+      return { label: dims, emphasis: false, children: children.length ? children : undefined };
     }
 
     const sizeLabel = size.label?.he?.trim() || '';
@@ -413,7 +415,6 @@ function buildSizeNodes(sizes: PhSize[], t: TranslateFn, productName?: string): 
     return {
       label: name,
       detail: dims,
-      detailBold: true,
       children: children.length ? children : undefined,
     };
   });
