@@ -304,11 +304,62 @@
   margin-block: 0.5rem 0.65rem;
 }
 
+.tree-node-divider--pink {
+  border-block-start-color: var(--zx-pink);
+}
+
+.corners-branch,
+.bleed-branch,
+.folding-branch,
+.duplex-branch {
+  overflow: visible;
+}
+
+.corners-node--has-siblings,
+.bleed-node--has-siblings,
+.folding-node--has-siblings,
+.duplex-node--has-siblings {
+  overflow: visible;
+}
+
+.corners-branch .corners-node,
+.bleed-branch .bleed-node,
+.folding-branch .folding-node,
+.duplex-branch .duplex-node {
+  padding-block: 0.4rem 0;
+  padding-inline: 0 0.5rem;
+}
+
+.corners-branch .corners-node:first-child,
+.bleed-branch .bleed-node:first-child,
+.folding-branch .folding-node:first-child,
+.duplex-branch .duplex-node:first-child {
+  padding-block-start: 0.75rem;
+}
+
+.corners-branch .corners-node:has(> .tree-node-divider--pink),
+.bleed-branch .bleed-node:has(> .tree-node-divider--pink),
+.folding-branch .folding-node:has(> .tree-node-divider--pink),
+.duplex-branch .duplex-node:has(> .tree-node-divider--pink) {
+  padding-block-start: 0.4rem;
+}
+
+.corners-branch .corners-node .tree-node-divider--pink,
+.bleed-branch .bleed-node .tree-node-divider--pink,
+.folding-branch .folding-node .tree-node-divider--pink,
+.duplex-branch .duplex-node .tree-node-divider--pink {
+  margin-block: 0.5rem 0.65rem;
+}
+
 .tree-node--color .size-title-row__color-line {
   margin-block-end: 0;
 }
 
-:host ::ng-deep .tree-node--color .mat-mdc-form-field-subscript-wrapper {
+:host ::ng-deep .tree-node--color .mat-mdc-form-field-subscript-wrapper,
+:host ::ng-deep .corners-branch .mat-mdc-form-field-subscript-wrapper,
+:host ::ng-deep .bleed-branch .mat-mdc-form-field-subscript-wrapper,
+:host ::ng-deep .folding-branch .mat-mdc-form-field-subscript-wrapper,
+:host ::ng-deep .duplex-branch .mat-mdc-form-field-subscript-wrapper {
   min-height: 0;
 }
 
@@ -545,7 +596,7 @@
   flex-direction: column;
   gap: 0;
   width: 100%;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0;
   padding-inline-start: var(--tree-branch-padding);
 }
 
@@ -553,7 +604,7 @@
 .bleed-branch__footer,
 .duplex-branch__footer,
 .folding-branch__footer {
-  margin-top: 0.35rem;
+  margin-top: 0.75rem;
 }
 
 .corners-branch::before {
@@ -612,9 +663,8 @@
 .corners-node {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
   width: 100%;
-  padding: 0.65rem 0.65rem 0 0;
   background: transparent;
 }
 
@@ -625,7 +675,7 @@
   gap: 0.5rem;
   width: 100%;
   line-height: 1.3;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0;
 }
 
 .corners-node__prefix {
@@ -683,7 +733,7 @@
   flex-direction: column;
   gap: 0;
   width: 100%;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0;
   padding-inline-start: var(--tree-branch-padding);
 }
 
@@ -751,9 +801,8 @@
 .duplex-node {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
   width: 100%;
-  padding: 0.65rem 0.65rem 0 0;
   background: transparent;
 }
 
@@ -765,7 +814,7 @@
   gap: 0.5rem;
   width: 100%;
   line-height: 1.3;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0;
 }
 
 .bleed-node__prefix,
@@ -908,7 +957,7 @@
   flex-direction: column;
   gap: 0;
   width: 100%;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0;
   padding-inline-start: var(--tree-branch-padding);
 }
 
@@ -968,9 +1017,8 @@
 .folding-node {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
   width: 100%;
-  padding: 0.65rem 0.65rem 0 0;
   background: transparent;
 }
 
@@ -981,7 +1029,7 @@
   gap: 0.5rem;
   width: 100%;
   line-height: 1.3;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0;
 }
 
 .folding-node__prefix {

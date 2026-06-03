@@ -451,9 +451,14 @@
 <ng-template #cornersBranch let-group>
   <div class="corners-branch">
     <div
-      *ngFor="let corner of getCorners(group).controls; let ci = index"
+      *ngFor="let corner of getCorners(group).controls; let ci = index; let first = first"
       [formGroup]="$any(corner)"
-      class="corners-node">
+      class="corners-node"
+      [class.corners-node--has-siblings]="getCorners(group).length > 1">
+      <div
+        *ngIf="getCorners(group).length > 1 && !first"
+        class="tree-node-divider tree-node-divider--pink"
+        aria-hidden="true"></div>
       <div class="corners-node__heading">
         <span class="corners-node__prefix">
           {{ 'management.product-create.corner-number' | translate: { n: ci + 1 } }}
@@ -469,7 +474,7 @@
         </span>
       </div>
       <div class="corners-node__fields">
-        <mat-form-field appearance="outline" subscriptSizing="fixed" class="corners-node__field corners-node__field--type">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="corners-node__field corners-node__field--type">
           <mat-label>{{ 'management.product-create.corner-type' | translate }}</mat-label>
           <mat-select formControlName="type">
             <mat-option value="rounded">
@@ -480,7 +485,7 @@
             </mat-option>
           </mat-select>
         </mat-form-field>
-        <mat-form-field appearance="outline" subscriptSizing="fixed" class="corners-node__field corners-node__field--radius">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="corners-node__field corners-node__field--radius">
           <mat-label>{{ 'management.product-create.corner-radius' | translate }}</mat-label>
           <input matInput type="number" formControlName="radius" />
         </mat-form-field>
@@ -505,9 +510,14 @@
 <ng-template #bleedBranch let-group>
   <div class="bleed-branch">
     <div
-      *ngFor="let bleed of getBleeds(group).controls; let bi = index"
+      *ngFor="let bleed of getBleeds(group).controls; let bi = index; let first = first"
       [formGroup]="$any(bleed)"
-      class="bleed-node">
+      class="bleed-node"
+      [class.bleed-node--has-siblings]="getBleeds(group).length > 1">
+      <div
+        *ngIf="getBleeds(group).length > 1 && !first"
+        class="tree-node-divider tree-node-divider--pink"
+        aria-hidden="true"></div>
       <div class="bleed-node__heading">
         <span class="bleed-node__prefix">
           {{ 'management.product-create.bleed-number' | translate: { n: bi + 1 } }}
@@ -523,7 +533,7 @@
         </span>
       </div>
       <div class="bleed-node__fields">
-        <mat-form-field appearance="outline" subscriptSizing="fixed" class="bleed-node__field">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="bleed-node__field">
           <mat-label>{{ 'management.product-create.bleed-size' | translate }}</mat-label>
           <input matInput type="number" formControlName="size" />
         </mat-form-field>
@@ -548,9 +558,14 @@
 <ng-template #foldingBranch let-group>
   <div class="folding-branch">
     <div
-      *ngFor="let folding of getFoldings(group).controls; let fi = index"
+      *ngFor="let folding of getFoldings(group).controls; let fi = index; let first = first"
       [formGroup]="$any(folding)"
-      class="folding-node">
+      class="folding-node"
+      [class.folding-node--has-siblings]="getFoldings(group).length > 1">
+      <div
+        *ngIf="getFoldings(group).length > 1 && !first"
+        class="tree-node-divider tree-node-divider--pink"
+        aria-hidden="true"></div>
       <div class="folding-node__heading">
         <span class="folding-node__prefix">
           {{ 'management.product-create.folding-number' | translate: { n: fi + 1 } }}
@@ -566,11 +581,11 @@
         </span>
       </div>
       <div class="folding-node__fields">
-        <mat-form-field appearance="outline" subscriptSizing="fixed" class="folding-node__field folding-node__field--count">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="folding-node__field folding-node__field--count">
           <mat-label>{{ 'management.product-create.folding-count' | translate }}</mat-label>
           <input matInput type="number" step="1" min="1" formControlName="count" />
         </mat-form-field>
-        <mat-form-field appearance="outline" subscriptSizing="fixed" class="folding-node__field folding-node__field--offset">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="folding-node__field folding-node__field--offset">
           <mat-label>{{ 'management.product-create.folding-offset' | translate }}</mat-label>
           <input matInput type="number" formControlName="offset" />
         </mat-form-field>
@@ -595,9 +610,14 @@
 <ng-template #duplexBranch let-group>
   <div class="duplex-branch">
     <div
-      *ngFor="let duplex of getDuplexes(group).controls; let di = index"
+      *ngFor="let duplex of getDuplexes(group).controls; let di = index; let first = first"
       [formGroup]="$any(duplex)"
-      class="duplex-node">
+      class="duplex-node"
+      [class.duplex-node--has-siblings]="getDuplexes(group).length > 1">
+      <div
+        *ngIf="getDuplexes(group).length > 1 && !first"
+        class="tree-node-divider tree-node-divider--pink"
+        aria-hidden="true"></div>
       <div class="duplex-node__heading">
         <span class="duplex-node__prefix">
           {{ 'management.product-create.duplex-number' | translate: { n: di + 1 } }}
@@ -613,7 +633,7 @@
         </span>
       </div>
       <div class="duplex-node__fields">
-        <mat-form-field appearance="outline" subscriptSizing="fixed" class="duplex-node__field">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="duplex-node__field">
           <mat-label>{{ 'management.product-create.duplex-size' | translate }}</mat-label>
           <input matInput type="number" formControlName="size" />
         </mat-form-field>
