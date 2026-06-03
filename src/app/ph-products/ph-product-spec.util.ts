@@ -101,10 +101,8 @@ function buildColorNodes(colors: PhColor[]): ProductSpecNode[] {
 function buildMaterialNodes(materials: PhMaterial[], t: TranslateFn): ProductSpecNode[] {
   return (materials || []).map((material, index) => {
     const name = material.label?.he?.trim() || t('management.product-create.material-number', { n: index + 1 });
-    const weight = t('management.printing-house.spec.weight', { g: material.weight });
     return {
-      label: name,
-      detail: weight,
+      label: t('management.printing-house.spec.material-line', { name, g: material.weight }),
       children: buildColorNodes(material.colors || []),
     };
   });
@@ -113,7 +111,6 @@ function buildMaterialNodes(materials: PhMaterial[], t: TranslateFn): ProductSpe
 function buildDynamicMaterialNodes(materials: PhDynamicMaterial[], t: TranslateFn): ProductSpecNode[] {
   return (materials || []).map((material, index) => {
     const name = material.label?.he?.trim() || t('management.product-create.material-number', { n: index + 1 });
-    const weight = t('management.printing-house.spec.weight', { g: material.weight });
     const range = t('management.printing-house.spec.dimensions-range', {
       minL: material.minLength,
       maxL: material.maxLength,
@@ -121,8 +118,11 @@ function buildDynamicMaterialNodes(materials: PhDynamicMaterial[], t: TranslateF
       maxH: material.maxHeight,
     });
     return {
-      label: name,
-      detail: `${weight} · ${range}`,
+      label: t('management.printing-house.spec.material-line-dynamic', {
+        name,
+        g: material.weight,
+        range,
+      }),
       children: buildColorNodes(material.colors || []),
     };
   });

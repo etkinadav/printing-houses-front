@@ -60,6 +60,8 @@
     "management.printing-house.spec.materials": "חומרים",
     "management.printing-house.spec.colors": "צבעים",
     "management.printing-house.spec.weight": "משקל {{g}} גרם",
+    "management.printing-house.spec.material-line": "{{name}}, {{g}} ג'",
+    "management.printing-house.spec.material-line-dynamic": "{{name}}, {{g}} ג' · {{range}}",
     "management.printing-house.spec.size-dimensions": "{{length}}×{{width}} ס\"מ",
     "management.printing-house.spec.dimensions-range": "אורך {{minL}}–{{maxL}} ס\"מ, גובה {{minH}}–{{maxH}} ס\"מ",
     "management.category-edit.title": "עריכת קטגוריות",
