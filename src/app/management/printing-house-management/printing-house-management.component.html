@@ -107,19 +107,23 @@
 <ng-template #productSpecTree let-nodes="nodes">
   <ul *ngIf="nodes?.length" class="ph-spec-tree">
     <li *ngFor="let node of nodes" class="ph-spec-tree__item">
-      <div *ngIf="node.colorPills?.length" class="ph-spec-color-pills">
+      <div
+        class="ph-spec-tree__row"
+        [class.ph-spec-tree__row--block]="node.colorPills?.length && !node.label">
         <span
-          *ngFor="let pill of node.colorPills"
-          class="ph-spec-color-pill"
-          [style.background]="pill.hex"
-          [style.color]="colorPillTextColor(pill.hex)">
-          {{ pill.name }}
-        </span>
-      </div>
-
-      <div *ngIf="!node.colorPills?.length" class="ph-spec-tree__row">
-        <span *ngIf="node.label" class="ph-spec-tree__label">{{ node.label }}</span>
+          *ngIf="node.label"
+          class="ph-spec-tree__label"
+          [class.ph-spec-tree__label--regular]="node.emphasis === false">{{ node.label }}</span>
         <span *ngIf="node.detail" class="ph-spec-tree__detail">{{ node.detail }}</span>
+        <div *ngIf="node.colorPills?.length" class="ph-spec-color-pills">
+          <span
+            *ngFor="let pill of node.colorPills"
+            class="ph-spec-color-pill"
+            [style.background]="pill.hex"
+            [style.color]="colorPillTextColor(pill.hex)">
+            {{ pill.name }}
+          </span>
+        </div>
       </div>
 
       <ng-container *ngIf="node.children?.length">

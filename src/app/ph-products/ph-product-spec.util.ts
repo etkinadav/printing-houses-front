@@ -17,6 +17,8 @@ export interface ProductSpecNode {
   detail?: string;
   colorPills?: ProductSpecColorPill[];
   children?: ProductSpecNode[];
+  /** When false, label renders without bold (materials). */
+  emphasis?: boolean;
 }
 
 /** Black on light backgrounds, white on dark. */
@@ -85,61 +87,115 @@ function resolveCategoryLabels(
   };
 }
 
-function buildColorNodes(colors: PhColor[]): ProductSpecNode[] {
-  if (!colors?.length) return [];
-  return [
-    {
-      label: '',
-      colorPills: colors.map((c) => ({
-        name: c.label?.he?.trim() || '—',
-        hex: c.color?.trim() || '#cccccc',
-      })),
-    },
-  ];
+function mapColorPills(colors: PhColor[]): ProductSpecColorPill[] | undefined {
+  if (!colors?.length) return undefined;
+  return colors.map((c) => ({
+    name: c.label?.he?.trim() || '—',
+    hex: c.color?.trim() || '#cccccc',
+  }));
+}
+
+function formatMaterialDisplayLine(
+  rawName: string,
+  weight: number,
+  productName: string | undefined,
+  t: TranslateFn,
+  fallbackIndex: number,
+  stripProductName: boolean,
+): string {
+  let name = rawName.trim();
+  if (!name) {
+    name = t('management.product-create.material-number', { n: fallbackIndex + 1 });
+  }
+
+  const productNameTrim = productName?.trim() || '';
+  if (stripProductName && productNameTrim) {
+    if (name === productNameTrim) {
+      return t('management.printing-house.spec.material-weight-only', { g: weight });
+    }
+    if (name.startsWith(productNameTrim)) {
+      name = name.slice(productNameTrim.length).trim();
+    }
+    if (!name) {
+      return t('management.printing-house.spec.material-weight-only', { g: weight });
+    }
+  }
+
+  return t('management.printing-house.spec.material-line', { name, g: weight });
 }
 
 function buildMaterialNodes(materials: PhMaterial[], t: TranslateFn): ProductSpecNode[] {
   return (materials || []).map((material, index) => {
-    const name = material.label?.he?.trim() || t('management.product-create.material-number', { n: index + 1 });
+    const rawName = material.label?.he?.trim() || '';
     return {
-      label: t('management.printing-house.spec.material-line', { name, g: material.weight }),
-      children: buildColorNodes(material.colors || []),
+      label: formatMaterialDisplayLine(rawName, material.weight, undefined, t, index, false),
+      colorPills: mapColorPills(material.colors || []),
+      emphasis: false,
     };
   });
 }
 
-function buildDynamicMaterialNodes(materials: PhDynamicMaterial[], t: TranslateFn): ProductSpecNode[] {
+function buildDynamicMaterialNodes(
+  materials: PhDynamicMaterial[],
+  t: TranslateFn,
+  productName?: string,
+): ProductSpecNode[] {
+  const stripProductName = materials.length === 1;
+
   return (materials || []).map((material, index) => {
-    const name = material.label?.he?.trim() || t('management.product-create.material-number', { n: index + 1 });
+    const rawName = material.label?.he?.trim() || '';
     const range = t('management.printing-house.spec.dimensions-range', {
       minL: material.minLength,
       maxL: material.maxLength,
       minH: material.minHeight,
       maxH: material.maxHeight,
     });
+    const pills = mapColorPills(material.colors || []);
+    const children: ProductSpecNode[] = [
+      { label: range, emphasis: false },
+    ];
+    if (pills?.length) {
+      children.push({ label: '', colorPills: pills, emphasis: false });
+    }
     return {
-      label: t('management.printing-house.spec.material-line-dynamic', {
-        name,
-        g: material.weight,
-        range,
-      }),
-      children: buildColorNodes(material.colors || []),
+      label: formatMaterialDisplayLine(rawName, material.weight, productName, t, index, stripProductName),
+      emphasis: false,
+      children,
     };
   });
 }
 
-function buildSizeNodes(sizes: PhSize[], t: TranslateFn): ProductSpecNode[] {
+function buildSizeNodes(sizes: PhSize[], t: TranslateFn, productName?: string): ProductSpecNode[] {
+  const singleSize = sizes.length === 1;
+  const productNameTrim = productName?.trim() || '';
+
   return (sizes || []).map((size, index) => {
-    const name = size.label?.he?.trim() || t('management.product-create.size-number', { n: index + 1 });
     const dims = t('management.printing-house.spec.size-dimensions', {
       length: size.length,
       width: size.width,
     });
     const materials = buildMaterialNodes(size.materials || [], t);
+
+    if (singleSize) {
+      const sizeLabel = size.label?.he?.trim() || '';
+      if (!sizeLabel || sizeLabel === productNameTrim) {
+        return { label: dims, children: materials, emphasis: false };
+      }
+      let shortLabel = sizeLabel;
+      if (productNameTrim && sizeLabel.startsWith(productNameTrim)) {
+        shortLabel = sizeLabel.slice(productNameTrim.length).trim();
+      }
+      const label = shortLabel ? `${shortLabel} ${dims}` : dims;
+      return { label, children: materials, emphasis: false };
+    }
+
+    const sizeLabel = size.label?.he?.trim() || '';
+    const name = sizeLabel || t('management.product-create.size-number', { n: index + 1 });
     return {
       label: name,
       detail: dims,
       children: materials,
+      emphasis: false,
     };
   });
 }
@@ -153,11 +209,11 @@ export function buildProductSpecTree(
   const tree: ProductSpecNode[] = [];
 
   if (flex === 'fixed' && product.properties?.fixed?.sizes?.length) {
-    tree.push(...buildSizeNodes(product.properties.fixed.sizes, t));
+    tree.push(...buildSizeNodes(product.properties.fixed.sizes, t, product.name_he));
   }
 
   if (flex === 'dynamic' && product.properties?.dynamic?.materials?.length) {
-    tree.push(...buildDynamicMaterialNodes(product.properties.dynamic.materials, t));
+    tree.push(...buildDynamicMaterialNodes(product.properties.dynamic.materials, t, product.name_he));
   }
 
   return tree;

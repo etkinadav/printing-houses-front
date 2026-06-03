@@ -61,6 +61,7 @@
     "management.printing-house.spec.colors": "الألوان",
     "management.printing-house.spec.weight": "الوزن {{g}} غ",
     "management.printing-house.spec.material-line": "{{name}}, {{g}} غ",
+    "management.printing-house.spec.material-weight-only": "{{g}} غ",
     "management.printing-house.spec.material-line-dynamic": "{{name}}, {{g}} غ · {{range}}",
     "management.printing-house.spec.size-dimensions": "{{length}}×{{width}} سم",
     "management.printing-house.spec.dimensions-range": "الطول {{minL}}–{{maxL}} سم، الارتفاع {{minH}}–{{maxH}} سم",

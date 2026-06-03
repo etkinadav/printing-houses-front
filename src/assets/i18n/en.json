@@ -61,6 +61,7 @@
 	"management.printing-house.spec.colors": "Colors",
 	"management.printing-house.spec.weight": "Weight {{g}} g",
 	"management.printing-house.spec.material-line": "{{name}}, {{g}} g",
+	"management.printing-house.spec.material-weight-only": "{{g}} g",
 	"management.printing-house.spec.material-line-dynamic": "{{name}}, {{g}} g · {{range}}",
 	"management.printing-house.spec.size-dimensions": "{{length}}×{{width}} cm",
 	"management.printing-house.spec.dimensions-range": "Length {{minL}}–{{maxL}} cm, height {{minH}}–{{maxH}} cm",

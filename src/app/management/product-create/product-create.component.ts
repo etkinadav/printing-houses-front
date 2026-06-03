@@ -153,17 +153,23 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     this.dynamicMaterials.clear();
 
     const categoryId =
-      typeof product.category === 'string' ? product.category : product.category?._id ?? '';
+      typeof product.category === 'string'
+        ? product.category
+        : product.category?._id != null
+          ? String(product.category._id)
+          : '';
     const flex = product.properties.dimensionsFlexability;
 
-    this.form.patchValue({
-      name_he: product.name_he,
-      category: categoryId,
-      subCategory: product.subCategory,
-      properties: { dimensionsFlexability: flex },
-    });
+    this.form.patchValue(
+      {
+        name_he: product.name_he,
+        category: categoryId,
+        properties: { dimensionsFlexability: flex },
+      },
+      { emitEvent: false },
+    );
 
-    this.onCategoryChange(categoryId);
+    this.onCategoryChange(categoryId, product.subCategory);
 
     if (flex === 'fixed' && product.properties.fixed?.sizes?.length) {
       for (const size of product.properties.fixed.sizes) {
@@ -665,16 +671,23 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     this.syncMaterialHeaderLabelValidators();
   }
 
-  private onCategoryChange(categoryId: string): void {
-    this.form.controls.subCategory.setValue('');
+  private onCategoryChange(categoryId: string, restoreSubCategoryKey?: string): void {
     this.subCategories = [];
 
     if (!categoryId) {
+      this.form.controls.subCategory.setValue('', { emitEvent: false });
       return;
     }
 
     const category = this.categories.find((c) => c._id === categoryId);
     this.subCategories = category?.subCategories ?? [];
+
+    const key = restoreSubCategoryKey?.trim() ?? '';
+    if (key && this.subCategories.some((sc) => sc.key === key)) {
+      this.form.controls.subCategory.setValue(key, { emitEvent: false });
+    } else {
+      this.form.controls.subCategory.setValue('', { emitEvent: false });
+    }
   }
 
   private createExtraSettingsControl(values?: ExtraSettingKey[]): FormControl<ExtraSettingKey[]> {
