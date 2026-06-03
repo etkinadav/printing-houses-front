@@ -340,6 +340,7 @@ function buildMaterialNodes(materials: PhMaterial[], t: TranslateFn): ProductSpe
     return {
       label: formatMaterialDisplayLine(rawName, material.weight, undefined, t, index, false),
       children: children.length ? children : undefined,
+      emphasis: false,
     };
   });
 }
@@ -359,7 +360,7 @@ function buildDynamicMaterialNodes(
       minH: material.minHeight,
       maxH: material.maxHeight,
     });
-    const children: ProductSpecNode[] = [{ label: range }];
+    const children: ProductSpecNode[] = [{ label: range, emphasis: false }];
     appendMaterialColorChildren(material, children, t);
     return {
       label: formatMaterialDisplayLine(rawName, material.weight, productName, t, index, stripProductName),
