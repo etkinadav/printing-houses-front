@@ -576,8 +576,16 @@
   margin: 0;
   flex-shrink: 0;
   color: var(--zx-green) !important;
+  --mdc-icon-button-icon-color: var(--zx-green);
+  --mat-icon-button-state-layer-color: var(--zx-green);
   border: none;
   background: transparent;
+}
+
+.tree-extra-btn--has-selection {
+  color: var(--zx-pink) !important;
+  --mdc-icon-button-icon-color: var(--zx-pink);
+  --mat-icon-button-state-layer-color: var(--zx-pink);
 }
 
 .tree-extra-btn--compact {
@@ -603,8 +611,16 @@
   box-shadow: none;
   background: transparent;
   --mat-icon-button-state-layer-color: var(--zx-green);
+  --mdc-icon-button-icon-color: var(--zx-green);
+  color: var(--zx-green);
   line-height: 0;
   vertical-align: middle;
+}
+
+:host ::ng-deep .tree-extra-btn--compact.tree-extra-btn--has-selection.mat-mdc-icon-button {
+  --mat-icon-button-state-layer-color: var(--zx-pink);
+  --mdc-icon-button-icon-color: var(--zx-pink);
+  color: var(--zx-pink);
 }
 
 :host ::ng-deep .tree-extra-btn--compact.mat-mdc-icon-button .mat-mdc-button-touch-target {
@@ -618,10 +634,15 @@
   width: 1.125rem;
   height: 1.125rem;
   line-height: 1;
+  color: var(--zx-green);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transform: translateY(1px);
+}
+
+:host ::ng-deep .tree-extra-btn--compact.tree-extra-btn--has-selection.mat-mdc-icon-button .mat-icon {
+  color: var(--zx-pink);
 }
 
 .extra-settings-block:has(> .corners-branch, > .bleed-branch, > .folding-branch, > .duplex-branch, > .double-sided-branch) {
@@ -629,10 +650,12 @@
   flex-direction: column;
   width: 100%;
   margin-top: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .tree-node--color .extra-settings-block:has(> .corners-branch, > .bleed-branch, > .folding-branch, > .duplex-branch, > .double-sided-branch) {
   margin-top: 1.25rem;
+  margin-bottom: 0.6rem;
 }
 
 .extra-settings-block > .corners-branch:not(:first-child),

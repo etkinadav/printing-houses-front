@@ -406,6 +406,7 @@
     mat-icon-button
     type="button"
     class="tree-extra-btn tree-extra-btn--compact"
+    [class.tree-extra-btn--has-selection]="hasActiveExtraSettings(group)"
     [attr.aria-label]="'management.product-create.extra-settings' | translate"
     [matMenuTriggerFor]="extraSettingsMenu">
     <mat-icon>settings</mat-icon>

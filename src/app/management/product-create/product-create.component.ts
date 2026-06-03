@@ -315,6 +315,11 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     return settings?.includes(key) ?? false;
   }
 
+  hasActiveExtraSettings(group: AbstractControl): boolean {
+    const settings = group.get('extraSettings')?.value as ExtraSettingKey[] | undefined;
+    return (settings?.length ?? 0) > 0;
+  }
+
   toggleExtraSetting(group: AbstractControl, key: ExtraSettingKey, event: Event): void {
     event.preventDefault();
     event.stopPropagation();
