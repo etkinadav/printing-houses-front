@@ -83,7 +83,7 @@
                           type="button"
                           class="tree-node__delete"
                           (click)="removeSize(si)">
-                          <mat-icon>delete</mat-icon>
+                          <mat-icon>delete_outline</mat-icon>
                         </button>
                       </span>
                     </div>
@@ -233,7 +233,7 @@
                   type="button"
                   class="tree-node__delete"
                   (click)="removeMaterial(materials, mi, withDimensions)">
-                  <mat-icon>delete</mat-icon>
+                  <mat-icon>delete_outline</mat-icon>
                 </button>
               </span>
             </div>
@@ -365,7 +365,7 @@
                   type="button"
                   class="tree-node__delete"
                   (click)="removeColor(colors, ci)">
-                  <mat-icon>delete</mat-icon>
+                  <mat-icon>delete_outline</mat-icon>
                 </button>
               </span>
             </div>
@@ -408,7 +408,7 @@
     class="tree-extra-btn tree-extra-btn--compact"
     [attr.aria-label]="'management.product-create.extra-settings' | translate"
     [matMenuTriggerFor]="extraSettingsMenu">
-    <mat-icon>add</mat-icon>
+    <mat-icon>settings</mat-icon>
   </button>
   <mat-menu #extraSettingsMenu="matMenu" class="extra-settings-menu">
     <div class="extra-settings-menu__list" (click)="$event.stopPropagation()">
@@ -464,7 +464,7 @@
             type="button"
             class="tree-node__delete"
             (click)="removeCorner(group, ci)">
-            <mat-icon>delete</mat-icon>
+            <mat-icon>delete_outline</mat-icon>
           </button>
         </span>
       </div>
@@ -518,7 +518,7 @@
             type="button"
             class="tree-node__delete"
             (click)="removeBleed(group, bi)">
-            <mat-icon>delete</mat-icon>
+            <mat-icon>delete_outline</mat-icon>
           </button>
         </span>
       </div>
@@ -561,7 +561,7 @@
             type="button"
             class="tree-node__delete"
             (click)="removeFolding(group, fi)">
-            <mat-icon>delete</mat-icon>
+            <mat-icon>delete_outline</mat-icon>
           </button>
         </span>
       </div>
@@ -608,7 +608,7 @@
             type="button"
             class="tree-node__delete"
             (click)="removeDuplex(group, di)">
-            <mat-icon>delete</mat-icon>
+            <mat-icon>delete_outline</mat-icon>
           </button>
         </span>
       </div>
@@ -648,7 +648,7 @@
             type="button"
             class="tree-node__delete"
             (click)="removeDoubleSided(group)">
-            <mat-icon>delete</mat-icon>
+            <mat-icon>delete_outline</mat-icon>
           </button>
         </span>
       </div>

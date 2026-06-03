@@ -460,8 +460,7 @@
   flex-shrink: 0;
   color: var(--zx-green) !important;
   border: none;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.06);
+  background: transparent;
 }
 
 .tree-extra-btn--compact {
@@ -485,6 +484,8 @@
   justify-content: center;
   border: none;
   box-shadow: none;
+  background: transparent;
+  --mat-icon-button-state-layer-color: var(--zx-green);
   line-height: 0;
   vertical-align: middle;
 }
