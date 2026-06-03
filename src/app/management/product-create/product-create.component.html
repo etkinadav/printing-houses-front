@@ -448,6 +448,21 @@
   </div>
 </ng-template>
 
+<ng-template #extraSettingModeSelect let-settingGroup>
+  <div class="extra-setting-mode" [formGroup]="settingGroup">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-100 extra-setting-mode__field">
+      <mat-select formControlName="mode">
+        <mat-option value="required">
+          {{ 'management.product-create.double-sided-required' | translate }}
+        </mat-option>
+        <mat-option value="optional">
+          {{ 'management.product-create.double-sided-optional' | translate }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+</ng-template>
+
 <ng-template #cornersBranch let-group>
   <div class="corners-branch">
     <div
@@ -491,6 +506,10 @@
         </mat-form-field>
       </div>
     </div>
+
+    <ng-container
+      *ngTemplateOutlet="extraSettingModeSelect; context: { $implicit: getCornersSetting(group) }">
+    </ng-container>
 
     <div class="corners-branch__footer">
       <span class="corners-branch__rail-end" aria-hidden="true"></span>
@@ -539,6 +558,10 @@
         </mat-form-field>
       </div>
     </div>
+
+    <ng-container
+      *ngTemplateOutlet="extraSettingModeSelect; context: { $implicit: getBleedSetting(group) }">
+    </ng-container>
 
     <div class="bleed-branch__footer">
       <span class="bleed-branch__rail-end" aria-hidden="true"></span>
@@ -592,6 +615,10 @@
       </div>
     </div>
 
+    <ng-container
+      *ngTemplateOutlet="extraSettingModeSelect; context: { $implicit: getFoldingSetting(group) }">
+    </ng-container>
+
     <div class="folding-branch__footer">
       <span class="folding-branch__rail-end" aria-hidden="true"></span>
       <button
@@ -640,6 +667,10 @@
       </div>
     </div>
 
+    <ng-container
+      *ngTemplateOutlet="extraSettingModeSelect; context: { $implicit: getDuplexSetting(group) }">
+    </ng-container>
+
     <div class="duplex-branch__footer">
       <span class="duplex-branch__rail-end" aria-hidden="true"></span>
       <button
@@ -672,18 +703,9 @@
           </button>
         </span>
       </div>
-      <div class="double-sided-node__field">
-        <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
-          <mat-select formControlName="mode">
-            <mat-option value="required">
-              {{ 'management.product-create.double-sided-required' | translate }}
-            </mat-option>
-            <mat-option value="optional">
-              {{ 'management.product-create.double-sided-optional' | translate }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-      </div>
+      <ng-container
+        *ngTemplateOutlet="extraSettingModeSelect; context: { $implicit: getDoubleSided(group) }">
+      </ng-container>
     </div>
 
     <div class="double-sided-branch__footer">

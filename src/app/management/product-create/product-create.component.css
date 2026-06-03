@@ -341,7 +341,7 @@
 .bleed-branch .bleed-node:first-child,
 .folding-branch .folding-node:first-child,
 .duplex-branch .duplex-node:first-child {
-  padding-block-start: 0.75rem;
+  padding-block-start: 1rem;
 }
 
 .corners-branch .corners-node:has(> .tree-node-divider--pink),
@@ -628,11 +628,11 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin-top: 0.65rem;
+  margin-top: 1rem;
 }
 
 .tree-node--color .extra-settings-block:has(> .corners-branch, > .bleed-branch, > .folding-branch, > .duplex-branch, > .double-sided-branch) {
-  margin-top: 1rem;
+  margin-top: 1.25rem;
 }
 
 .extra-settings-block > .corners-branch:not(:first-child),
@@ -940,9 +940,10 @@
 .double-sided-node {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
   width: 100%;
-  padding: 0.65rem 0.65rem 0 0;
+  padding-block: 1rem 0;
+  padding-inline: 0 0.5rem;
   background: transparent;
 }
 
@@ -953,13 +954,28 @@
   gap: 0.5rem;
   width: 100%;
   line-height: 1.3;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0;
 }
 
 .double-sided-node__prefix {
   color: var(--zx-pink);
   font-weight: 600;
   line-height: inherit;
+  margin: 0;
+}
+
+.extra-setting-mode {
+  width: 100%;
+  margin-block-start: 0.75rem;
+  padding-inline-end: 0.5rem;
+}
+
+.double-sided-node > .extra-setting-mode {
+  margin-block-start: 0.35rem;
+}
+
+.extra-setting-mode__field {
+  width: 100%;
   margin: 0;
 }
 

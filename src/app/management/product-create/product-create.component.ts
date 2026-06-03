@@ -17,7 +17,7 @@ import { PhCategory, PhLabel, PhSubCategory } from '../../ph-categories/ph-categ
 import { PhProductsService } from '../../ph-products/ph-products.service';
 import {
   CornerType,
-  DoubleSidedMode,
+  ExtraSettingMode,
   DimensionsFlexability,
   ExtraSettingKey,
   PhProduct,
@@ -325,18 +325,22 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       current.splice(index, 1);
       if (key === 'corners') {
         this.getCorners(group).clear();
+        this.resetExtraSettingMode(group, 'corners');
       }
       if (key === 'bleed') {
         this.getBleeds(group).clear();
+        this.resetExtraSettingMode(group, 'bleed');
       }
       if (key === 'folding') {
         this.getFoldings(group).clear();
+        this.resetExtraSettingMode(group, 'folding');
       }
       if (key === 'duplex') {
         this.getDuplexes(group).clear();
+        this.resetExtraSettingMode(group, 'duplex');
       }
       if (key === 'double-sided') {
-        this.getDoubleSided(group).reset({ mode: 'optional' });
+        this.resetExtraSettingMode(group, 'double-sided');
       }
     } else {
       current.push(key);
@@ -427,12 +431,27 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     this.scheduleRailSync();
   }
 
+  getCornersSetting(group: AbstractControl): FormGroup {
+    return group.get('cornersSetting') as FormGroup;
+  }
+
+  getBleedSetting(group: AbstractControl): FormGroup {
+    return group.get('bleedSetting') as FormGroup;
+  }
+
+  getFoldingSetting(group: AbstractControl): FormGroup {
+    return group.get('foldingSetting') as FormGroup;
+  }
+
+  getDuplexSetting(group: AbstractControl): FormGroup {
+    return group.get('duplexSetting') as FormGroup;
+  }
+
   getDoubleSided(group: AbstractControl): FormGroup {
     return group.get('doubleSided') as FormGroup;
   }
 
   removeDoubleSided(group: AbstractControl): void {
-    this.getDoubleSided(group).reset({ mode: 'optional' });
     this.uncheckExtraSetting(group, 'double-sided');
     this.scheduleRailSync();
   }
@@ -463,6 +482,27 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   private uncheckExtraSetting(group: AbstractControl, key: ExtraSettingKey): void {
     const control = group.get('extraSettings') as FormControl<ExtraSettingKey[]>;
     control.setValue(control.value.filter((setting) => setting !== key));
+    this.resetExtraSettingMode(group, key);
+  }
+
+  private resetExtraSettingMode(group: AbstractControl, key: ExtraSettingKey): void {
+    switch (key) {
+      case 'corners':
+        this.getCornersSetting(group).reset({ mode: 'required' });
+        break;
+      case 'bleed':
+        this.getBleedSetting(group).reset({ mode: 'required' });
+        break;
+      case 'folding':
+        this.getFoldingSetting(group).reset({ mode: 'required' });
+        break;
+      case 'duplex':
+        this.getDuplexSetting(group).reset({ mode: 'required' });
+        break;
+      case 'double-sided':
+        this.getDoubleSided(group).reset({ mode: 'required' });
+        break;
+    }
   }
 
   onSave(): void {
@@ -754,14 +794,20 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     return this.createDuplexGroup(source.getRawValue());
   }
 
-  private createDoubleSidedGroup(
-    doubleSided?: Partial<{ mode: DoubleSidedMode }>,
+  private createExtraSettingModeGroup(
+    data?: Partial<{ mode: ExtraSettingMode }>,
   ): FormGroup {
     return new FormGroup({
-      mode: new FormControl<DoubleSidedMode>(doubleSided?.mode ?? 'optional', {
+      mode: new FormControl<ExtraSettingMode>(data?.mode ?? 'required', {
         nonNullable: true,
       }),
     });
+  }
+
+  private createDoubleSidedGroup(
+    doubleSided?: Partial<{ mode: ExtraSettingMode }>,
+  ): FormGroup {
+    return this.createExtraSettingModeGroup(doubleSided);
   }
 
   private createFoldingsArray(
@@ -803,11 +849,15 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       color: string;
       label: Partial<PhProductLabel>;
       extraSettings?: ExtraSettingKey[];
+      cornersSetting?: Partial<{ mode: ExtraSettingMode }>;
+      bleedSetting?: Partial<{ mode: ExtraSettingMode }>;
+      foldingSetting?: Partial<{ mode: ExtraSettingMode }>;
+      duplexSetting?: Partial<{ mode: ExtraSettingMode }>;
       corners?: Array<{ type: CornerType; radius: number | null }>;
       bleeds?: Array<{ size: number | null }>;
       duplexes?: Array<{ size: number | null }>;
       foldings?: Array<{ count: number; offset: number | null }>;
-      doubleSided?: Partial<{ mode: DoubleSidedMode }>;
+      doubleSided?: Partial<{ mode: ExtraSettingMode }>;
     }>,
   ): FormGroup {
     return new FormGroup({
@@ -817,6 +867,10 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       }),
       label: this.createLabelGroup(color?.label),
       extraSettings: this.createExtraSettingsControl(color?.extraSettings),
+      cornersSetting: this.createExtraSettingModeGroup(color?.cornersSetting),
+      bleedSetting: this.createExtraSettingModeGroup(color?.bleedSetting),
+      foldingSetting: this.createExtraSettingModeGroup(color?.foldingSetting),
+      duplexSetting: this.createExtraSettingModeGroup(color?.duplexSetting),
       corners: this.createCornersArray(color?.corners),
       bleeds: this.createBleedsArray(color?.bleeds),
       duplexes: this.createDuplexesArray(color?.duplexes),
@@ -830,11 +884,15 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       color: string;
       label: Partial<PhProductLabel>;
       extraSettings?: ExtraSettingKey[];
+      cornersSetting?: Partial<{ mode: ExtraSettingMode }>;
+      bleedSetting?: Partial<{ mode: ExtraSettingMode }>;
+      foldingSetting?: Partial<{ mode: ExtraSettingMode }>;
+      duplexSetting?: Partial<{ mode: ExtraSettingMode }>;
       corners?: Array<{ type: CornerType; radius: number | null }>;
       bleeds?: Array<{ size: number | null }>;
       duplexes?: Array<{ size: number | null }>;
       foldings?: Array<{ count: number; offset: number | null }>;
-      doubleSided?: Partial<{ mode: DoubleSidedMode }>;
+      doubleSided?: Partial<{ mode: ExtraSettingMode }>;
     };
     return this.createColorGroup(raw);
   }
@@ -844,11 +902,15 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       weight: number | null;
       label: Partial<PhProductLabel>;
       extraSettings?: ExtraSettingKey[];
+      cornersSetting?: Partial<{ mode: ExtraSettingMode }>;
+      bleedSetting?: Partial<{ mode: ExtraSettingMode }>;
+      foldingSetting?: Partial<{ mode: ExtraSettingMode }>;
+      duplexSetting?: Partial<{ mode: ExtraSettingMode }>;
       corners?: Array<{ type: CornerType; radius: number | null }>;
       bleeds?: Array<{ size: number | null }>;
       duplexes?: Array<{ size: number | null }>;
       foldings?: Array<{ count: number; offset: number | null }>;
-      doubleSided?: Partial<{ mode: DoubleSidedMode }>;
+      doubleSided?: Partial<{ mode: ExtraSettingMode }>;
       colors: Array<{
         color: string;
         label: Partial<PhProductLabel>;
@@ -871,6 +933,10 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       ]),
       label: this.createLabelGroup(material?.label),
       extraSettings: this.createExtraSettingsControl(material?.extraSettings),
+      cornersSetting: this.createExtraSettingModeGroup(material?.cornersSetting),
+      bleedSetting: this.createExtraSettingModeGroup(material?.bleedSetting),
+      foldingSetting: this.createExtraSettingModeGroup(material?.foldingSetting),
+      duplexSetting: this.createExtraSettingModeGroup(material?.duplexSetting),
       corners: this.createCornersArray(material?.corners),
       bleeds: this.createBleedsArray(material?.bleeds),
       duplexes: this.createDuplexesArray(material?.duplexes),
@@ -885,11 +951,15 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       weight: number | null;
       label: Partial<PhProductLabel>;
       extraSettings?: ExtraSettingKey[];
+      cornersSetting?: Partial<{ mode: ExtraSettingMode }>;
+      bleedSetting?: Partial<{ mode: ExtraSettingMode }>;
+      foldingSetting?: Partial<{ mode: ExtraSettingMode }>;
+      duplexSetting?: Partial<{ mode: ExtraSettingMode }>;
       corners?: Array<{ type: CornerType; radius: number | null }>;
       bleeds?: Array<{ size: number | null }>;
       duplexes?: Array<{ size: number | null }>;
       foldings?: Array<{ count: number; offset: number | null }>;
-      doubleSided?: Partial<{ mode: DoubleSidedMode }>;
+      doubleSided?: Partial<{ mode: ExtraSettingMode }>;
       minLength: number | null;
       maxLength: number | null;
       minHeight: number | null;
@@ -917,6 +987,10 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       ]),
       label: this.createLabelGroup(material?.label),
       extraSettings: this.createExtraSettingsControl(material?.extraSettings),
+      cornersSetting: this.createExtraSettingModeGroup(material?.cornersSetting),
+      bleedSetting: this.createExtraSettingModeGroup(material?.bleedSetting),
+      foldingSetting: this.createExtraSettingModeGroup(material?.foldingSetting),
+      duplexSetting: this.createExtraSettingModeGroup(material?.duplexSetting),
       corners: this.createCornersArray(material?.corners),
       bleeds: this.createBleedsArray(material?.bleeds),
       duplexes: this.createDuplexesArray(material?.duplexes),
@@ -943,11 +1017,15 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       width: number | null;
       label: Partial<PhProductLabel>;
       extraSettings?: ExtraSettingKey[];
+      cornersSetting?: Partial<{ mode: ExtraSettingMode }>;
+      bleedSetting?: Partial<{ mode: ExtraSettingMode }>;
+      foldingSetting?: Partial<{ mode: ExtraSettingMode }>;
+      duplexSetting?: Partial<{ mode: ExtraSettingMode }>;
       corners?: Array<{ type: CornerType; radius: number | null }>;
       bleeds?: Array<{ size: number | null }>;
       duplexes?: Array<{ size: number | null }>;
       foldings?: Array<{ count: number; offset: number | null }>;
-      doubleSided?: Partial<{ mode: DoubleSidedMode }>;
+      doubleSided?: Partial<{ mode: ExtraSettingMode }>;
       materials: Array<{
         weight: number | null;
         label: Partial<PhProductLabel>;
@@ -983,6 +1061,10 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       ]),
       label: this.createLabelGroup(size?.label),
       extraSettings: this.createExtraSettingsControl(size?.extraSettings),
+      cornersSetting: this.createExtraSettingModeGroup(size?.cornersSetting),
+      bleedSetting: this.createExtraSettingModeGroup(size?.bleedSetting),
+      foldingSetting: this.createExtraSettingModeGroup(size?.foldingSetting),
+      duplexSetting: this.createExtraSettingModeGroup(size?.duplexSetting),
       corners: this.createCornersArray(size?.corners),
       bleeds: this.createBleedsArray(size?.bleeds),
       duplexes: this.createDuplexesArray(size?.duplexes),
