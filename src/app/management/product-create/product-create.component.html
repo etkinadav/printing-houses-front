@@ -81,7 +81,6 @@
                         <button
                           mat-icon-button
                           type="button"
-                          color="warn"
                           class="tree-node__delete"
                           (click)="removeSize(si)">
                           <mat-icon>delete</mat-icon>
@@ -232,7 +231,6 @@
                 <button
                   mat-icon-button
                   type="button"
-                  color="warn"
                   class="tree-node__delete"
                   (click)="removeMaterial(materials, mi, withDimensions)">
                   <mat-icon>delete</mat-icon>
@@ -365,7 +363,6 @@
                 <button
                   mat-icon-button
                   type="button"
-                  color="warn"
                   class="tree-node__delete"
                   (click)="removeColor(colors, ci)">
                   <mat-icon>delete</mat-icon>
@@ -406,11 +403,12 @@
 
 <ng-template #extraSettingsBtn let-group>
   <button
-    mat-button
+    mat-icon-button
     type="button"
-    class="tree-extra-btn tree-extra-btn--compact rounded-pill"
+    class="tree-extra-btn tree-extra-btn--compact"
+    [attr.aria-label]="'management.product-create.extra-settings' | translate"
     [matMenuTriggerFor]="extraSettingsMenu">
-    {{ 'management.product-create.extra-settings' | translate }}
+    <mat-icon>add</mat-icon>
   </button>
   <mat-menu #extraSettingsMenu="matMenu" class="extra-settings-menu">
     <div class="extra-settings-menu__list" (click)="$event.stopPropagation()">
@@ -464,7 +462,6 @@
           <button
             mat-icon-button
             type="button"
-            color="warn"
             class="tree-node__delete"
             (click)="removeCorner(group, ci)">
             <mat-icon>delete</mat-icon>
@@ -519,7 +516,6 @@
           <button
             mat-icon-button
             type="button"
-            color="warn"
             class="tree-node__delete"
             (click)="removeBleed(group, bi)">
             <mat-icon>delete</mat-icon>
@@ -563,7 +559,6 @@
           <button
             mat-icon-button
             type="button"
-            color="warn"
             class="tree-node__delete"
             (click)="removeFolding(group, fi)">
             <mat-icon>delete</mat-icon>
@@ -611,7 +606,6 @@
           <button
             mat-icon-button
             type="button"
-            color="warn"
             class="tree-node__delete"
             (click)="removeDuplex(group, di)">
             <mat-icon>delete</mat-icon>
@@ -652,7 +646,6 @@
           <button
             mat-icon-button
             type="button"
-            color="warn"
             class="tree-node__delete"
             (click)="removeDoubleSided(group)">
             <mat-icon>delete</mat-icon>

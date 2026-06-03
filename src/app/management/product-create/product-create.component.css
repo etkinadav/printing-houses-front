@@ -347,6 +347,9 @@
   height: 1.125rem;
   padding: 0;
   line-height: 1.125rem;
+  color: var(--zx-green) !important;
+  --mdc-icon-button-icon-color: var(--zx-green);
+  --mat-icon-button-state-layer-color: var(--zx-green);
   --mdc-icon-button-state-layer-size: 1.125rem;
   --mdc-icon-button-icon-size: 1.125rem;
 }
@@ -356,6 +359,16 @@
   width: 1.125rem;
   height: 1.125rem;
   line-height: 1.125rem;
+  color: var(--zx-green);
+}
+
+:host ::ng-deep .tree-node__delete.mat-mdc-icon-button {
+  color: var(--zx-green);
+  --mdc-icon-button-icon-color: var(--zx-green);
+}
+
+:host ::ng-deep .tree-node__delete.mat-mdc-icon-button .mat-icon {
+  color: var(--zx-green);
 }
 
 :host ::ng-deep .tree-node__delete.mat-mdc-icon-button .mat-mdc-button-touch-target {
@@ -403,25 +416,45 @@
 }
 
 .tree-extra-btn--compact {
-  min-height: 22px;
+  width: 22px;
   height: 22px;
-  padding: 0 8px;
-  font-size: 0.7rem;
+  min-width: 22px;
+  min-height: 22px;
+  padding: 0;
   line-height: 1;
-  --mdc-text-button-container-height: 22px;
+  --mdc-icon-button-state-layer-size: 22px;
+  --mdc-icon-button-icon-size: 1.125rem;
 }
 
 .tree-extra-btn-row {
   margin-bottom: 0.5rem;
 }
 
-:host ::ng-deep .tree-extra-btn--compact.mat-mdc-button {
+:host ::ng-deep .tree-extra-btn--compact.mat-mdc-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   box-shadow: none;
+  line-height: 0;
+  vertical-align: middle;
 }
 
-:host ::ng-deep .tree-extra-btn--compact.mat-mdc-button .mat-mdc-button-touch-target {
+:host ::ng-deep .tree-extra-btn--compact.mat-mdc-icon-button .mat-mdc-button-touch-target {
+  width: 22px;
   height: 22px;
+}
+
+:host ::ng-deep .tree-extra-btn--compact.mat-mdc-icon-button .mat-icon {
+  margin: 0;
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(1px);
 }
 
 .extra-settings-block {
