@@ -263,7 +263,7 @@
 }
 
 .ph-mgmt-products__name {
-  margin: 0;
+  margin: 0 0 0.4rem;
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--zx-green);
