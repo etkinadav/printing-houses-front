@@ -29,6 +29,8 @@
 }
 
 .ph-mgmt-header {
+  --ph-logo-size: 84px;
+
   position: relative;
   flex-shrink: 0;
   width: 100%;
@@ -56,8 +58,8 @@
 
 .ph-mgmt-header__logo {
   flex-shrink: 0;
-  width: 84px;
-  height: 84px;
+  width: var(--ph-logo-size);
+  height: var(--ph-logo-size);
   border-radius: 12px;
   overflow: hidden;
   position: relative;
@@ -148,26 +150,16 @@
 
 @media only screen and (min-width: 992px) {
   .ph-mgmt-header {
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
-    padding: 0;
-    min-height: 200px;
-    overflow: hidden;
+    --ph-logo-size: 144px;
+    padding: 24px 32px;
+    min-height: calc(var(--ph-logo-size) + 48px);
   }
 
   .ph-mgmt-header__inner {
-    flex: 0 0 60%;
-    max-width: none;
-    margin: 0;
-    padding: 24px 32px;
-    padding-inline-start: 32px;
-    align-self: center;
+    padding-inline-end: calc(40% + 48px);
   }
 
   .ph-mgmt-header__logo {
-    width: 144px;
-    height: 144px;
     border-radius: 14px;
   }
 
@@ -180,27 +172,23 @@
   }
 
   .ph-mgmt-header__map {
-    position: relative;
-    inset-inline-end: auto;
+    inset-inline-end: 32px;
+    top: 50%;
     bottom: auto;
-    flex: 0 0 40%;
     width: 40%;
-    height: auto;
-    min-height: 200px;
-    align-self: stretch;
-    pointer-events: auto;
+    height: var(--ph-logo-size);
+    transform: translateY(-50%);
+    pointer-events: none;
   }
 
   .map-wrapper {
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
-    min-height: 200px;
-    height: 100%;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.35);
   }
 
   .printing-house-management-map-pin {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
   }
 }
