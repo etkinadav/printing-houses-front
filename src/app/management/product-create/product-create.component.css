@@ -517,6 +517,14 @@
   margin-top: 1rem;
 }
 
+.extra-settings-block > .corners-branch:not(:first-child),
+.extra-settings-block > .bleed-branch:not(:first-child),
+.extra-settings-block > .folding-branch:not(:first-child),
+.extra-settings-block > .duplex-branch:not(:first-child),
+.extra-settings-block > .double-sided-branch:not(:first-child) {
+  margin-top: 0.65rem;
+}
+
 /* ── Corners branch (pink rail) ── */
 .corners-branch {
   --tree-rail-width: 2px;
