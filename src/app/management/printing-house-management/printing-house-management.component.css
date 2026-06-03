@@ -323,6 +323,16 @@
 
 .ph-spec-tree__label--regular {
   font-weight: 400;
+  opacity: 1;
+}
+
+.ph-spec-tree__label--extra-setting {
+  opacity: 0.75;
+}
+
+.ph-spec-tree__label--muted-bold {
+  font-weight: 600;
+  opacity: 0.75;
 }
 
 .ph-spec-tree__detail {

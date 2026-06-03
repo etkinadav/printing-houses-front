@@ -113,7 +113,9 @@
         <span
           *ngIf="node.label"
           class="ph-spec-tree__label"
-          [class.ph-spec-tree__label--regular]="node.emphasis === false">{{ node.label }}</span>
+          [class.ph-spec-tree__label--regular]="node.emphasis === false"
+          [class.ph-spec-tree__label--extra-setting]="node.isExtraSetting"
+          [class.ph-spec-tree__label--muted-bold]="node.isMutedBold">{{ node.label }}</span>
         <span
           *ngIf="node.detail"
           class="ph-spec-tree__detail"

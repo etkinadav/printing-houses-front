@@ -179,6 +179,7 @@
   font-size: 0.68rem;
   line-height: 1.2;
   color: var(--zx-gray-mid, #757575);
+  opacity: 0.5;
   word-break: break-word;
 }
 

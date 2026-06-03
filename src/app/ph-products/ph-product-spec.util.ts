@@ -23,10 +23,14 @@ export interface ProductSpecNode {
   detail?: string;
   colorPills?: ProductSpecColorPill[];
   children?: ProductSpecNode[];
-  /** When false, label renders without bold (extras, color rows). */
+  /** When false, label renders without bold (material lines, dimension range, color rows). */
   emphasis?: boolean;
   /** When true, detail line uses bold weight (e.g. size dimensions). */
   detailBold?: boolean;
+  /** Extra-setting line (corners, bleed, etc.) — muted opacity in spec tree. */
+  isExtraSetting?: boolean;
+  /** Material line (fixed) or dimension range (dynamic): bold at 50% opacity. */
+  isMutedBold?: boolean;
 }
 
 /** Black on light backgrounds, white on dark. */
@@ -150,6 +154,10 @@ function formatExtraSettingLine(name: string, values: string, mode: string, t: T
   return t('management.printing-house.spec.extra-line', { name, values, mode });
 }
 
+function extraSettingSpecNode(label: string): ProductSpecNode {
+  return { label, emphasis: false, isExtraSetting: true };
+}
+
 function buildExtraSettingSpecNodes(node: PhTreeExtraSettings, t: TranslateFn): ProductSpecNode[] {
   const selected = node.extraSettings ?? [];
   if (!selected.length) {
@@ -161,71 +169,76 @@ function buildExtraSettingSpecNodes(node: PhTreeExtraSettings, t: TranslateFn): 
   if (selected.includes('corners') && node.corners?.length) {
     const values = formatCornerValues(node.corners, t);
     if (values) {
-      nodes.push({
-        label: formatExtraSettingLine(
-          t('management.product-create.extra-settings.corners'),
-          values,
-          formatExtraMode(node.cornersSetting?.mode, t),
-          t,
+      nodes.push(
+        extraSettingSpecNode(
+          formatExtraSettingLine(
+            t('management.product-create.extra-settings.corners'),
+            values,
+            formatExtraMode(node.cornersSetting?.mode, t),
+            t,
+          ),
         ),
-        emphasis: false,
-      });
+      );
     }
   }
 
   if (selected.includes('bleed') && node.bleeds?.length) {
     const values = formatSizedValues(node.bleeds, t);
     if (values) {
-      nodes.push({
-        label: formatExtraSettingLine(
-          t('management.product-create.extra-settings.bleed'),
-          values,
-          formatExtraMode(node.bleedSetting?.mode, t),
-          t,
+      nodes.push(
+        extraSettingSpecNode(
+          formatExtraSettingLine(
+            t('management.product-create.extra-settings.bleed'),
+            values,
+            formatExtraMode(node.bleedSetting?.mode, t),
+            t,
+          ),
         ),
-        emphasis: false,
-      });
+      );
     }
   }
 
   if (selected.includes('folding') && node.foldings?.length) {
     const values = formatFoldingValues(node.foldings, t);
     if (values) {
-      nodes.push({
-        label: formatExtraSettingLine(
-          t('management.product-create.extra-settings.folding'),
-          values,
-          formatExtraMode(node.foldingSetting?.mode, t),
-          t,
+      nodes.push(
+        extraSettingSpecNode(
+          formatExtraSettingLine(
+            t('management.product-create.extra-settings.folding'),
+            values,
+            formatExtraMode(node.foldingSetting?.mode, t),
+            t,
+          ),
         ),
-        emphasis: false,
-      });
+      );
     }
   }
 
   if (selected.includes('duplex') && node.duplexes?.length) {
     const values = formatSizedValues(node.duplexes, t);
     if (values) {
-      nodes.push({
-        label: formatExtraSettingLine(
-          t('management.product-create.extra-settings.duplex'),
-          values,
-          formatExtraMode(node.duplexSetting?.mode, t),
-          t,
+      nodes.push(
+        extraSettingSpecNode(
+          formatExtraSettingLine(
+            t('management.product-create.extra-settings.duplex'),
+            values,
+            formatExtraMode(node.duplexSetting?.mode, t),
+            t,
+          ),
         ),
-        emphasis: false,
-      });
+      );
     }
   }
 
   if (selected.includes('double-sided')) {
-    nodes.push({
-      label: t('management.printing-house.spec.extra-line-mode-only', {
-        name: t('management.product-create.extra-settings.double-sided'),
-        mode: formatExtraMode(node.doubleSided?.mode, t),
-      }),
-      emphasis: false,
-    });
+    nodes.push(
+      extraSettingSpecNode(
+        t('management.printing-house.spec.extra-line-mode-only', {
+          name: t('management.product-create.extra-settings.double-sided'),
+          mode: formatExtraMode(node.doubleSided?.mode, t),
+        }),
+      ),
+    );
   }
 
   return nodes;
@@ -340,7 +353,7 @@ function buildMaterialNodes(materials: PhMaterial[], t: TranslateFn): ProductSpe
     return {
       label: formatMaterialDisplayLine(rawName, material.weight, undefined, t, index, false),
       children: children.length ? children : undefined,
-      emphasis: false,
+      isMutedBold: true,
     };
   });
 }
