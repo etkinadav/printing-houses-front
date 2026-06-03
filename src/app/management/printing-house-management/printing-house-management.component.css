@@ -192,14 +192,51 @@
 }
 
 .ph-mgmt-products__card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   padding: 14px 16px;
+  padding-inline-end: 48px;
   border-radius: 12px;
   background: #fff;
   border: 1px solid rgba(85, 85, 85, 0.14);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.ph-mgmt-products__actions {
+  position: absolute;
+  top: 12px;
+  inset-inline-end: 12px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  z-index: 1;
+}
+
+.ph-mgmt-products__icon-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  --mdc-icon-button-state-layer-size: 28px;
+  --mdc-icon-button-icon-size: 18px;
+}
+
+.ph-mgmt-products__icon-btn .mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  line-height: 18px;
+}
+
+.ph-mgmt-products__icon-btn--edit {
+  color: var(--zx-green);
+  --mdc-icon-button-icon-color: var(--zx-green);
+}
+
+.ph-mgmt-products__icon-btn--edit:hover {
+  color: var(--zx-green-dark, var(--zx-green));
+  --mdc-icon-button-icon-color: var(--zx-green-dark, var(--zx-green));
 }
 
 .printing-house-management-page--dark .ph-mgmt-products__card {
@@ -207,24 +244,69 @@
   border-color: rgba(255, 255, 255, 0.12);
 }
 
+.ph-mgmt-products__title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .ph-mgmt-products__name {
+  margin: 0;
   font-size: 1rem;
   font-weight: 600;
   word-break: break-word;
 }
 
-.ph-mgmt-products__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+.ph-mgmt-products__category-line {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.35;
+  opacity: 0.72;
+  word-break: break-word;
 }
 
-@media only screen and (min-width: 576px) {
-  .ph-mgmt-products__card {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
+.ph-spec-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ph-spec-tree .ph-spec-tree {
+  margin-top: 6px;
+  padding-inline-start: 16px;
+  border-inline-start: 2px solid rgba(85, 85, 85, 0.16);
+}
+
+.ph-spec-tree__item + .ph-spec-tree__item {
+  margin-top: 6px;
+}
+
+.ph-spec-tree__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.ph-spec-tree__label {
+  font-weight: 600;
+  opacity: 0.88;
+}
+
+.ph-spec-tree__detail {
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.ph-spec-tree__swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
 }
 
 @media only screen and (min-width: 992px) {

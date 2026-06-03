@@ -68,18 +68,54 @@
 
         <li *ngFor="let product of products" class="ph-mgmt-products__item">
           <div class="ph-mgmt-products__card">
-            <span class="ph-mgmt-products__name">{{ product.name_he }}</span>
             <div class="ph-mgmt-products__actions">
-              <button mat-button type="button" (click)="onEditProduct(product._id)">
-                {{ 'management.printing-house.edit-product' | translate }}
+              <button
+                mat-icon-button
+                type="button"
+                class="ph-mgmt-products__icon-btn ph-mgmt-products__icon-btn--edit"
+                [attr.aria-label]="'management.printing-house.edit-product' | translate"
+                (click)="onEditProduct(product._id)">
+                <mat-icon>edit</mat-icon>
               </button>
-              <button mat-button color="warn" type="button" (click)="onDeleteProduct(product)">
-                {{ 'management.printing-house.delete-product' | translate }}
+              <button
+                mat-icon-button
+                type="button"
+                color="warn"
+                class="ph-mgmt-products__icon-btn"
+                [attr.aria-label]="'management.printing-house.delete-product' | translate"
+                (click)="onDeleteProduct(product)">
+                <mat-icon>delete</mat-icon>
               </button>
             </div>
+
+            <div class="ph-mgmt-products__title-block">
+              <h3 class="ph-mgmt-products__name">{{ product.name_he }}</h3>
+              <p *ngIf="getProductCategoryLine(product) as categoryLine" class="ph-mgmt-products__category-line">
+                {{ categoryLine }}
+              </p>
+            </div>
+
+            <ng-container
+              *ngTemplateOutlet="productSpecTree; context: { nodes: getProductSpec(product) }"></ng-container>
           </div>
         </li>
       </ul>
     </section>
   </ng-container>
 </div>
+
+<ng-template #productSpecTree let-nodes="nodes">
+  <ul *ngIf="nodes?.length" class="ph-spec-tree">
+    <li *ngFor="let node of nodes" class="ph-spec-tree__item">
+      <div class="ph-spec-tree__row">
+        <span class="ph-spec-tree__label">{{ node.label }}</span>
+        <span *ngIf="node.colorHex" class="ph-spec-tree__swatch" [style.background]="node.colorHex"></span>
+        <span *ngIf="node.detail" class="ph-spec-tree__detail">{{ node.detail }}</span>
+      </div>
+      <ng-container *ngIf="node.children?.length">
+        <ng-container
+          *ngTemplateOutlet="productSpecTree; context: { nodes: node.children }"></ng-container>
+      </ng-container>
+    </li>
+  </ul>
+</ng-template>
