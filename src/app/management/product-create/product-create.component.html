@@ -72,7 +72,7 @@
                 <div class="tree-node__header-body">
                   <div class="size-title-row">
                     <div class="size-title-row__heading">
-                      <span class="size-title-row__prefix">
+                      <span *ngIf="sizes.length > 1" class="size-title-row__prefix">
                         {{ 'management.product-create.size-number' | translate: { n: si + 1 } }}
                       </span>
                       <ng-container
@@ -86,18 +86,6 @@
                           <mat-icon>delete_outline</mat-icon>
                         </button>
                       </span>
-                    </div>
-                    <div
-                      *ngIf="sizes.length === 1"
-                      class="size-title-row__field size-title-row__field--readonly">
-                      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-100">
-                        <input
-                          matInput
-                          [formControl]="productNameControl"
-                          readonly
-                          autocomplete="off"
-                          [placeholder]="'management.product-create.size-name-placeholder' | translate" />
-                      </mat-form-field>
                     </div>
                     <div
                       *ngIf="sizes.length > 1"
