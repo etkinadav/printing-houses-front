@@ -65,7 +65,7 @@
     "management.printing-house.spec.material-line-dynamic": "{{name}}, {{g}} ג' · {{range}}",
     "management.printing-house.spec.size-dimensions": "{{length}}×{{width}} ס\"מ",
     "management.printing-house.spec.dimensions-range": "אורך {{minL}}–{{maxL}} ס\"מ, גובה {{minH}}–{{maxH}} ס\"מ",
-    "management.printing-house.spec.extra-line": "{{name}}: {{values}}, {{mode}}.",
+    "management.printing-house.spec.extra-line": "{{name}}: {{values}}, {{mode}}",
     "management.printing-house.spec.extra-line-mode-only": "{{name}}, {{mode}}",
     "management.printing-house.spec.extra-mode.required": "חובה",
     "management.printing-house.spec.extra-mode.optional": "אופציונלי",

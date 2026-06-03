@@ -65,7 +65,7 @@
 	"management.printing-house.spec.material-line-dynamic": "{{name}}, {{g}} g · {{range}}",
 	"management.printing-house.spec.size-dimensions": "{{length}}×{{width}} cm",
 	"management.printing-house.spec.dimensions-range": "Length {{minL}}–{{maxL}} cm, height {{minH}}–{{maxH}} cm",
-	"management.printing-house.spec.extra-line": "{{name}}: {{values}}, {{mode}}.",
+	"management.printing-house.spec.extra-line": "{{name}}: {{values}}, {{mode}}",
 	"management.printing-house.spec.extra-line-mode-only": "{{name}}, {{mode}}",
 	"management.printing-house.spec.extra-mode.required": "Required",
 	"management.printing-house.spec.extra-mode.optional": "Optional",

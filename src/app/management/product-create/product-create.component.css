@@ -934,8 +934,9 @@
   --tree-rail-join-overlap: 1px;
   --tree-rail-inset: 0.4rem;
   --tree-branch-padding: 1.125rem;
-  --tree-add-btn-height: var(--tree-rail-corner-block);
-  --corners-rail-bottom: calc(var(--tree-rail-corner-block) / 2);
+  --tree-compact-add-height: 32px;
+  --tree-add-btn-height: var(--tree-compact-add-height);
+  --corners-rail-bottom: calc(var(--tree-add-btn-height) / 2 - var(--tree-rail-corner-block) / 2);
   --tree-rail-span-width: calc(var(--tree-rail-cap) + var(--tree-rail-corner-radius));
   --tree-rail-top-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 7'%3E%3Cpath d='M 15 1 L 6 1 A 5 5 0 0 0 1 6 L 1 7' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E");
   --tree-rail-bottom-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 7'%3E%3Cpath d='M 1 0 L 1 1.5 A 5 5 0 0 0 6 3.5 L 15 3.5' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E");
@@ -944,7 +945,7 @@
   flex-direction: column;
   gap: 0;
   width: 100%;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.75rem;
   padding-inline-start: var(--tree-branch-padding);
 }
 
@@ -965,23 +966,24 @@
   display: block;
   align-self: flex-start;
   width: 100%;
-  height: var(--tree-rail-corner-block);
-  min-height: var(--tree-rail-corner-block);
+  min-height: var(--tree-compact-add-height);
+  margin-top: 0.75rem;
   padding-inline-start: 0;
 }
 
 .double-sided-branch__rail-end {
   position: absolute;
   inset-inline-start: calc(var(--tree-rail-inset) - var(--tree-branch-padding));
-  top: 0;
+  top: 50%;
   width: var(--tree-rail-span-width);
   height: var(--tree-rail-corner-block);
+  margin-top: calc(var(--tree-rail-corner-block) / -2);
   background-color: var(--zx-pink);
   pointer-events: none;
   box-sizing: border-box;
   -webkit-mask: var(--tree-rail-bottom-mask) no-repeat left top / 100% 100%;
   mask: var(--tree-rail-bottom-mask) no-repeat left top / 100% 100%;
-  transform-origin: inline-start top;
+  transform-origin: inline-start center;
 }
 
 .zx-rtl .double-sided-branch__rail-end,
