@@ -10,6 +10,7 @@ import { PhProductsService } from '../../ph-products/ph-products.service';
 import { PhProduct } from '../../ph-products/ph-product.model';
 import {
   buildProductSpecTree,
+  getColorPillTextColor,
   getProductCategoryLine as formatProductCategoryLine,
   ProductSpecNode,
 } from '../../ph-products/ph-product-spec.util';
@@ -207,6 +208,10 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
   getProductCategoryLine(product: PhProduct): string {
     const lang = this.translate.currentLang || 'he';
     return formatProductCategoryLine(product, lang);
+  }
+
+  colorPillTextColor(hex: string): string {
+    return getColorPillTextColor(hex);
   }
 
   onDeleteProduct(product: PhProduct): void {

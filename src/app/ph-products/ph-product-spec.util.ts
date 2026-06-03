@@ -7,11 +7,46 @@ import {
   PhSize,
 } from './ph-product.model';
 
+export interface ProductSpecColorPill {
+  name: string;
+  hex: string;
+}
+
 export interface ProductSpecNode {
   label: string;
   detail?: string;
-  colorHex?: string;
+  colorPills?: ProductSpecColorPill[];
   children?: ProductSpecNode[];
+}
+
+/** Black on light backgrounds, white on dark. */
+export function getColorPillTextColor(hex: string): '#000000' | '#ffffff' {
+  const rgb = parseCssColor(hex);
+  if (!rgb) return '#000000';
+  const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+  return luminance > 0.58 ? '#000000' : '#ffffff';
+}
+
+function parseCssColor(value: string): { r: number; g: number; b: number } | null {
+  const v = (value || '').trim();
+  if (!v) return null;
+
+  const hex = v.startsWith('#') ? v.slice(1) : v;
+  if (/^[0-9a-f]{3}$/i.test(hex)) {
+    return {
+      r: parseInt(hex[0] + hex[0], 16),
+      g: parseInt(hex[1] + hex[1], 16),
+      b: parseInt(hex[2] + hex[2], 16),
+    };
+  }
+  if (/^[0-9a-f]{6}$/i.test(hex)) {
+    return {
+      r: parseInt(hex.slice(0, 2), 16),
+      g: parseInt(hex.slice(2, 4), 16),
+      b: parseInt(hex.slice(4, 6), 16),
+    };
+  }
+  return null;
 }
 
 type TranslateFn = (key: string, params?: Record<string, unknown>) => string;
@@ -50,15 +85,14 @@ function resolveCategoryLabels(
   };
 }
 
-function buildColorNodes(colors: PhColor[], t: TranslateFn): ProductSpecNode[] {
+function buildColorNodes(colors: PhColor[]): ProductSpecNode[] {
   if (!colors?.length) return [];
   return [
     {
-      label: t('management.printing-house.spec.colors'),
-      children: colors.map((c) => ({
-        label: c.label?.he?.trim() || c.color,
-        detail: c.color,
-        colorHex: c.color,
+      label: '',
+      colorPills: colors.map((c) => ({
+        name: c.label?.he?.trim() || '—',
+        hex: c.color?.trim() || '#cccccc',
       })),
     },
   ];
@@ -71,7 +105,7 @@ function buildMaterialNodes(materials: PhMaterial[], t: TranslateFn): ProductSpe
     return {
       label: name,
       detail: weight,
-      children: buildColorNodes(material.colors || [], t),
+      children: buildColorNodes(material.colors || []),
     };
   });
 }
@@ -89,7 +123,7 @@ function buildDynamicMaterialNodes(materials: PhDynamicMaterial[], t: TranslateF
     return {
       label: name,
       detail: `${weight} · ${range}`,
-      children: buildColorNodes(material.colors || [], t),
+      children: buildColorNodes(material.colors || []),
     };
   });
 }
@@ -105,9 +139,7 @@ function buildSizeNodes(sizes: PhSize[], t: TranslateFn): ProductSpecNode[] {
     return {
       label: name,
       detail: dims,
-      children: materials.length
-        ? [{ label: t('management.printing-house.spec.materials'), children: materials }]
-        : [],
+      children: materials,
     };
   });
 }
@@ -118,27 +150,14 @@ export function buildProductSpecTree(
   lang: string,
 ): ProductSpecNode[] {
   const flex = product.properties?.dimensionsFlexability ?? 'fixed';
-  const flexLabel =
-    flex === 'fixed'
-      ? t('properties.dimensionsFlexability.fixed')
-      : t('properties.dimensionsFlexability.dynamic');
-
-  const tree: ProductSpecNode[] = [
-    { label: t('management.printing-house.spec.dimensions-type'), detail: flexLabel },
-  ];
+  const tree: ProductSpecNode[] = [];
 
   if (flex === 'fixed' && product.properties?.fixed?.sizes?.length) {
-    tree.push({
-      label: t('management.printing-house.spec.sizes'),
-      children: buildSizeNodes(product.properties.fixed.sizes, t),
-    });
+    tree.push(...buildSizeNodes(product.properties.fixed.sizes, t));
   }
 
   if (flex === 'dynamic' && product.properties?.dynamic?.materials?.length) {
-    tree.push({
-      label: t('management.printing-house.spec.materials'),
-      children: buildDynamicMaterialNodes(product.properties.dynamic.materials, t),
-    });
+    tree.push(...buildDynamicMaterialNodes(product.properties.dynamic.materials, t));
   }
 
   return tree;
