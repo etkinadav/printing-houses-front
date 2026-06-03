@@ -314,7 +314,6 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
       ...(transformRequest ? { transformRequest } : {}),
     });
 
-    this.map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
     this.map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
 
     this.map.on('load', () => {

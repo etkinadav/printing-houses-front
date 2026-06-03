@@ -225,7 +225,6 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
       ...(transformRequest ? { transformRequest } : {}),
     });
 
-    this.map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
     this.map.on('error', (e) => {
       console.error('Map error on management page', e);
     });
