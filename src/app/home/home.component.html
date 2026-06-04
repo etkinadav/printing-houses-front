@@ -1,16 +1,27 @@
 <div class="home-page">
-  <div class="home-video-screen">
-    <video
-      #video
-      class="home-video"
-      muted
-      playsinline
-      preload="auto"
-      disablePictureInPicture
-      (ended)="onVideoEnded()"
+  <div class="home-map-screen">
+    <div #mapEl class="home-map"></div>
+  </div>
+
+  <div class="home-map-markers-pool" aria-hidden="true">
+    <div
+      *ngFor="let ph of mapPrintingHouses"
+      #markerEl
+      class="home-map-marker"
+      [class.home-map-marker--dark]="isDarkMode"
+      hidden
     >
-      <source src="assets/videos/printing-houses-video.mp4" type="video/mp4" />
-    </video>
+      <div class="home-map-marker-card">
+        <app-ph-logo-crop
+          *ngIf="phLogoUrl(ph)"
+          [imageUrl]="phLogoUrl(ph)"
+          [logo]="ph.logo"
+          size="1.75rem"
+        />
+        <span class="home-map-marker-name">{{ ph.name }}</span>
+      </div>
+      <div class="home-map-marker-pin"></div>
+    </div>
   </div>
 
   <nav

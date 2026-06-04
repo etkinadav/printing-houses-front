@@ -4,18 +4,18 @@
   min-height: calc(var(--vh, 1vh) * 100);
 }
 
-.home-video-screen {
+.home-map-screen {
   position: fixed;
   inset: 0;
   width: 100%;
   height: calc(var(--vh, 1vh) * 100);
   z-index: 0;
   overflow: hidden;
-  background-color: #000;
+  background-color: var(--zx-gray-light-mid, #b1b1b1);
 }
 
 @supports (height: 100dvh) {
-  .home-video-screen {
+  .home-map-screen {
     height: 100dvh;
   }
 
@@ -24,11 +24,69 @@
   }
 }
 
-.home-video {
+.home-map {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  display: block;
+}
+
+.home-map-markers-pool {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 0;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.home-map-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.home-map-marker-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 9rem;
+  padding: 0.35rem 0.5rem 0.4rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  text-align: center;
+}
+
+.home-map-marker--dark .home-map-marker-card {
+  background: rgba(38, 38, 38, 0.94);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.home-map-marker-name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--zx-dark, #262626);
+  word-break: break-word;
+}
+
+.home-map-marker--dark .home-map-marker-name {
+  color: #f5f5f5;
+}
+
+.home-map-marker-pin {
+  width: 26px;
+  height: 26px;
+  margin-top: 2px;
+  background-image: url('/assets/images/pin-icon-delivery.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.28));
 }
 
 /* Catalog nav – below main toolbar */

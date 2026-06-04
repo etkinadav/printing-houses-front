@@ -1,29 +1,38 @@
 import {
   AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   HostListener,
   OnDestroy,
   OnInit,
+  QueryList,
   ViewChild,
+  ViewChildren,
 } from '@angular/core';
 import { forkJoin, Subscription } from 'rxjs';
+import * as maplibregl from 'maplibre-gl';
 
 import { TranslateService } from '@ngx-translate/core';
 
 import { DirectionService } from '../direction.service';
+import { getMapStyleUrl, getMapTransformRequest } from '../maptiler/maptiler-style-url';
 import { PhCategoriesService } from '../ph-categories/ph-categories.service';
 import { PhCategory, PhLabel } from '../ph-categories/ph-category.model';
+import { PhPrintingHouseService } from '../ph-printing-house/ph-printing-house.service';
+import { PhPrintingHouseMapMarker } from '../ph-printing-house/ph-printing-house.model';
 import { PhProductsService } from '../ph-products/ph-products.service';
 import {
   PhCategoryGroup,
   PhProduct,
   PhProductPrintingHouseSummary,
 } from '../ph-products/ph-product.model';
-/** Forward / reverse playback speed multiplier (0.5 = half speed). */
-const PLAYBACK_SPEED = 0.5;
 
 const MOBILE_CATALOG_MAX_WIDTH_PX = 991;
+
+/** Default view: all of Israel. */
+const ISRAEL_CENTER: [number, number] = [35.0, 31.5];
+const ISRAEL_ZOOM = 6.75;
 
 @Component({
   selector: 'app-home',
@@ -34,26 +43,32 @@ const MOBILE_CATALOG_MAX_WIDTH_PX = 991;
   },
 })
 export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
-  @ViewChild('video') videoRef!: ElementRef<HTMLVideoElement>;
+  @ViewChild('mapEl') mapEl?: ElementRef<HTMLDivElement>;
+  @ViewChildren('markerEl') markerEls?: QueryList<ElementRef<HTMLDivElement>>;
 
   isRTL = true;
   isDarkMode = false;
   categoryGroups: PhCategoryGroup[] = [];
+  mapPrintingHouses: PhPrintingHouseMapMarker[] = [];
   activeCategoryIndex: number | null = null;
 
-  private playingReverse = false;
-  private reverseRafId: number | null = null;
-  private lastReverseTs: number | null = null;
+  private map?: maplibregl.Map;
+  private mapMarkers: maplibregl.Marker[] = [];
+  private mapResizeObserver?: ResizeObserver;
+  private markerElsSub?: Subscription;
   private hoverCloseTimer: ReturnType<typeof setTimeout> | null = null;
   private panelHovered = false;
   private directionSub?: Subscription;
   private darkModeSub?: Subscription;
+  private mapInitDone = false;
 
   constructor(
     private phProductsService: PhProductsService,
     private phCategoriesService: PhCategoriesService,
+    private phPrintingHouseService: PhPrintingHouseService,
     private directionService: DirectionService,
     private translateService: TranslateService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -67,36 +82,38 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     forkJoin({
       categories: this.phCategoriesService.getAllCategories(),
       products: this.phProductsService.getAllProducts(),
+      printingHouses: this.phPrintingHouseService.listForMap(),
     }).subscribe({
-      next: ({ categories, products }) => {
+      next: ({ categories, products, printingHouses }) => {
         this.categoryGroups = this.buildCategoryGroups(
           categories.categories ?? [],
           products.products ?? [],
         );
+        this.mapPrintingHouses = (printingHouses.printingHouses ?? []).filter((ph) =>
+          this.hasValidLocation(ph),
+        );
+        this.cdr.detectChanges();
+        this.scheduleMapMarkersSync();
       },
       error: (error) => {
-        console.error('ph-catalog', error);
+        console.error('ph-home', error);
       },
     });
   }
 
   ngAfterViewInit(): void {
-    const video = this.videoRef.nativeElement;
-    video.playbackRate = PLAYBACK_SPEED;
-    void video.play().catch(() => {
-      const resume = () => {
-        video.playbackRate = PLAYBACK_SPEED;
-        void video.play();
-        document.removeEventListener('pointerdown', resume);
-        document.removeEventListener('keydown', resume);
-      };
-      document.addEventListener('pointerdown', resume, { once: true });
-      document.addEventListener('keydown', resume, { once: true });
-    });
+    this.initMap();
+    this.setupMapResizeObserver();
+    this.markerElsSub = this.markerEls?.changes.subscribe(() => this.syncMapMarkers());
+    this.scheduleMapMarkersSync();
   }
 
   ngOnDestroy(): void {
-    this.stopReverse();
+    this.clearMapMarkers();
+    this.map?.remove();
+    this.map = undefined;
+    this.mapResizeObserver?.disconnect();
+    this.markerElsSub?.unsubscribe();
     this.clearHoverCloseTimer();
     this.directionSub?.unsubscribe();
     this.darkModeSub?.unsubscribe();
@@ -145,11 +162,8 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  onVideoEnded(): void {
-    if (this.playingReverse) {
-      return;
-    }
-    this.startReverse();
+  phLogoUrl(ph: PhPrintingHouseMapMarker): string {
+    return (ph.logo?.url || ph.logoUrl || '').trim();
   }
 
   getProductDisplayName(product: PhProduct): string {
@@ -268,51 +282,115 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  private startReverse(): void {
-    const video = this.videoRef?.nativeElement;
-    if (!video) {
-      return;
-    }
-
-    video.pause();
-    this.playingReverse = true;
-    this.lastReverseTs = null;
-    this.reverseRafId = requestAnimationFrame(this.reverseStep);
+  private hasValidLocation(ph: PhPrintingHouseMapMarker): boolean {
+    const lat = Number(ph.location?.lat);
+    const lon = Number(ph.location?.lon);
+    return Number.isFinite(lat) && Number.isFinite(lon);
   }
 
-  private readonly reverseStep = (ts: number): void => {
-    const video = this.videoRef?.nativeElement;
-    if (!video || !this.playingReverse) {
+  private initMap(): void {
+    if (!this.mapEl?.nativeElement || this.mapInitDone) {
       return;
     }
 
-    if (this.lastReverseTs == null) {
-      this.lastReverseTs = ts;
-      this.reverseRafId = requestAnimationFrame(this.reverseStep);
+    const styleUrl = getMapStyleUrl();
+    const transformRequest = getMapTransformRequest();
+
+    this.map = new maplibregl.Map({
+      container: this.mapEl.nativeElement,
+      style: styleUrl,
+      center: ISRAEL_CENTER,
+      zoom: ISRAEL_ZOOM,
+      attributionControl: false,
+      ...(transformRequest ? { transformRequest } : {}),
+    });
+
+    this.map.on('error', (e) => console.error('home map error', e));
+    this.map.once('load', () => {
+      this.map?.resize();
+      this.syncMapMarkers();
+    });
+
+    this.mapInitDone = true;
+  }
+
+  private setupMapResizeObserver(): void {
+    const el = this.mapEl?.nativeElement;
+    if (!el || typeof ResizeObserver === 'undefined') {
       return;
     }
 
-    const deltaSec = (ts - this.lastReverseTs) / 1000;
-    this.lastReverseTs = ts;
-    video.currentTime = Math.max(0, video.currentTime - deltaSec * PLAYBACK_SPEED);
+    this.mapResizeObserver?.disconnect();
+    this.mapResizeObserver = new ResizeObserver(() => {
+      if (this.map && !(this.map as maplibregl.Map & { _removed?: boolean })._removed) {
+        this.map.resize();
+      }
+    });
+    this.mapResizeObserver.observe(el);
+  }
 
-    if (video.currentTime <= 0.01) {
-      this.stopReverse();
-      video.currentTime = 0;
-      video.playbackRate = PLAYBACK_SPEED;
-      void video.play();
+  private scheduleMapMarkersSync(): void {
+    setTimeout(() => {
+      if (!this.map) {
+        return;
+      }
+      if (this.map.isStyleLoaded()) {
+        this.syncMapMarkers();
+      } else {
+        this.map.once('load', () => this.syncMapMarkers());
+      }
+    }, 0);
+  }
+
+  private syncMapMarkers(): void {
+    const map = this.map;
+    if (!map || !map.isStyleLoaded()) {
       return;
     }
 
-    this.reverseRafId = requestAnimationFrame(this.reverseStep);
-  };
+    this.clearMapMarkers();
 
-  private stopReverse(): void {
-    this.playingReverse = false;
-    this.lastReverseTs = null;
-    if (this.reverseRafId != null) {
-      cancelAnimationFrame(this.reverseRafId);
-      this.reverseRafId = null;
+    const houses = this.mapPrintingHouses;
+    const elements = this.markerEls?.toArray() ?? [];
+    if (!houses.length || elements.length !== houses.length) {
+      return;
     }
+
+    const bounds = new maplibregl.LngLatBounds();
+
+    houses.forEach((ph, index) => {
+      const el = elements[index]?.nativeElement;
+      if (!el) {
+        return;
+      }
+
+      const lat = Number(ph.location.lat);
+      const lon = Number(ph.location.lon);
+      el.hidden = false;
+
+      const marker = new maplibregl.Marker({
+        element: el,
+        anchor: 'bottom',
+        draggable: false,
+      })
+        .setLngLat([lon, lat])
+        .addTo(map);
+
+      this.mapMarkers.push(marker);
+      bounds.extend([lon, lat]);
+    });
+
+    if (this.mapMarkers.length > 0) {
+      map.fitBounds(bounds, { padding: 72, maxZoom: 11, duration: 0 });
+    } else {
+      map.jumpTo({ center: ISRAEL_CENTER, zoom: ISRAEL_ZOOM });
+    }
+  }
+
+  private clearMapMarkers(): void {
+    for (const marker of this.mapMarkers) {
+      marker.remove();
+    }
+    this.mapMarkers = [];
   }
 }

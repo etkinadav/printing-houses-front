@@ -30,6 +30,15 @@ export interface CreatePhPrintingHousePayload {
   location: PhPrintingHouseLocation;
 }
 
+/** Subset returned by public `GET /ph-printing-house` for the home map. */
+export interface PhPrintingHouseMapMarker {
+  _id: string;
+  name: string;
+  logoUrl?: string;
+  logo?: PhPrintingHouseLogo;
+  location: PhPrintingHouseLocation;
+}
+
 export interface PhPrintingHouse {
   _id: string;
   createdByUserId: string;
