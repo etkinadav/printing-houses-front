@@ -178,9 +178,26 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 12px;
+  align-items: start;
+}
+
+@media only screen and (min-width: 768px) {
+  .ph-mgmt-products__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media only screen and (min-width: 1200px) {
+  .ph-mgmt-products__list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.ph-mgmt-products__item {
+  min-width: 0;
 }
 
 .ph-mgmt-products__item--add .ph-mgmt-products__add-btn {
