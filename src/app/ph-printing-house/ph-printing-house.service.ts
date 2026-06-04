@@ -38,5 +38,11 @@ export class PhPrintingHouseService {
   getPrintingHouseById(id: string): Observable<{ message: string; printingHouse: PhPrintingHouse }> {
     return this.http.get<{ message: string; printingHouse: PhPrintingHouse }>(BACKEND_URL + '/' + id);
   }
+
+  getPrintingHousePublic(id: string): Observable<{ message: string; printingHouse: PhPrintingHouse }> {
+    return this.http.get<{ message: string; printingHouse: PhPrintingHouse }>(
+      `${BACKEND_URL}/view/${id}`,
+    );
+  }
 }
 

@@ -10,6 +10,7 @@ import {
   ViewChild,
   ViewChildren,
 } from '@angular/core';
+import { Router } from '@angular/router';
 import { forkJoin, Subscription } from 'rxjs';
 import * as maplibregl from 'maplibre-gl';
 
@@ -54,6 +55,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private map?: maplibregl.Map;
   private mapMarkers: maplibregl.Marker[] = [];
+  private markerClickBindings: Array<{ el: HTMLElement; handler: (e: Event) => void }> = [];
   private mapResizeObserver?: ResizeObserver;
   private markerElsSub?: Subscription;
   private hoverCloseTimer: ReturnType<typeof setTimeout> | null = null;
@@ -69,6 +71,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     private directionService: DirectionService,
     private translateService: TranslateService,
     private cdr: ChangeDetectorRef,
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -368,6 +371,13 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
       const lon = Number(ph.location.lon);
       el.hidden = false;
 
+      const handler = (event: Event) => {
+        event.stopPropagation();
+        void this.router.navigate(['/printing-house', ph._id]);
+      };
+      el.addEventListener('click', handler);
+      this.markerClickBindings.push({ el, handler });
+
       const marker = new maplibregl.Marker({
         element: el,
         anchor: 'bottom',
@@ -388,6 +398,11 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private clearMapMarkers(): void {
+    for (const { el, handler } of this.markerClickBindings) {
+      el.removeEventListener('click', handler);
+    }
+    this.markerClickBindings = [];
+
     for (const marker of this.mapMarkers) {
       marker.remove();
     }

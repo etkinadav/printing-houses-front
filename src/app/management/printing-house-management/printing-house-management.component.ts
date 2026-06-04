@@ -19,6 +19,8 @@ import { PhPrintingHouse } from '../../ph-printing-house/ph-printing-house.model
 import { buildLogoCropTransform } from '../../ph-printing-house/logo-crop.util';
 import { getMapStyleUrl, getMapTransformRequest } from '../../maptiler/maptiler-style-url';
 
+export type PhViewMode = 'user' | 'manager';
+
 @Component({
   selector: 'app-printing-house-management',
   templateUrl: './printing-house-management.component.html',
@@ -34,6 +36,7 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
   hasError = false;
   productsLoading = false;
   productsLoadFailed = false;
+  isUserMode = false;
 
   printingHouse?: PhPrintingHouse;
   products: PhProduct[] = [];
@@ -70,6 +73,10 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
 
   get printingHouseId(): string {
     return this.printingHouse?._id ?? '';
+  }
+
+  get isManagerMode(): boolean {
+    return !this.isUserMode;
   }
 
   get addressLine(): string {
@@ -110,6 +117,7 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
       this.isDarkMode = isDarkMode;
     });
 
+    this.isUserMode = this.resolveUserMode();
     this.load();
   }
 
@@ -133,9 +141,20 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
     this.hasError = false;
 
     const idFromUrl = this.route.snapshot.paramMap.get('id');
-    const request$ = idFromUrl
-      ? this.phPrintingHouseService.getPrintingHouseById(idFromUrl)
-      : this.phPrintingHouseService.getMyPrintingHouse();
+    let request$;
+
+    if (this.isUserMode) {
+      if (!idFromUrl) {
+        this.hasError = true;
+        this.isLoading = false;
+        return;
+      }
+      request$ = this.phPrintingHouseService.getPrintingHousePublic(idFromUrl);
+    } else {
+      request$ = idFromUrl
+        ? this.phPrintingHouseService.getPrintingHouseById(idFromUrl)
+        : this.phPrintingHouseService.getMyPrintingHouse();
+    }
 
     request$.subscribe({
       next: (res) => {
@@ -166,7 +185,11 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
     this.productsLoading = true;
     this.productsLoadFailed = false;
 
-    this.phProductsService.getProductsByPrintingHouse(id).subscribe({
+    const products$ = this.isUserMode
+      ? this.phProductsService.getProductsByPrintingHousePublic(id)
+      : this.phProductsService.getProductsByPrintingHouse(id);
+
+    products$.subscribe({
       next: (res) => {
         this.products = res.products ?? [];
         this.productsLoading = false;
@@ -374,5 +397,10 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
     }
 
     map.jumpTo({ center: [lon, lat], zoom: 15 });
+  }
+
+  private resolveUserMode(): boolean {
+    const mode = this.route.snapshot.data['phViewMode'] as PhViewMode | undefined;
+    return mode === 'user';
   }
 }

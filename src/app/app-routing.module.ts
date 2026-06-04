@@ -47,8 +47,18 @@ const routes: Routes = [
       component: PrintingHousesListComponent,
       canActivate: [AuthGuard],
     },
+    {
+      path: 'printing-house/:id',
+      component: PrintingHouseManagementComponent,
+      data: { phViewMode: 'user' },
+    },
     { path: 'management/printing-house', component: PrintingHouseManagementComponent, canActivate: [AuthGuard] },
-    { path: 'management/printing-house/:id', component: PrintingHouseManagementComponent, canActivate: [AuthGuard] },
+    {
+      path: 'management/printing-house/:id',
+      component: PrintingHouseManagementComponent,
+      canActivate: [AuthGuard],
+      data: { phViewMode: 'manager' },
+    },
 
     { path: '**', redirectTo: '/' },
 ];

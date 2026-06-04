@@ -25,6 +25,14 @@ export class PhProductsService {
     );
   }
 
+  getProductsByPrintingHousePublic(
+    printingHouseId: string,
+  ): Observable<{ message: string; products: PhProduct[] }> {
+    return this.http.get<{ message: string; products: PhProduct[] }>(
+      `${BACKEND_URL}/public/by-printing-house/${printingHouseId}`,
+    );
+  }
+
   getProductById(id: string): Observable<{ message: string; product: PhProduct }> {
     return this.http.get<{ message: string; product: PhProduct }>(`${BACKEND_URL}/${id}`);
   }

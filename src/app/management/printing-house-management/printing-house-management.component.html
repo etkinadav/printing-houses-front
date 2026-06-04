@@ -56,7 +56,7 @@
       </p>
 
       <ul *ngIf="!productsLoading && !productsLoadFailed" class="ph-mgmt-products__list">
-        <li class="ph-mgmt-products__item ph-mgmt-products__item--add">
+        <li *ngIf="isManagerMode" class="ph-mgmt-products__item ph-mgmt-products__item--add">
           <button
             mat-stroked-button
             type="button"
@@ -68,7 +68,7 @@
 
         <li *ngFor="let product of products" class="ph-mgmt-products__item">
           <div class="ph-mgmt-products__card">
-            <div class="ph-mgmt-products__actions">
+            <div *ngIf="isManagerMode" class="ph-mgmt-products__actions">
               <button
                 mat-icon-button
                 type="button"
