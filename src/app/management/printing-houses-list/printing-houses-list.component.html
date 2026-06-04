@@ -1,0 +1,74 @@
+<div
+  class="printing-houses-list-page px-3 py-4"
+  [class.zx-rtl]="isRTL"
+  [class.text-white]="isDarkMode"
+>
+  <mat-card class="printing-houses-list-card mx-auto">
+    <mat-card-header>
+      <mat-card-title>{{ 'printing-houses-list.title' | translate }}</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content class="d-flex flex-column gap-3 mt-3">
+      <button
+        type="button"
+        mat-flat-button
+        class="printing-houses-list-add tree-add-btn text-white rounded-pill"
+        (click)="onAddPrintingHouse()"
+      >
+        <mat-icon>add</mat-icon>
+        {{ 'printing-houses-list.add' | translate }}
+      </button>
+
+      <div *ngIf="isLoading" class="printing-houses-list-state">
+        <mat-spinner diameter="36"></mat-spinner>
+      </div>
+
+      <div *ngIf="!isLoading && hasError" class="printing-houses-list-state">
+        <p class="mb-2">{{ 'printing-houses-list.load-failed' | translate }}</p>
+        <button mat-stroked-button type="button" (click)="load()">
+          {{ 'management.printing-house.retry' | translate }}
+        </button>
+      </div>
+
+      <p
+        *ngIf="!isLoading && !hasError && printingHouses.length === 0"
+        class="printing-houses-list-empty mb-0"
+      >
+        {{ 'printing-houses-list.empty' | translate }}
+      </p>
+
+      <div
+        *ngIf="!isLoading && !hasError && printingHouses.length > 0"
+        class="printing-houses-list-items d-flex flex-column gap-2"
+      >
+        <button
+          *ngFor="let ph of printingHouses"
+          type="button"
+          class="printing-houses-list-item"
+          (click)="onOpenPrintingHouse(ph)"
+        >
+          <app-ph-logo-crop
+            *ngIf="phLogoUrl(ph); else listLogoPlaceholder"
+            [imageUrl]="phLogoUrl(ph)"
+            [logo]="ph.logo"
+            size="3.5rem"
+          />
+          <ng-template #listLogoPlaceholder>
+            <div class="printing-houses-list-item-logo-placeholder" aria-hidden="true"></div>
+          </ng-template>
+
+          <div class="printing-houses-list-item-body">
+            <div class="printing-houses-list-item-name">{{ ph.name }}</div>
+            <div *ngIf="addressLine(ph)" class="printing-houses-list-item-address">
+              {{ addressLine(ph) }}
+            </div>
+          </div>
+
+          <mat-icon class="printing-houses-list-item-chevron" aria-hidden="true">
+            {{ isRTL ? 'chevron_left' : 'chevron_right' }}
+          </mat-icon>
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

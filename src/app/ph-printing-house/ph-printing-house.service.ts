@@ -21,6 +21,12 @@ export class PhPrintingHouseService {
     );
   }
 
+  listMine(): Observable<{ message: string; printingHouses: PhPrintingHouse[] }> {
+    return this.http.get<{ message: string; printingHouses: PhPrintingHouse[] }>(
+      `${BACKEND_URL}/mine`,
+    );
+  }
+
   createPrintingHouse(payload: CreatePhPrintingHousePayload): Observable<{ message: string; printingHouse: PhPrintingHouse }> {
     return this.http.post<{ message: string; printingHouse: PhPrintingHouse }>(BACKEND_URL, payload);
   }

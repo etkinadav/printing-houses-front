@@ -10,6 +10,7 @@ import { ProductCreateComponent } from './management/product-create/product-crea
 import { CategoryEditComponent } from './management/category-edit/category-edit.component';
 import { PrintingHouseJoinComponent } from './printing-house-join/printing-house-join.component';
 import { PrintingHouseManagementComponent } from './management/printing-house-management/printing-house-management.component';
+import { PrintingHousesListComponent } from './management/printing-houses-list/printing-houses-list.component';
 
 import { AuthGuard } from './auth/auth.guard';
 
@@ -41,6 +42,11 @@ const routes: Routes = [
     },
     { path: 'management/category-edit', component: CategoryEditComponent },
     { path: 'join/printing-house', component: PrintingHouseJoinComponent, canActivate: [AuthGuard] },
+    {
+      path: 'management/printing-houses',
+      component: PrintingHousesListComponent,
+      canActivate: [AuthGuard],
+    },
     { path: 'management/printing-house', component: PrintingHouseManagementComponent, canActivate: [AuthGuard] },
     { path: 'management/printing-house/:id', component: PrintingHouseManagementComponent, canActivate: [AuthGuard] },
 
