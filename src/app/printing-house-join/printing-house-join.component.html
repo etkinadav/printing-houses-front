@@ -49,10 +49,6 @@
         </div>
 
         <div *ngIf="hasValidLogoUrl" class="printing-house-join-logo-editor w-100">
-          <div class="printing-house-join-section-title">
-            {{ 'printing-house-join.logo-preview' | translate }}
-          </div>
-
           <div
             #logoCropViewport
             class="logo-crop-viewport"
@@ -69,31 +65,44 @@
               [style.transform]="'translate(-50%, -50%) translate(' + logoOffsetX + 'px,' + logoOffsetY + 'px) scale(' + (logoCoverScale * logoZoom) + ')'" />
           </div>
 
-          <div class="logo-crop-controls d-flex align-items-center gap-3">
-            <div class="logo-crop-zoom-label">
-              {{ 'printing-house-join.logo-zoom' | translate }}
+          <div class="logo-crop-controls">
+            <div class="logo-crop-zoom-row">
+              <div class="logo-crop-zoom-label">
+                {{ 'printing-house-join.logo-zoom' | translate }}
+              </div>
+              <div class="logo-crop-slider-wrap">
+                <mat-slider class="logo-crop-slider" min="1" max="3" step="0.01">
+                  <input matSliderThumb [value]="logoZoom" (valueChange)="onLogoZoomChange($event)" />
+                </mat-slider>
+              </div>
             </div>
-            <mat-slider class="flex-grow-1" min="1" max="3" step="0.01">
-              <input matSliderThumb [value]="logoZoom" (valueChange)="onLogoZoomChange($event)" />
-            </mat-slider>
-            <button mat-stroked-button type="button" (click)="resetLogoCrop()">
-              {{ 'printing-house-join.logo-reset' | translate }}
-            </button>
-            <button
-              mat-stroked-button
-              type="button"
-              [disabled]="logoUploading"
-              (click)="triggerLogoFilePicker(logoReplaceInput)"
-            >
-              {{ 'printing-house-join.logo-replace' | translate }}
-            </button>
-            <input
-              #logoReplaceInput
-              type="file"
-              accept="image/*"
-              hidden
-              (change)="onLogoFileSelected($event)"
-            />
+
+            <div class="logo-crop-actions">
+              <button
+                mat-stroked-button
+                type="button"
+                class="logo-crop-action-btn"
+                (click)="resetLogoCrop()"
+              >
+                {{ 'printing-house-join.logo-reset' | translate }}
+              </button>
+              <button
+                mat-stroked-button
+                type="button"
+                class="logo-crop-action-btn"
+                [disabled]="logoUploading"
+                (click)="triggerLogoFilePicker(logoReplaceInput)"
+              >
+                {{ 'printing-house-join.logo-replace' | translate }}
+              </button>
+              <input
+                #logoReplaceInput
+                type="file"
+                accept="image/*"
+                hidden
+                (change)="onLogoFileSelected($event)"
+              />
+            </div>
           </div>
         </div>
 

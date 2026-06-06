@@ -73,7 +73,9 @@
 .printing-house-join-logo-editor {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.75rem;
+  width: 100%;
 }
 
 .logo-crop-viewport {
@@ -104,14 +106,116 @@
 }
 
 .logo-crop-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+.logo-crop-zoom-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
   width: 100%;
 }
 
+.logo-crop-slider-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.logo-crop-slider {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+:host ::ng-deep .logo-crop-slider.mat-mdc-slider {
+  --mdc-slider-active-track-height: 4px;
+  --mdc-slider-inactive-track-height: 4px;
+  --mdc-slider-handle-height: 20px;
+  --mdc-slider-handle-width: 20px;
+  --mdc-slider-handle-color: var(--zx-green, #26a69a);
+  --mdc-slider-focus-handle-color: var(--zx-green, #26a69a);
+  --mdc-slider-hover-handle-color: var(--zx-green, #26a69a);
+  --mdc-slider-active-track-color: var(--zx-green, #26a69a);
+  --mdc-slider-inactive-track-color: rgba(0, 0, 0, 0.22);
+
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 48px;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Track + thumb share the same vertical center (50% minus half element height). */
+:host ::ng-deep .logo-crop-slider .mdc-slider__track {
+  top: calc(50% - var(--mdc-slider-active-track-height, 4px) / 2);
+  transform: none;
+}
+
+:host ::ng-deep .logo-crop-slider .mat-mdc-slider-visual-thumb.mdc-slider__thumb {
+  top: calc(50% - var(--mdc-slider-handle-height, 20px) / 2);
+  height: var(--mdc-slider-handle-height, 20px);
+  width: var(--mdc-slider-handle-width, 20px);
+  margin-top: 0;
+}
+
+:host ::ng-deep .logo-crop-slider .mdc-slider__thumb-knob {
+  width: 100%;
+  height: 100%;
+  border-width: 0;
+  box-sizing: border-box;
+}
+
 .logo-crop-zoom-label {
-  min-width: 48px;
-  font-size: 12px;
-  opacity: 0.8;
+  flex-shrink: 0;
+  min-width: 3.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  opacity: 0.85;
   white-space: nowrap;
+}
+
+.logo-crop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.logo-crop-action-btn {
+  white-space: nowrap;
+  max-width: 100%;
+  flex: 1 1 auto;
+}
+
+@media only screen and (max-width: 767px) {
+  .logo-crop-zoom-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+  }
+
+  .logo-crop-zoom-label {
+    text-align: center;
+  }
+
+  .logo-crop-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .logo-crop-action-btn {
+    width: 100%;
+  }
 }
 
 .printing-house-join-map-wrap {
