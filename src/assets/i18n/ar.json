@@ -52,6 +52,7 @@
     "management.printing-house.retry": "حاول مرة أخرى",
     "management.printing-house.products": "المنتجات",
     "management.printing-house.add-product": "إضافة منتج",
+    "management.printing-house.continue-to-product": "المتابعة إلى {{name}}",
     "management.printing-house.edit-product": "تعديل",
     "management.printing-house.delete-product": "حذف",
     "management.printing-house.delete-product-confirm": "حذف المنتج \"{{name}}\"؟",

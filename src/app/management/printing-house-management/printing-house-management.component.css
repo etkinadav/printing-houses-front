@@ -216,7 +216,6 @@
   flex-direction: column;
   gap: 12px;
   padding: 14px 16px;
-  padding-inline-end: 48px;
   border-radius: 12px;
   background: #fff;
   border: 1px solid rgba(85, 85, 85, 0.14);
@@ -294,6 +293,20 @@
   line-height: 1.35;
   color: var(--zx-green);
   word-break: break-word;
+}
+
+.ph-mgmt-products__continue-btn {
+  --mdc-protected-button-container-color: var(--zx-green);
+  --mdc-protected-button-label-text-color: #fff;
+  --mdc-protected-button-container-shape: 999px;
+  display: inline-flex;
+  width: auto;
+  max-width: 100%;
+  align-self: center;
+  margin-top: 0.25rem;
+  font-weight: 600;
+  justify-content: center;
+  color: #fff !important;
 }
 
 .ph-spec-tree {

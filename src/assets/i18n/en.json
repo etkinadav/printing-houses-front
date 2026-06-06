@@ -52,6 +52,7 @@
 	"management.printing-house.retry": "Try again",
 	"management.printing-house.products": "Products",
 	"management.printing-house.add-product": "Add product",
+	"management.printing-house.continue-to-product": "Continue to {{name}}",
 	"management.printing-house.edit-product": "Edit",
 	"management.printing-house.delete-product": "Delete",
 	"management.printing-house.delete-product-confirm": "Delete product \"{{name}}\"?",

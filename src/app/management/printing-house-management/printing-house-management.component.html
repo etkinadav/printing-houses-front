@@ -56,16 +56,6 @@
       </p>
 
       <ul *ngIf="!productsLoading && !productsLoadFailed" class="ph-mgmt-products__list">
-        <li *ngIf="isManagerMode" class="ph-mgmt-products__item ph-mgmt-products__item--add">
-          <button
-            mat-stroked-button
-            type="button"
-            class="ph-mgmt-products__add-btn"
-            (click)="onAddProduct()">
-            {{ 'management.printing-house.add-product' | translate }}
-          </button>
-        </li>
-
         <li *ngFor="let product of products" class="ph-mgmt-products__item">
           <div class="ph-mgmt-products__card">
             <div *ngIf="isManagerMode" class="ph-mgmt-products__actions">
@@ -96,7 +86,26 @@
 
             <ng-container
               *ngTemplateOutlet="productSpecTree; context: { nodes: getProductSpec(product) }"></ng-container>
+
+            <button
+              mat-raised-button
+              color="primary"
+              type="button"
+              class="ph-mgmt-products__continue-btn text-white rounded-pill"
+            >
+              {{ 'management.printing-house.continue-to-product' | translate: { name: product.name_he } }}
+            </button>
           </div>
+        </li>
+
+        <li *ngIf="isManagerMode" class="ph-mgmt-products__item ph-mgmt-products__item--add">
+          <button
+            mat-stroked-button
+            type="button"
+            class="ph-mgmt-products__add-btn"
+            (click)="onAddProduct()">
+            {{ 'management.printing-house.add-product' | translate }}
+          </button>
         </li>
       </ul>
     </section>

@@ -52,6 +52,7 @@
     "management.printing-house.retry": "נסה שוב",
     "management.printing-house.products": "מוצרים",
     "management.printing-house.add-product": "הוסף מוצר",
+    "management.printing-house.continue-to-product": "המשך ל{{name}}",
     "management.printing-house.edit-product": "עריכה",
     "management.printing-house.delete-product": "מחיקה",
     "management.printing-house.delete-product-confirm": "למחוק את המוצר \"{{name}}\"?",
