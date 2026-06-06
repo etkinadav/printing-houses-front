@@ -21,8 +21,11 @@ export class AuthInterceptor implements HttpInterceptor {
 
         let body = req.body;
 
-        // For POST/PUT/PATCH/DELETE, add printingservice and branch to body
-        if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH' || req.method === 'DELETE') {
+        // For POST/PUT/PATCH/DELETE, add printingservice and branch to body (skip multipart FormData)
+        if (
+            (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH' || req.method === 'DELETE') &&
+            !(body instanceof FormData)
+        ) {
             body = {
                 ...body,
                 printingservice: printingService,

@@ -18,6 +18,58 @@
   margin-top: 0.25rem;
 }
 
+.logo-upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 220px;
+  padding: 1.25rem 1rem;
+  border-radius: 12px;
+  border: 2px dashed rgba(85, 85, 85, 0.22);
+  background: var(--zx-gray-light-light-light, #f7f7f7);
+  transition: border-color 150ms, background-color 150ms;
+}
+
+.logo-upload-zone:hover {
+  border-color: var(--zx-green, #26a69a);
+  background: rgba(38, 166, 154, 0.06);
+}
+
+.logo-upload-zone__title {
+  font-size: 1rem;
+  color: var(--zx-dark, #262626);
+}
+
+.logo-upload-zone__icon {
+  width: 120px;
+  max-width: 55%;
+  height: auto;
+}
+
+.logo-upload-zone__hint {
+  font-size: 0.875rem;
+  opacity: 0.8;
+  max-width: 85%;
+}
+
+.logo-upload-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1rem 0;
+}
+
+.logo-upload-progress__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--zx-green, #26a69a);
+}
+
 .printing-house-join-logo-editor {
   display: flex;
   flex-direction: column;

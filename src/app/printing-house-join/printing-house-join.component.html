@@ -14,13 +14,39 @@
           </mat-error>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-100">
-          <mat-label>{{ 'printing-house-join.logo' | translate }}</mat-label>
-          <input matInput formControlName="logoUrl" placeholder="https://..." autocomplete="url" />
-          <mat-error *ngIf="form.controls.logoUrl.hasError('pattern')">
-            {{ 'printing-house-join.logo-invalid' | translate }}
-          </mat-error>
-        </mat-form-field>
+        <div class="printing-house-join-section-title">
+          {{ 'printing-house-join.logo' | translate }}
+        </div>
+
+        <div
+          *ngIf="!hasValidLogoUrl && !logoUploading"
+          class="logo-upload-zone c-pointer"
+          (click)="triggerLogoFilePicker(logoFileInput)"
+        >
+          <h4 class="logo-upload-zone__title mb-0 fw-bold text-center">
+            {{ 'printing-house-join.logo-upload' | translate }}
+          </h4>
+          <img
+            src="assets/images/upload-file-icon.svg"
+            class="logo-upload-zone__icon"
+            alt=""
+          />
+          <p class="logo-upload-zone__hint mb-0 text-center">
+            {{ 'printing-house-join.logo-upload-hint' | translate }}
+          </p>
+          <input
+            #logoFileInput
+            type="file"
+            accept="image/*"
+            hidden
+            (change)="onLogoFileSelected($event)"
+          />
+        </div>
+
+        <div *ngIf="logoUploading" class="logo-upload-progress">
+          <mat-progress-bar mode="determinate" [value]="logoUploadProgress"></mat-progress-bar>
+          <span class="logo-upload-progress__label">{{ logoUploadProgress }}%</span>
+        </div>
 
         <div *ngIf="hasValidLogoUrl" class="printing-house-join-logo-editor w-100">
           <div class="printing-house-join-section-title">
@@ -53,6 +79,21 @@
             <button mat-stroked-button type="button" (click)="resetLogoCrop()">
               {{ 'printing-house-join.logo-reset' | translate }}
             </button>
+            <button
+              mat-stroked-button
+              type="button"
+              [disabled]="logoUploading"
+              (click)="triggerLogoFilePicker(logoReplaceInput)"
+            >
+              {{ 'printing-house-join.logo-replace' | translate }}
+            </button>
+            <input
+              #logoReplaceInput
+              type="file"
+              accept="image/*"
+              hidden
+              (change)="onLogoFileSelected($event)"
+            />
           </div>
         </div>
 

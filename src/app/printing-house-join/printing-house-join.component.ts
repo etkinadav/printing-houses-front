@@ -1,3 +1,4 @@
+import { HttpEventType } from '@angular/common/http';
 import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -7,6 +8,10 @@ import * as maplibregl from 'maplibre-gl';
 import { Router } from '@angular/router';
 
 import { DirectionService } from '../direction.service';
+import {
+  PH_FILE_TYPE_PRINTING_HOUSE_LOGO,
+  PhFilesService,
+} from '../ph-files/ph-files.service';
 import { getMapStyleUrl, getMapTransformRequest } from '../maptiler/maptiler-style-url';
 import { PhPrintingHouseService } from '../ph-printing-house/ph-printing-house.service';
 import { offsetPxToRatio } from '../ph-printing-house/logo-crop.util';
@@ -23,8 +28,10 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
   isRTL = true;
   isDarkMode = false;
 
-  private readonly imageUrlPattern = /^https?:\/\/.+/i;
   private readonly coordDecimals = 7;
+
+  logoUploading = false;
+  logoUploadProgress = 0;
 
   @ViewChild('mapEl') mapEl?: ElementRef<HTMLDivElement>;
   private map?: maplibregl.Map;
@@ -65,7 +72,7 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
     }),
     logoUrl: new FormControl<string>('', {
       nonNullable: true,
-      validators: [Validators.maxLength(500), Validators.pattern(this.imageUrlPattern)],
+      validators: [Validators.maxLength(500)],
     }),
     city: new FormControl<string>('', {
       nonNullable: true,
@@ -112,6 +119,7 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
     private translateService: TranslateService,
     private snackBar: MatSnackBar,
     private phPrintingHouseService: PhPrintingHouseService,
+    private phFilesService: PhFilesService,
     private router: Router,
   ) {}
 
@@ -149,8 +157,77 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
   }
 
   get hasValidLogoUrl(): boolean {
-    const v = this.form.controls.logoUrl.value;
-    return !!v && !this.form.controls.logoUrl.hasError('pattern');
+    return !!this.form.controls.logoUrl.value.trim();
+  }
+
+  onLogoFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      this.snackBar.open(
+        this.translateService.instant('printing-house-join.logo-upload-invalid-type'),
+        undefined,
+        { duration: 4000 },
+      );
+      return;
+    }
+
+    this.logoUploading = true;
+    this.logoUploadProgress = 0;
+
+    this.phFilesService.upload(PH_FILE_TYPE_PRINTING_HOUSE_LOGO, file).subscribe({
+      next: (httpEvent) => {
+        if (httpEvent.type === HttpEventType.UploadProgress) {
+          const total = httpEvent.total ?? 0;
+          this.logoUploadProgress = total ? Math.round((100 * httpEvent.loaded) / total) : 0;
+          return;
+        }
+
+        if (httpEvent.type !== HttpEventType.Response || !httpEvent.body) {
+          return;
+        }
+
+        const logoUrl =
+          httpEvent.body.thumbnail?.url?.trim() || httpEvent.body.original?.url?.trim() || '';
+
+        if (!logoUrl) {
+          this.logoUploading = false;
+          this.snackBar.open(
+            this.translateService.instant('printing-house-join.logo-upload-failed'),
+            undefined,
+            { duration: 4000 },
+          );
+          return;
+        }
+
+        this.form.controls.logoUrl.setValue(logoUrl);
+        this.resetLogoCrop();
+        this.logoUploading = false;
+        this.logoUploadProgress = 0;
+      },
+      error: () => {
+        this.logoUploading = false;
+        this.logoUploadProgress = 0;
+        this.snackBar.open(
+          this.translateService.instant('printing-house-join.logo-upload-failed'),
+          undefined,
+          { duration: 4000 },
+        );
+      },
+    });
+  }
+
+  triggerLogoFilePicker(input: HTMLInputElement): void {
+    if (this.logoUploading) {
+      return;
+    }
+    input.click();
   }
 
   onSubmit(): void {
