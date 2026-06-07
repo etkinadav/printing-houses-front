@@ -37,6 +37,7 @@ import { PrintingHouseJoinComponent } from './printing-house-join/printing-house
 import { PrintingHouseManagementComponent } from './management/printing-house-management/printing-house-management.component';
 import { PrintingHousesListComponent } from './management/printing-houses-list/printing-houses-list.component';
 import { PhLogoCropComponent } from './ph-printing-house/ph-logo-crop.component';
+import { PrintComponent } from './print/print.component';
 
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 
@@ -61,6 +62,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
     PrintingHouseManagementComponent,
     PrintingHousesListComponent,
     PhLogoCropComponent,
+    PrintComponent,
   ],
   imports: [
     BrowserModule,

@@ -1,0 +1,312 @@
+<div class="full-screen print-page" [class.zx-rtl]="isRTL">
+  <div class="d-flex flex-grow-1 print-page__row">
+    <div
+      class="zx-settings-nav flex-shrink h-100 d-flex flex-column overflow-hidden"
+      [class.zx-settings-nav-dark]="isDarkMode">
+      <article class="w-100 h-100 d-flex pt-3 flex-column overflow-auto">
+        <article class="w-100 d-flex flex-column gap-2 flex-grow-1">
+          <div *ngIf="productName" class="w-100 px-3 pb-1">
+            <h6 class="mb-0 zx-text-small fw-bold zx-text-sm-medium">{{ productName }}</h6>
+          </div>
+
+          <div class="w-100 d-flex flex-column-reverse flex-md-row flex-grow-1">
+            <!-- Files column -->
+            <div class="zx-files-area-outer-outer">
+              <div class="zx-files-area-outer">
+                <div class="zx-files-area" [class.zx-bg-dark]="isDarkMode">
+                  <div class="d-flex flex-column gap-2">
+                    <h6
+                      class="mb-0 zx-text-small fw-bold zx-text-sm-medium zx-px-10 d-none d-md-inline">
+                      {{ 'printing-table.my-order' | translate }}
+                    </h6>
+                    <span class="d-md-none"></span>
+
+                    <div id="filesAreaPhPrint" class="zx-files-area-inner">
+                      <!-- Upload tile -->
+                      <article
+                        matRipple
+                        tabindex="0"
+                        role="button"
+                        class="zx-files-area-item-small c-pointer file-btn-hover rounded-3 p-2 m-lg-1 zx-border-gray-v-v-light shadow-85-light d-flex flex-column justify-content-between align-items-center position-relative"
+                        [class.zx-files-area-item-tiny]="hasFiles && !uploading"
+                        [class.zx-border-gray-25-pr]="isDarkMode"
+                        [class.zx-page-obj-container-bg-darkmode]="isDarkMode"
+                        (click)="triggerFilePicker(sidebarFileInput)">
+                        <img
+                          *ngIf="hasFiles && !uploading"
+                          src="assets/images/upload-file-next-icon.svg"
+                          class="upload-file-icon-small-next svg c-pointer"
+                          alt="" />
+                        <div *ngIf="!hasFiles && !uploading">
+                          <img
+                            src="assets/images/upload-file-icon.svg"
+                            class="upload-file-icon svg c-pointer"
+                            alt="" />
+                        </div>
+                        <div *ngIf="!uploading">
+                          <h6 class="mb-0 zx-text-small fw-bold zx-text-sm-medium zx-px-10 text-center">
+                            {{
+                              (hasFiles
+                                ? 'printing-table.upload-file-next'
+                                : 'printing-table.upload-file')
+                                | translate
+                            }}
+                          </h6>
+                        </div>
+                        <div
+                          *ngIf="uploading"
+                          class="d-flex flex-column h-100 w-100 justify-content-center align-items-center">
+                          <div
+                            class="w-100 d-flex flex-column flex-grow-1 justify-content-center align-items-center gap-1 gap-lg-2">
+                            <b class="zx-text-big text-green">
+                              <span>{{ uploadProgress }}</span>
+                              <span>%</span>
+                            </b>
+                            <span class="zx-text-small opacity-75" *ngIf="uploadingCount > 1">
+                              <span>{{ 'printing-table.file' | translate }}</span>
+                              <span>1</span>
+                              <span>{{ 'printing-table.out-of' | translate }}</span>
+                              <span>{{ uploadingCount }}</span>
+                            </span>
+                          </div>
+                          <div
+                            class="w-100 d-flex flex-column justify-content-center align-items-center gap-1 gap-lg-2">
+                            <mat-progress-bar mode="determinate" [value]="uploadProgress"></mat-progress-bar>
+                            <h6 class="zx-text-medium mb-0">
+                              <span *ngIf="uploadingCount === 1">
+                                {{ 'printing-table.uploading-file-one' | translate }}
+                              </span>
+                              <span *ngIf="uploadingCount > 1">
+                                {{ 'printing-table.uploading-file-multi' | translate }}
+                              </span>
+                            </h6>
+                          </div>
+                        </div>
+                      </article>
+                      <input
+                        #sidebarFileInput
+                        type="file"
+                        hidden
+                        multiple
+                        accept=".pdf,.jpg,.jpeg,.png,.webp,.tif,.tiff,.heic,.heif,image/*,application/pdf"
+                        (change)="onFilesSelected($event)" />
+
+                      <!-- File tiles -->
+                      <article *ngFor="let file of files" class="zx-file-obj">
+                        <!-- Processing -->
+                        <div
+                          *ngIf="isFileProcessing(file)"
+                          class="zx-files-area-item-small zx-img-obj-container rounded-3 pb-2 zx-border-gray-v-v-light shadow-85-light d-flex flex-column justify-content-between align-items-center position-relative"
+                          [class.zx-border-gray-25-pr]="isDarkMode"
+                          [class.zx-page-obj-container-bg-darkmode]="isDarkMode">
+                          <div class="w-100 d-flex justify-content-center align-items-center">
+                            <span class="opacity-trans" [class.opacity-trans-not-rtl]="!isRTL">
+                              <span class="zx-text-tiny fw-bold">
+                                {{ getDisplayFileName(file) | slice: 0 : 16 }}
+                              </span>
+                              <span
+                                class="zx-text-tiny"
+                                *ngIf="getDisplayFileName(file).length > 16">
+                                ...
+                              </span>
+                            </span>
+                          </div>
+                          <div class="zx-small-icon-size zx-small-plus-icon-size-lg">
+                            <mat-spinner class="w-100 h-100"></mat-spinner>
+                          </div>
+                          <h6
+                            class="mb-0 zx-text-small text-center opacity-trans zx-z-index-1"
+                            [class.opacity-trans-not-rtl]="!isRTL"
+                            [matTooltip]="'printing-table.proccessing.explain' | translate"
+                            matTooltipPosition="above">
+                            {{ 'printing-table.proccessing' | translate }}
+                          </h6>
+                        </div>
+
+                        <!-- Ready -->
+                        <article
+                          *ngIf="!isFileProcessing(file)"
+                          tabindex="0"
+                          role="button"
+                          class="zx-page-obj"
+                          (click)="selectFile(file)"
+                          (keyup.enter)="selectFile(file)">
+                          <div
+                            class="zx-img-obj-container-container c-pointer rounded-3 d-flex flex-column zx-border-gray-v-v-light shadow-85-light w-100 h-100 flex-grow-1"
+                            [class.zx-border-choosen]="isSelected(file)"
+                            [class.zx-border-gray-25-pr]="isDarkMode"
+                            [class.bg-white]="isDarkMode">
+                            <span
+                              class="zx-text-tiny fw-bold w-100 text-center"
+                              [class.text-green]="isSelected(file)"
+                              [class.text-black-imp]="isDarkMode && !isSelected(file)"
+                              [class.text-green-imp]="isSelected(file) && isDarkMode">
+                              <span>{{ getDisplayFileName(file) | slice: 0 : 16 }}</span>
+                              <span class="zx-text-tiny" *ngIf="getDisplayFileName(file).length > 16">
+                                ...
+                              </span>
+                            </span>
+                            <div class="zx-img-obj-container">
+                              <img
+                                [src]="file.thumbnailUrl"
+                                class="zx-img-obj"
+                                alt="" />
+                            </div>
+                          </div>
+                        </article>
+                      </article>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Settings column (empty for now) -->
+            <div class="zx-settings-area mh-100 position-relative">
+              <div
+                id="zx-settings-area-inner"
+                class="zx-settings-area-inner w-100 h-100 mh-100 position-absolute d-flex flex-column gap-3"
+                [class.zx-settings-area-inner-rtl]="!isRTL">
+                <div class="d-none d-md-flex align-items-center gap-2 mb-0 zx-pt-md-17 zx-px-10 flex-wrap">
+                  <h6 class="mb-0 zx-text-small fw-bold zx-text-sm-medium">
+                    {{ 'printing-table.printing-settings' | translate }}
+                  </h6>
+                </div>
+                <div class="d-md-none zx-px-10">
+                  <h6 class="mb-0 zx-text-small fw-bold zx-text-sm-medium">
+                    {{ 'printing-table.printing-settings' | translate }}
+                  </h6>
+                </div>
+                <div class="ph-print-settings-empty flex-grow-1 zx-px-10"></div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </article>
+
+      <!-- Price footer [desktop] -->
+      <div
+        class="w-100 shadow-85-top-strong px-3 pt-2 zx-z-index-1 bg-white d-none d-md-flex justify-content-between align-items-center"
+        [class.zx-bg-dark]="isDarkMode">
+        <span class="text-green d-flex align-items-center gap-1">
+          <span class="zx-text-tiny d-flex align-items-center gap-1">
+            <b class="zx-text-small">{{ 'printing-table.total-price' | translate }}</b>
+            <span *ngIf="hasFiles" class="d-flex align-items-center gap-1">
+              <span>(</span>
+              <span *ngIf="finishedCount > 0">
+                <b *ngIf="finishedCount > 1">{{ finishedCount }}</b>
+                <b class="zx-text-tiny" *ngIf="finishedCount > 1">
+                  {{ 'printing-table.files' | translate }}
+                </b>
+                <b class="zx-text-tiny" *ngIf="finishedCount === 1">
+                  {{ 'printing-table.one-file' | translate }}
+                </b>
+              </span>
+              <span *ngIf="finishedCount > 0 && processingFiles.length > 0">, </span>
+              <span class="opacity-trans" *ngIf="processingFiles.length > 0">
+                <b *ngIf="processingFiles.length > 1">{{ processingFiles.length }}</b>
+                <b class="zx-text-tiny" *ngIf="processingFiles.length > 1">
+                  {{ 'printing-table.files' | translate }}
+                </b>
+                <b class="zx-text-tiny" *ngIf="processingFiles.length === 1">
+                  {{ 'printing-table.one-file' | translate }}
+                </b>
+                <b class="zx-text-tiny">{{ 'printing-table.still-proccessing' | translate }}</b>
+              </span>
+              <span>)</span>
+            </span>
+          </span>
+        </span>
+        <span class="text-green zx-text-small" [class.zx-text-white]="isDarkMode">
+          <span>-</span>
+          <span>{{ 'printing-table.nis' | translate }}</span>
+        </span>
+      </div>
+
+      <!-- Main CTA -->
+      <div class="w-100 p-2 zx-z-index-1 bg-white" [class.zx-bg-dark]="isDarkMode">
+        <button
+          mat-raised-button
+          color="primary"
+          type="button"
+          class="text-white rounded-pill w-100 zx-small-btn"
+          (click)="onContinue()">
+          <b class="d-none d-sm-inline">{{ 'ph-print.continue' | translate }}</b>
+          <b class="d-sm-none">{{ 'choose-system.continue' | translate }}</b>
+        </button>
+        <div class="d-md-none text-center text-green mt-2 zx-text-small fw-bold">
+          <span>- {{ 'printing-table.nis' | translate }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview pane [desktop] -->
+    <article
+      class="d-none d-md-flex flex-grow-1 h-100 zx-p-preview-container overflow-hidden position-relative"
+      [class.bg-white]="!isDarkMode">
+      <div
+        id="preview-container"
+        class="d-flex w-100 h-100 justify-content-center align-items-center">
+        <article *ngIf="!hasFiles" class="no-image-selected-container w-100 h-100">
+          <article class="no-image-selected-inner" [class.no-image-selected-inner-not-rtl]="!isRTL">
+            <div
+              *ngIf="!uploading"
+              tabindex="0"
+              role="button"
+              class="no-image-selected-upload-file file-btn-hover c-pointer"
+              (click)="triggerFilePicker(previewFileInput)">
+              <h4 class="mb-0 fw-bold zx-px-10 text-center c-pointer">
+                {{ 'printing-table.upload-file' | translate }}
+              </h4>
+              <img
+                src="assets/images/upload-file-icon.svg"
+                class="upload-file-icon-big svg c-pointer pt-2"
+                alt="" />
+              <p class="text-center zx-text-big c-pointer mb-0" style="max-width: 60%">
+                {{ 'printing-table.upload-file-desktop' | translate }}
+              </p>
+            </div>
+            <div
+              *ngIf="uploading"
+              class="no-image-selected-upload-file file-btn-hover d-flex flex-column justify-content-center align-items-center position-relative">
+              <b class="zx-text-big text-green">
+                <span>{{ uploadProgress }}</span>
+                <span>%</span>
+              </b>
+              <mat-progress-bar mode="determinate" [value]="uploadProgress" class="w-100"></mat-progress-bar>
+              <h6 class="zx-text-medium mb-0">
+                {{ 'printing-table.uploading-file-one' | translate }}
+              </h6>
+            </div>
+          </article>
+        </article>
+        <input
+          #previewFileInput
+          type="file"
+          hidden
+          multiple
+          accept=".pdf,.jpg,.jpeg,.png,.webp,.tif,.tiff,.heic,.heif,image/*,application/pdf"
+          (change)="onFilesSelected($event)" />
+
+        <div
+          *ngIf="hasFiles && selectedFile?.thumbnailUrl"
+          id="preview-paper"
+          class="bg-white shadow-85-strong d-flex flex-column justify-content-center align-items-center position-relative"
+          [class.zx-canvas-dark]="isDarkMode">
+          <div id="preview-image-container" class="position-absolute ph-print-preview-image-wrap">
+            <img
+              [src]="selectedFile!.thumbnailUrl!"
+              class="zx-preview-img ph-print-preview-img"
+              alt="" />
+          </div>
+        </div>
+
+        <p
+          *ngIf="hasFiles && !selectedFile?.thumbnailUrl"
+          class="zx-text-small opacity-75 mb-0 text-center px-3">
+          {{ 'printing-table.still-proccessing' | translate }}
+        </p>
+      </div>
+    </article>
+  </div>
+</div>

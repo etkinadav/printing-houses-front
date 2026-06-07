@@ -223,6 +223,16 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
     ]);
   }
 
+  onContinueToProduct(product: PhProduct): void {
+    if (!this.printingHouseId || !product?._id) return;
+    void this.router.navigate(['/print'], {
+      queryParams: {
+        printingHouseId: this.printingHouseId,
+        productId: product._id,
+      },
+    });
+  }
+
   getProductSpec(product: PhProduct): ProductSpecNode[] {
     const lang = this.translate.currentLang || 'he';
     return buildProductSpecTree(product, (key, params) => this.translate.instant(key, params), lang);

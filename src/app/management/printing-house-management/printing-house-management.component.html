@@ -92,6 +92,7 @@
               color="primary"
               type="button"
               class="ph-mgmt-products__continue-btn text-white rounded-pill"
+              (click)="onContinueToProduct(product)"
             >
               {{ 'management.printing-house.continue-to-product' | translate: { name: product.name_he } }}
             </button>
