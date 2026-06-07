@@ -26,6 +26,8 @@
 	"printing-house-join.name-required": "Printing house name is required",
 	"printing-house-join.logo": "Logo",
 	"printing-house-join.logo-upload": "Upload logo",
+	"printing-house-join.logo-uploading": "Uploading logo",
+	"printing-house-join.logo-upload-cancel": "Cancel logo upload",
 	"printing-house-join.logo-upload-hint": "Click here to choose an image file from your computer",
 	"printing-house-join.logo-upload-failed": "Logo upload failed",
 	"printing-house-join.logo-upload-invalid-type": "Please choose an image file only",

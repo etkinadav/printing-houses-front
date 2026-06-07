@@ -113,6 +113,7 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
   private directionSub?: Subscription;
   private darkModeSub?: Subscription;
   private addressSub?: Subscription;
+  private logoUploadSub?: Subscription;
 
   constructor(
     private directionService: DirectionService,
@@ -148,6 +149,7 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
     this.directionSub?.unsubscribe();
     this.darkModeSub?.unsubscribe();
     this.addressSub?.unsubscribe();
+    this.logoUploadSub?.unsubscribe();
     clearTimeout(this.mapMoveEndTmr);
     this.map?.remove();
   }
@@ -178,10 +180,11 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
       return;
     }
 
+    this.logoUploadSub?.unsubscribe();
     this.logoUploading = true;
     this.logoUploadProgress = 0;
 
-    this.phFilesService.upload(PH_FILE_TYPE_PRINTING_HOUSE_LOGO, file).subscribe({
+    this.logoUploadSub = this.phFilesService.upload(PH_FILE_TYPE_PRINTING_HOUSE_LOGO, file).subscribe({
       next: (httpEvent) => {
         if (httpEvent.type === HttpEventType.UploadProgress) {
           const total = httpEvent.total ?? 0;
@@ -197,7 +200,7 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
           httpEvent.body.thumbnail?.url?.trim() || httpEvent.body.original?.url?.trim() || '';
 
         if (!logoUrl) {
-          this.logoUploading = false;
+          this.finishLogoUpload();
           this.snackBar.open(
             this.translateService.instant('printing-house-join.logo-upload-failed'),
             undefined,
@@ -208,12 +211,10 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
 
         this.form.controls.logoUrl.setValue(logoUrl);
         this.resetLogoCrop();
-        this.logoUploading = false;
-        this.logoUploadProgress = 0;
+        this.finishLogoUpload();
       },
       error: () => {
-        this.logoUploading = false;
-        this.logoUploadProgress = 0;
+        this.finishLogoUpload();
         this.snackBar.open(
           this.translateService.instant('printing-house-join.logo-upload-failed'),
           undefined,
@@ -221,6 +222,21 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
         );
       },
     });
+  }
+
+  cancelLogoUpload(event?: Event): void {
+    event?.stopPropagation();
+    event?.preventDefault();
+    this.logoUploadSub?.unsubscribe();
+    this.logoUploadSub = undefined;
+    this.logoUploading = false;
+    this.logoUploadProgress = 0;
+  }
+
+  private finishLogoUpload(): void {
+    this.logoUploadSub = undefined;
+    this.logoUploading = false;
+    this.logoUploadProgress = 0;
   }
 
   triggerLogoFilePicker(input: HTMLInputElement): void {

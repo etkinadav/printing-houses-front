@@ -19,21 +19,45 @@
         </div>
 
         <div
-          *ngIf="!hasValidLogoUrl && !logoUploading"
-          class="logo-upload-zone c-pointer"
-          (click)="triggerLogoFilePicker(logoFileInput)"
+          *ngIf="!hasValidLogoUrl"
+          class="logo-upload-zone"
+          [class.logo-upload-zone--uploading]="logoUploading"
+          [class.c-pointer]="!logoUploading"
+          (click)="!logoUploading && triggerLogoFilePicker(logoFileInput)"
         >
+          <button
+            *ngIf="logoUploading"
+            type="button"
+            class="logo-upload-zone__cancel"
+            (click)="cancelLogoUpload($event)"
+            [attr.aria-label]="'printing-house-join.logo-upload-cancel' | translate"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+
           <h4 class="logo-upload-zone__title mb-0 fw-bold text-center">
-            {{ 'printing-house-join.logo-upload' | translate }}
+            {{
+              (logoUploading ? 'printing-house-join.logo-uploading' : 'printing-house-join.logo-upload')
+                | translate
+            }}
           </h4>
+
           <img
+            *ngIf="!logoUploading"
             src="assets/images/upload-file-icon.svg"
             class="logo-upload-zone__icon"
             alt=""
           />
-          <p class="logo-upload-zone__hint mb-0 text-center">
+
+          <p *ngIf="!logoUploading" class="logo-upload-zone__hint mb-0 text-center">
             {{ 'printing-house-join.logo-upload-hint' | translate }}
           </p>
+
+          <div *ngIf="logoUploading" class="logo-upload-zone__progress">
+            <mat-progress-bar mode="determinate" [value]="logoUploadProgress"></mat-progress-bar>
+            <span class="logo-upload-zone__progress-label">{{ logoUploadProgress }}%</span>
+          </div>
+
           <input
             #logoFileInput
             type="file"
@@ -41,11 +65,6 @@
             hidden
             (change)="onLogoFileSelected($event)"
           />
-        </div>
-
-        <div *ngIf="logoUploading" class="logo-upload-progress">
-          <mat-progress-bar mode="determinate" [value]="logoUploadProgress"></mat-progress-bar>
-          <span class="logo-upload-progress__label">{{ logoUploadProgress }}%</span>
         </div>
 
         <div *ngIf="hasValidLogoUrl" class="printing-house-join-logo-editor w-100">

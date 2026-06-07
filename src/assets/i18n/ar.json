@@ -26,6 +26,8 @@
     "printing-house-join.name-required": "اسم المطبعة حقل مطلوب",
     "printing-house-join.logo": "الشعار",
     "printing-house-join.logo-upload": "رفع الشعار",
+    "printing-house-join.logo-uploading": "جاري رفع الشعار",
+    "printing-house-join.logo-upload-cancel": "إلغاء رفع الشعار",
     "printing-house-join.logo-upload-hint": "انقر هنا لاختيار ملف صورة من جهازك",
     "printing-house-join.logo-upload-failed": "فشل رفع الشعار",
     "printing-house-join.logo-upload-invalid-type": "يرجى اختيار ملف صورة فقط",

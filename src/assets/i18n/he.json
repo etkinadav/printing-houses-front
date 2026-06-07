@@ -26,6 +26,8 @@
     "printing-house-join.name-required": "שם בית הדפוס הינו שדה חובה",
     "printing-house-join.logo": "לוגו",
     "printing-house-join.logo-upload": "העלאת לוגו",
+    "printing-house-join.logo-uploading": "הלוגו עולה",
+    "printing-house-join.logo-upload-cancel": "ביטול העלאת לוגו",
     "printing-house-join.logo-upload-hint": "לחץ כאן כדי לבחור קובץ תמונה מהמחשב",
     "printing-house-join.logo-upload-failed": "העלאת הלוגו נכשלה",
     "printing-house-join.logo-upload-invalid-type": "יש לבחור קובץ תמונה בלבד",

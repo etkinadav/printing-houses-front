@@ -19,6 +19,7 @@
 }
 
 .logo-upload-zone {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -38,6 +39,45 @@
   background: rgba(38, 166, 154, 0.06);
 }
 
+.logo-upload-zone--uploading {
+  pointer-events: none;
+}
+
+.logo-upload-zone--uploading:hover {
+  border-color: rgba(85, 85, 85, 0.22);
+  background: var(--zx-gray-light-light-light, #f7f7f7);
+}
+
+.logo-upload-zone__cancel {
+  position: absolute;
+  top: 8px;
+  inset-inline-end: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--zx-dark, #262626);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background-color 150ms;
+}
+
+.logo-upload-zone__cancel:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.logo-upload-zone__cancel .mat-icon {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+  line-height: 20px;
+}
+
 .logo-upload-zone__title {
   font-size: 1rem;
   color: var(--zx-dark, #262626);
@@ -55,15 +95,15 @@
   max-width: 85%;
 }
 
-.logo-upload-progress {
+.logo-upload-zone__progress {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   width: 100%;
-  padding: 1rem 0;
+  max-width: 85%;
 }
 
-.logo-upload-progress__label {
+.logo-upload-zone__progress-label {
   font-size: 0.875rem;
   font-weight: 600;
   text-align: center;
