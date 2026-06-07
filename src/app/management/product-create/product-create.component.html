@@ -792,6 +792,14 @@
       {{ 'management.product-create.mockup-required-hint' | translate }}
     </p>
 
+    <input
+      #mockupFileInput
+      type="file"
+      accept="image/*"
+      hidden
+      (change)="onMockupFileSelected($event, sizeGroup)"
+    />
+
     <div
       *ngIf="!hasMockupUrl(sizeGroup)"
       class="logo-upload-zone"
@@ -833,14 +841,6 @@
         <mat-progress-bar mode="determinate" [value]="getMockupUploadProgress(sizeGroup)"></mat-progress-bar>
         <span class="logo-upload-zone__progress-label">{{ getMockupUploadProgress(sizeGroup) }}%</span>
       </div>
-
-      <input
-        #mockupFileInput
-        type="file"
-        accept="image/*"
-        hidden
-        (change)="onMockupFileSelected($event, sizeGroup)"
-      />
     </div>
 
     <div *ngIf="hasMockupUrl(sizeGroup)" class="mockup-upload-preview w-100">
@@ -893,17 +893,10 @@
           type="button"
           class="mockup-upload-preview__replace-btn"
           [disabled]="isMockupUploading(sizeGroup)"
-          (click)="triggerMockupFilePicker(sizeGroup, mockupReplaceInput)"
+          (click)="beginMockupReplace(sizeGroup, mockupFileInput, $event)"
         >
           {{ 'management.product-create.mockup-replace' | translate }}
         </button>
-        <input
-          #mockupReplaceInput
-          type="file"
-          accept="image/*"
-          hidden
-          (change)="onMockupFileSelected($event, sizeGroup)"
-        />
       </div>
     </div>
   </div>

@@ -18,6 +18,14 @@
           {{ 'printing-house-join.logo' | translate }}
         </div>
 
+        <input
+          #logoFileInput
+          type="file"
+          accept="image/*"
+          hidden
+          (change)="onLogoFileSelected($event)"
+        />
+
         <div
           *ngIf="!hasValidLogoUrl"
           class="logo-upload-zone"
@@ -57,14 +65,6 @@
             <mat-progress-bar mode="determinate" [value]="logoUploadProgress"></mat-progress-bar>
             <span class="logo-upload-zone__progress-label">{{ logoUploadProgress }}%</span>
           </div>
-
-          <input
-            #logoFileInput
-            type="file"
-            accept="image/*"
-            hidden
-            (change)="onLogoFileSelected($event)"
-          />
         </div>
 
         <div *ngIf="hasValidLogoUrl" class="printing-house-join-logo-editor w-100">
@@ -107,17 +107,10 @@
                 type="button"
                 class="logo-crop-action-btn"
                 [disabled]="logoUploading"
-                (click)="triggerLogoFilePicker(logoReplaceInput)"
+                (click)="beginLogoReplace(logoFileInput, $event)"
               >
                 {{ 'printing-house-join.logo-replace' | translate }}
               </button>
-              <input
-                #logoReplaceInput
-                type="file"
-                accept="image/*"
-                hidden
-                (change)="onLogoFileSelected($event)"
-              />
             </div>
           </div>
         </div>

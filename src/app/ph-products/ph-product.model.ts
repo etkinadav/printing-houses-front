@@ -72,11 +72,25 @@ export interface PhDynamicMaterial extends PhMaterial {
   maxHeight: number;
 }
 
+/** Print area on a mockup image — normalized 0–1 fractions of image width/height. */
+export interface PhMockupPrintArea {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface PhMockup {
+  url: string;
+  printArea: PhMockupPrintArea;
+}
+
 export interface PhSize extends PhTreeExtraSettings {
   length: number;
   width: number;
   label: PhProductLabel;
   materials: PhMaterial[];
+  mockup?: PhMockup;
 }
 
 export interface PhProductProperties {
@@ -85,6 +99,7 @@ export interface PhProductProperties {
     sizes: PhSize[];
   };
   dynamic?: {
+    mockup?: PhMockup;
     materials: PhDynamicMaterial[];
   };
 }

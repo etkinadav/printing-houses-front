@@ -246,6 +246,23 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
     input.click();
   }
 
+  beginLogoReplace(input: HTMLInputElement, event?: Event): void {
+    event?.stopPropagation();
+    event?.preventDefault();
+    if (this.logoUploading) {
+      return;
+    }
+
+    this.form.controls.logoUrl.setValue('');
+    this.resetLogoCrop();
+
+    setTimeout(() => {
+      if (!this.logoUploading) {
+        input.click();
+      }
+    });
+  }
+
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();

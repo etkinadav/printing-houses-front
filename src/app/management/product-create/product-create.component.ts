@@ -35,6 +35,7 @@ import {
   PhFolding,
   PhMaterial,
   PhDynamicMaterial,
+  PhMockup,
   PhProduct,
   PhProductLabel,
   PhProductProperties,
@@ -212,6 +213,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   private populateFormFromProduct(product: PhProduct): void {
     this.sizes.clear();
     this.dynamicMaterials.clear();
+    this.dynamicMockupState = this.createEmptyMockupState();
 
     const categoryId =
       typeof product.category === 'string'
@@ -234,9 +236,12 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
     if (flex === 'fixed' && product.properties.fixed?.sizes?.length) {
       for (const size of product.properties.fixed.sizes) {
-        this.sizes.push(this.createSizeGroup(size));
+        const sizeGroup = this.createSizeGroup(size);
+        this.sizes.push(sizeGroup);
+        this.applyMockupFromProduct(sizeGroup, size.mockup);
       }
     } else if (product.properties.dynamic?.materials?.length) {
+      this.applyMockupFromProduct(null, product.properties.dynamic.mockup);
       for (const material of product.properties.dynamic.materials) {
         this.dynamicMaterials.push(this.createDynamicMaterialGroup(material));
       }
@@ -295,6 +300,30 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       return;
     }
     input.click();
+  }
+
+  beginMockupReplace(
+    sizeGroup: AbstractControl | null,
+    input: HTMLInputElement,
+    event?: Event,
+  ): void {
+    event?.stopPropagation();
+    event?.preventDefault();
+    if (this.isMockupUploading(sizeGroup)) {
+      return;
+    }
+
+    this.deactivateMockupPen(sizeGroup);
+    const state = this.getMockupState(sizeGroup);
+    state.url = '';
+    state.rect = null;
+    this.refreshMockupValidationState();
+
+    setTimeout(() => {
+      if (!this.isMockupUploading(sizeGroup)) {
+        input.click();
+      }
+    });
   }
 
   onMockupFileSelected(event: Event, sizeGroup: AbstractControl | null): void {
@@ -1308,6 +1337,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     return {
       dimensionsFlexability: flexability,
       dynamic: {
+        mockup: this.readMockupForSave(null),
         materials: this.readDynamicMaterials(this.dynamicMaterials),
       },
     };
@@ -1319,8 +1349,41 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       width: Number(sizeGroup.get('width')!.value),
       label: this.readSizeLabelForSave(sizeGroup.get('label')!),
       materials: this.readMaterials(this.getMaterials(sizeGroup)),
+      mockup: this.readMockupForSave(sizeGroup),
       ...this.readTreeExtras(sizeGroup),
     };
+  }
+
+  private readMockupForSave(sizeGroup: AbstractControl | null): PhMockup {
+    const state = this.getMockupState(sizeGroup);
+    const rect = state.rect!;
+    return {
+      url: state.url.trim(),
+      printArea: {
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+      },
+    };
+  }
+
+  private applyMockupFromProduct(sizeGroup: AbstractControl | null, mockup?: PhMockup): void {
+    if (!mockup?.url?.trim() || !mockup.printArea) {
+      return;
+    }
+
+    const state = this.getMockupState(sizeGroup);
+    state.url = mockup.url.trim();
+    state.rect = {
+      x: mockup.printArea.x,
+      y: mockup.printArea.y,
+      width: mockup.printArea.width,
+      height: mockup.printArea.height,
+    };
+    state.penActive = false;
+    state.uploading = false;
+    state.progress = 0;
   }
 
   private readDynamicMaterials(materials: FormArray): PhDynamicMaterial[] {
