@@ -42,10 +42,30 @@ import {
   PhTreeExtraSettings,
 } from '../../ph-products/ph-product.model';
 
+interface MockupRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 interface ProductMockupState {
   url: string;
   uploading: boolean;
   progress: number;
+  penActive: boolean;
+  rect: MockupRect | null;
+}
+
+type MockupCorner = 'nw' | 'ne' | 'sw' | 'se';
+
+interface MockupPointerDrag {
+  sizeGroup: AbstractControl | null;
+  mode: 'draw' | 'move' | 'resize';
+  corner?: MockupCorner;
+  startX: number;
+  startY: number;
+  origRect: MockupRect | null;
 }
 
 @Component({
@@ -77,6 +97,12 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   private readonly sizeMockupUploadSubs = new Map<AbstractControl, Subscription>();
   dynamicMockupState: ProductMockupState = this.createEmptyMockupState();
   private dynamicMockupUploadSub?: Subscription;
+  private mockupValidationActive = false;
+  private mockupPointerDrag: MockupPointerDrag | null = null;
+  private mockupPenOutsideSizeGroup: AbstractControl | null = null;
+  private mockupPenOutsidePointerHandler: ((event: PointerEvent) => void) | null = null;
+  private readonly mockupDefaultRectSize = 0.22;
+  private readonly mockupMinRectSize = 0.04;
 
   form = new FormGroup({
     name_he: new FormControl<string>('', {
@@ -245,6 +271,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       sub.unsubscribe();
     }
     this.dynamicMockupUploadSub?.unsubscribe();
+    this.detachMockupPenOutsideListener();
   }
 
   hasMockupUrl(sizeGroup: AbstractControl | null): boolean {
@@ -319,8 +346,11 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
           return;
         }
 
+        this.deactivateMockupPen(sizeGroup);
         state.url = mockupUrl;
+        state.rect = null;
         this.finishMockupUpload(sizeGroup);
+        this.refreshMockupValidationState();
       },
       error: () => {
         this.finishMockupUpload(sizeGroup);
@@ -342,9 +372,254 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   clearMockup(sizeGroup: AbstractControl | null): void {
+    this.deactivateMockupPen(sizeGroup);
     const state = this.getMockupState(sizeGroup);
     state.url = '';
+    state.rect = null;
     this.finishMockupUpload(sizeGroup);
+  }
+
+  isMockupPenActive(sizeGroup: AbstractControl | null): boolean {
+    return this.getMockupState(sizeGroup).penActive;
+  }
+
+  getMockupRect(sizeGroup: AbstractControl | null): MockupRect | null {
+    return this.getMockupState(sizeGroup).rect;
+  }
+
+  isMockupComplete(sizeGroup: AbstractControl | null): boolean {
+    const state = this.getMockupState(sizeGroup);
+    if (!state.url.trim() || state.uploading) {
+      return false;
+    }
+    const rect = state.rect;
+    return !!rect && rect.width >= this.mockupMinRectSize && rect.height >= this.mockupMinRectSize;
+  }
+
+  hasMockupValidationError(sizeGroup: AbstractControl | null): boolean {
+    return this.mockupValidationActive && !this.isMockupComplete(sizeGroup);
+  }
+
+  enableMockupPen(sizeGroup: AbstractControl | null, event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.getMockupState(sizeGroup).penActive = true;
+    this.mockupPenOutsideSizeGroup = sizeGroup;
+    this.attachMockupPenOutsideListener();
+  }
+
+  deactivateMockupPen(sizeGroup: AbstractControl | null): void {
+    const state = this.getMockupState(sizeGroup);
+    if (!state.penActive) {
+      return;
+    }
+    state.penActive = false;
+    this.mockupPointerDrag = null;
+    if (this.mockupPenOutsideSizeGroup === sizeGroup) {
+      this.mockupPenOutsideSizeGroup = null;
+      this.detachMockupPenOutsideListener();
+    }
+  }
+
+  private attachMockupPenOutsideListener(): void {
+    if (this.mockupPenOutsidePointerHandler) {
+      return;
+    }
+    this.mockupPenOutsidePointerHandler = (event: PointerEvent) => {
+      const sizeGroup = this.mockupPenOutsideSizeGroup;
+      if (!sizeGroup || !this.isMockupPenActive(sizeGroup)) {
+        this.detachMockupPenOutsideListener();
+        return;
+      }
+      const target = event.target as HTMLElement;
+      if (target.closest('.mockup-upload-preview__frame')) {
+        return;
+      }
+      if (target.closest('.mockup-upload-preview__define-btn')) {
+        return;
+      }
+      this.deactivateMockupPen(sizeGroup);
+    };
+    document.addEventListener('pointerdown', this.mockupPenOutsidePointerHandler, true);
+  }
+
+  private detachMockupPenOutsideListener(): void {
+    if (!this.mockupPenOutsidePointerHandler) {
+      return;
+    }
+    document.removeEventListener('pointerdown', this.mockupPenOutsidePointerHandler, true);
+    this.mockupPenOutsidePointerHandler = null;
+  }
+
+  onMockupPointerDown(event: PointerEvent, sizeGroup: AbstractControl | null): void {
+    if (!this.isMockupPenActive(sizeGroup)) {
+      return;
+    }
+
+    const frame = this.mockupFrameFromEvent(event);
+    if (!frame) {
+      return;
+    }
+
+    const point = this.mockupPointFromEvent(event, frame);
+    if (!point) {
+      return;
+    }
+
+    const state = this.getMockupState(sizeGroup);
+    if (state.rect && this.isMockupPointInRect(point.x, point.y, state.rect)) {
+      return;
+    }
+
+    this.mockupPointerDrag = {
+      sizeGroup,
+      mode: 'draw',
+      startX: point.x,
+      startY: point.y,
+      origRect: null,
+    };
+
+    state.rect = { x: point.x, y: point.y, width: 0, height: 0 };
+
+    frame.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  }
+
+  onMockupRectPointerDown(event: PointerEvent, sizeGroup: AbstractControl | null): void {
+    if (!this.isMockupPenActive(sizeGroup)) {
+      return;
+    }
+
+    const frame = this.mockupFrameFromEvent(event);
+    const state = this.getMockupState(sizeGroup);
+    if (!frame || !state.rect) {
+      return;
+    }
+
+    const point = this.mockupPointFromEvent(event, frame);
+    if (!point) {
+      return;
+    }
+
+    this.mockupPointerDrag = {
+      sizeGroup,
+      mode: 'move',
+      startX: point.x,
+      startY: point.y,
+      origRect: { ...state.rect },
+    };
+
+    frame.setPointerCapture(event.pointerId);
+    event.stopPropagation();
+    event.preventDefault();
+  }
+
+  onMockupCornerPointerDown(
+    event: PointerEvent,
+    sizeGroup: AbstractControl | null,
+    corner: MockupCorner,
+  ): void {
+    if (!this.isMockupPenActive(sizeGroup)) {
+      return;
+    }
+
+    const frame = this.mockupFrameFromEvent(event);
+    const state = this.getMockupState(sizeGroup);
+    if (!frame || !state.rect) {
+      return;
+    }
+
+    const point = this.mockupPointFromEvent(event, frame);
+    if (!point) {
+      return;
+    }
+
+    this.mockupPointerDrag = {
+      sizeGroup,
+      mode: 'resize',
+      corner,
+      startX: point.x,
+      startY: point.y,
+      origRect: { ...state.rect },
+    };
+
+    frame.setPointerCapture(event.pointerId);
+    event.stopPropagation();
+    event.preventDefault();
+  }
+
+  onMockupPointerMove(event: PointerEvent, sizeGroup: AbstractControl | null): void {
+    const drag = this.mockupPointerDrag;
+    if (!drag || drag.sizeGroup !== sizeGroup) {
+      return;
+    }
+
+    const frame = this.mockupFrameFromEvent(event);
+    if (!frame) {
+      return;
+    }
+
+    const point = this.mockupPointFromEvent(event, frame);
+    if (!point) {
+      return;
+    }
+
+    const state = this.getMockupState(sizeGroup);
+
+    if (drag.mode === 'draw') {
+      state.rect = this.mockupRectFromPoints(drag.startX, drag.startY, point.x, point.y);
+      return;
+    }
+
+    if (drag.mode === 'resize' && drag.corner && drag.origRect) {
+      state.rect = this.mockupResizeRect(drag.origRect, drag.corner, point);
+      return;
+    }
+
+    if (drag.mode === 'move' && drag.origRect) {
+      const dx = point.x - drag.startX;
+      const dy = point.y - drag.startY;
+      state.rect = {
+        ...drag.origRect,
+        x: this.clampMockupCoord(drag.origRect.x + dx, 0, 1 - drag.origRect.width),
+        y: this.clampMockupCoord(drag.origRect.y + dy, 0, 1 - drag.origRect.height),
+      };
+    }
+  }
+
+  onMockupPointerUp(event: PointerEvent, sizeGroup: AbstractControl | null): void {
+    const drag = this.mockupPointerDrag;
+    if (!drag || drag.sizeGroup !== sizeGroup) {
+      return;
+    }
+
+    const frame = this.mockupFrameFromEvent(event);
+    frame?.releasePointerCapture(event.pointerId);
+
+    const state = this.getMockupState(sizeGroup);
+    if ((drag.mode === 'resize' || drag.mode === 'move') && state.rect) {
+      state.rect = this.normalizeMockupRect(state.rect);
+    }
+
+    if (drag.mode === 'draw' && state.rect) {
+      if (
+        state.rect.width < this.mockupMinRectSize &&
+        state.rect.height < this.mockupMinRectSize
+      ) {
+        const half = this.mockupDefaultRectSize / 2;
+        state.rect = {
+          x: this.clampMockupCoord(drag.startX - half, 0, 1 - this.mockupDefaultRectSize),
+          y: this.clampMockupCoord(drag.startY - half, 0, 1 - this.mockupDefaultRectSize),
+          width: this.mockupDefaultRectSize,
+          height: this.mockupDefaultRectSize,
+        };
+      } else {
+        state.rect = this.normalizeMockupRect(state.rect);
+      }
+    }
+
+    this.mockupPointerDrag = null;
+    this.refreshMockupValidationState();
   }
 
   private getMockupState(sizeGroup: AbstractControl | null): ProductMockupState {
@@ -360,7 +635,103 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   private createEmptyMockupState(): ProductMockupState {
-    return { url: '', uploading: false, progress: 0 };
+    return { url: '', uploading: false, progress: 0, penActive: false, rect: null };
+  }
+
+  private mockupFrameFromEvent(event: PointerEvent): HTMLElement | null {
+    const target = event.currentTarget as HTMLElement | null;
+    if (!target) {
+      return null;
+    }
+    return target.closest('.mockup-upload-preview__frame') as HTMLElement | null;
+  }
+
+  private mockupResizeRect(
+    orig: MockupRect,
+    corner: MockupCorner,
+    point: { x: number; y: number },
+  ): MockupRect {
+    const right = orig.x + orig.width;
+    const bottom = orig.y + orig.height;
+    let x = orig.x;
+    let y = orig.y;
+    let width = orig.width;
+    let height = orig.height;
+
+    switch (corner) {
+      case 'nw':
+        x = point.x;
+        y = point.y;
+        width = right - x;
+        height = bottom - y;
+        break;
+      case 'ne':
+        y = point.y;
+        width = point.x - orig.x;
+        height = bottom - y;
+        break;
+      case 'sw':
+        x = point.x;
+        width = right - x;
+        height = point.y - orig.y;
+        break;
+      case 'se':
+        width = point.x - orig.x;
+        height = point.y - orig.y;
+        break;
+    }
+
+    if (width < 0) {
+      x += width;
+      width = -width;
+    }
+    if (height < 0) {
+      y += height;
+      height = -height;
+    }
+
+    return this.normalizeMockupRect({ x, y, width, height });
+  }
+
+  private mockupPointFromEvent(
+    event: PointerEvent,
+    frame: HTMLElement,
+  ): { x: number; y: number } | null {
+    const bounds = frame.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) {
+      return null;
+    }
+    return {
+      x: this.clampMockupCoord((event.clientX - bounds.left) / bounds.width, 0, 1),
+      y: this.clampMockupCoord((event.clientY - bounds.top) / bounds.height, 0, 1),
+    };
+  }
+
+  private mockupRectFromPoints(x1: number, y1: number, x2: number, y2: number): MockupRect {
+    const x = Math.min(x1, x2);
+    const y = Math.min(y1, y2);
+    const width = Math.abs(x2 - x1);
+    const height = Math.abs(y2 - y1);
+    return this.normalizeMockupRect({ x, y, width, height });
+  }
+
+  private normalizeMockupRect(rect: MockupRect): MockupRect {
+    const width = this.clampMockupCoord(rect.width, this.mockupMinRectSize, 1);
+    const height = this.clampMockupCoord(rect.height, this.mockupMinRectSize, 1);
+    return {
+      x: this.clampMockupCoord(rect.x, 0, 1 - width),
+      y: this.clampMockupCoord(rect.y, 0, 1 - height),
+      width,
+      height,
+    };
+  }
+
+  private isMockupPointInRect(x: number, y: number, rect: MockupRect): boolean {
+    return x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height;
+  }
+
+  private clampMockupCoord(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
   }
 
   private setMockupUploadSub(sizeGroup: AbstractControl | null, sub: Subscription): void {
@@ -818,6 +1189,14 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       return;
     }
 
+    const mockupError = this.validateMockupsBeforeSave();
+    if (mockupError) {
+      this.mockupValidationActive = true;
+      this.snackBar.open(mockupError, undefined, { duration: 5000 });
+      this.scrollToFirstMockupError();
+      return;
+    }
+
     this.isSaving = true;
     const value = this.form.getRawValue();
 
@@ -849,6 +1228,68 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       error: () => {
         this.isSaving = false;
       },
+    });
+  }
+
+  private validateMockupsBeforeSave(): string | null {
+    if (this.flexability === 'fixed') {
+      for (const sizeGroup of this.sizes.controls) {
+        if (!this.isMockupComplete(sizeGroup)) {
+          const name = this.getSizeDisplayName(sizeGroup);
+          return name
+            ? this.translateService.instant('management.product-create.mockup-required-for-size', {
+                name,
+              })
+            : this.translateService.instant('management.product-create.mockup-required-fixed');
+        }
+      }
+      return null;
+    }
+
+    if (!this.isMockupComplete(null)) {
+      return this.translateService.instant('management.product-create.mockup-required-dynamic');
+    }
+
+    return null;
+  }
+
+  private getSizeDisplayName(sizeGroup: AbstractControl): string {
+    const labelHe = String(sizeGroup.get('label.he')?.value ?? '').trim();
+    if (labelHe) {
+      return labelHe;
+    }
+
+    const length = sizeGroup.get('length')?.value;
+    const width = sizeGroup.get('width')?.value;
+    if (length != null && width != null && `${length}`.trim() && `${width}`.trim()) {
+      return `${length}×${width}`;
+    }
+
+    return '';
+  }
+
+  private refreshMockupValidationState(): void {
+    if (!this.mockupValidationActive) {
+      return;
+    }
+
+    if (this.flexability === 'fixed') {
+      if (this.sizes.controls.every((sizeGroup) => this.isMockupComplete(sizeGroup))) {
+        this.mockupValidationActive = false;
+      }
+      return;
+    }
+
+    if (this.isMockupComplete(null)) {
+      this.mockupValidationActive = false;
+    }
+  }
+
+  private scrollToFirstMockupError(): void {
+    setTimeout(() => {
+      document
+        .querySelector('.mockup-upload-section--error')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   }
 

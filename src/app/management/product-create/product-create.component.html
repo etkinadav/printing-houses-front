@@ -782,10 +782,15 @@
 </ng-template>
 
 <ng-template #mockupUploadBlock let-sizeGroup="sizeGroup">
-  <div class="mockup-upload-section">
+  <div
+    class="mockup-upload-section"
+    [class.mockup-upload-section--error]="hasMockupValidationError(sizeGroup)">
     <div class="section-title">
       {{ 'management.product-create.mockup-title' | translate }}
     </div>
+    <p *ngIf="hasMockupValidationError(sizeGroup)" class="mockup-upload-section__error mb-2">
+      {{ 'management.product-create.mockup-required-hint' | translate }}
+    </p>
 
     <div
       *ngIf="!hasMockupUrl(sizeGroup)"
@@ -839,10 +844,50 @@
     </div>
 
     <div *ngIf="hasMockupUrl(sizeGroup)" class="mockup-upload-preview w-100">
-      <div class="mockup-upload-preview__frame">
-        <img [src]="getMockupUrl(sizeGroup)" class="mockup-upload-preview__img" alt="" />
+      <div class="mockup-upload-preview__frame-wrap">
+        <div
+          class="mockup-upload-preview__frame"
+          [class.mockup-upload-preview__frame--pen-active]="isMockupPenActive(sizeGroup)"
+          (pointerdown)="onMockupPointerDown($event, sizeGroup)"
+          (pointermove)="onMockupPointerMove($event, sizeGroup)"
+          (pointerup)="onMockupPointerUp($event, sizeGroup)"
+          (pointercancel)="onMockupPointerUp($event, sizeGroup)">
+          <img [src]="getMockupUrl(sizeGroup)" class="mockup-upload-preview__img" alt="" draggable="false" />
+          <div
+            *ngIf="getMockupRect(sizeGroup) as mockupRect"
+            class="mockup-upload-preview__rect"
+            [style.left.%]="mockupRect.x * 100"
+            [style.top.%]="mockupRect.y * 100"
+            [style.width.%]="mockupRect.width * 100"
+            [style.height.%]="mockupRect.height * 100"
+            (pointerdown)="onMockupRectPointerDown($event, sizeGroup)">
+            <span
+              class="mockup-upload-preview__corner mockup-upload-preview__corner--nw"
+              (pointerdown)="onMockupCornerPointerDown($event, sizeGroup, 'nw')"></span>
+            <span
+              class="mockup-upload-preview__corner mockup-upload-preview__corner--ne"
+              (pointerdown)="onMockupCornerPointerDown($event, sizeGroup, 'ne')"></span>
+            <span
+              class="mockup-upload-preview__corner mockup-upload-preview__corner--sw"
+              (pointerdown)="onMockupCornerPointerDown($event, sizeGroup, 'sw')"></span>
+            <span
+              class="mockup-upload-preview__corner mockup-upload-preview__corner--se"
+              (pointerdown)="onMockupCornerPointerDown($event, sizeGroup, 'se')"></span>
+          </div>
+        </div>
       </div>
       <div class="mockup-upload-preview__actions">
+        <button
+          mat-stroked-button
+          type="button"
+          class="mockup-upload-preview__define-btn"
+          [class.mockup-upload-preview__define-btn--active]="isMockupPenActive(sizeGroup)"
+          [disabled]="isMockupUploading(sizeGroup)"
+          (click)="enableMockupPen(sizeGroup, $event)"
+          [attr.aria-pressed]="isMockupPenActive(sizeGroup)">
+          <mat-icon>edit</mat-icon>
+          {{ 'management.product-create.mockup-define-print-area' | translate }}
+        </button>
         <button
           mat-stroked-button
           type="button"
