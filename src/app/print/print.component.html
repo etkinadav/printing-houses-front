@@ -27,7 +27,7 @@
                         matRipple
                         tabindex="0"
                         role="button"
-                        class="zx-files-area-item-small c-pointer file-btn-hover rounded-3 p-2 m-lg-1 zx-border-gray-v-v-light shadow-85-light d-flex flex-column justify-content-between align-items-center position-relative"
+                        class="zx-files-area-item-small c-pointer file-btn-hover rounded-3 p-2 m-lg-1 zx-border-gray-v-v-light shadow-85-light d-flex flex-column justify-content-center align-items-center position-relative"
                         [class.zx-files-area-item-tiny]="hasFiles && !uploading"
                         [class.zx-border-gray-25-pr]="isDarkMode"
                         [class.zx-page-obj-container-bg-darkmode]="isDarkMode"
@@ -88,8 +88,51 @@
                         type="file"
                         hidden
                         multiple
-                        accept=".pdf,.jpg,.jpeg,.png,.webp,.tif,.tiff,.heic,.heif,image/*,application/pdf"
+                        [attr.accept]="expressFileAccept"
                         (change)="onFilesSelected($event)" />
+
+                      <!-- Delete all files [start] -->
+                      <article
+                        *ngIf="hasFiles"
+                        matRipple
+                        tabindex="0"
+                        role="button"
+                        class="zx-files-area-item-tiny c-pointer w-100 rounded-3 p-2 m-lg-1 zx-border-gray-v-v-light shadow-85-light flex-shrink-0"
+                        [class.zx-border-gray-25-pr]="isDarkMode"
+                        [class.zx-page-obj-container-bg-darkmode]="isDarkMode"
+                        [matMenuTriggerFor]="clearAllFilesMenu">
+                        <h6
+                          class="mb-0 zx-text-small text-center"
+                          [class.zx-text-white]="isDarkMode">
+                          {{ 'printing-table.clear-all-files' | translate }}
+                        </h6>
+                        <div
+                          class="d-flex justify-content-center align-items-center c-pointer"
+                          [class.zx-bg-light]="!isDarkMode">
+                          <mat-icon class="mx-0 mt-0 mb-1 p-1 zx-text-medium c-pointer">
+                            delete_outline
+                          </mat-icon>
+                        </div>
+                      </article>
+                      <mat-menu #clearAllFilesMenu="matMenu">
+                        <button
+                          class="d-flex align-items-center gap-1 px-2"
+                          mat-menu-item
+                          [class.zx-ltr]="!isRTL"
+                          (click)="onDeleteAllFiles()">
+                          <b
+                            class="text-red zx-text-small m-0"
+                            [class.zx-text-white]="isDarkMode">
+                            {{ 'printing-table.clear-all-files-for-good' | translate }}
+                          </b>
+                          <mat-icon
+                            class="text-red mx-1 p-0 zx-pt-small"
+                            style="min-width: 35px"
+                            [class.zx-text-white]="isDarkMode">
+                            delete_outline
+                          </mat-icon>
+                        </button>
+                      </mat-menu>
 
                       <!-- File tiles -->
                       <article *ngFor="let file of files" class="zx-file-obj">
@@ -99,6 +142,36 @@
                           class="zx-files-area-item-small zx-img-obj-container rounded-3 pb-2 zx-border-gray-v-v-light shadow-85-light d-flex flex-column justify-content-between align-items-center position-relative"
                           [class.zx-border-gray-25-pr]="isDarkMode"
                           [class.zx-page-obj-container-bg-darkmode]="isDarkMode">
+                          <div
+                            class="position-absolute d-flex px-2 zx-pb-12 rounded-pill bottom-0 w-100">
+                            <div
+                              matRipple
+                              [matMenuTriggerFor]="deleteProcessingMenu"
+                              (click)="$event.stopPropagation()"
+                              class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                              <mat-icon class="text-red mx-0 mt-0 mb-1 p-1 zx-text-medium c-pointer">
+                                delete_outline
+                              </mat-icon>
+                            </div>
+                            <mat-menu #deleteProcessingMenu="matMenu">
+                              <button
+                                class="d-flex align-items-center gap-1 px-2"
+                                mat-menu-item
+                                [class.zx-ltr]="!isRTL"
+                                (click)="onDeleteFile(file)">
+                                <b
+                                  class="text-red zx-text-small m-0"
+                                  [class.zx-text-white]="isDarkMode">
+                                  {{ 'printing-table.delete-file-for-good' | translate }}
+                                </b>
+                                <mat-icon
+                                  class="text-red mx-1 p-0 zx-pt-small"
+                                  [class.zx-text-white]="isDarkMode">
+                                  delete_outline
+                                </mat-icon>
+                              </button>
+                            </mat-menu>
+                          </div>
                           <div class="w-100 d-flex justify-content-center align-items-center">
                             <span class="opacity-trans" [class.opacity-trans-not-rtl]="!isRTL">
                               <span class="zx-text-tiny fw-bold">
@@ -151,10 +224,83 @@
                                 [src]="file.thumbnailUrl"
                                 class="zx-img-obj"
                                 alt="" />
+                              <div
+                                class="position-absolute d-none d-md-flex px-2 zx-pb-12 rounded-pill bottom-0 zx-z-index-1 w-100">
+                                <div
+                                  matRipple
+                                  [matMenuTriggerFor]="deleteReadyMenu"
+                                  (click)="$event.stopPropagation()"
+                                  class="delete-button d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                                  <mat-icon class="text-red mx-0 mt-0 mb-1 p-1 zx-text-medium">
+                                    delete_outline
+                                  </mat-icon>
+                                </div>
+                                <mat-menu #deleteReadyMenu="matMenu">
+                                  <button
+                                    class="d-flex align-items-center gap-1 px-2"
+                                    mat-menu-item
+                                    [class.zx-ltr]="!isRTL"
+                                    (click)="onDeleteFile(file)">
+                                    <b
+                                      class="text-red zx-text-small m-0"
+                                      [class.zx-text-white]="isDarkMode">
+                                      {{ 'printing-table.delete-file-for-good' | translate }}
+                                    </b>
+                                    <mat-icon
+                                      class="text-red mx-1 p-0 zx-pt-small"
+                                      [class.zx-text-white]="isDarkMode">
+                                      delete_outline
+                                    </mat-icon>
+                                  </button>
+                                </mat-menu>
+                              </div>
                             </div>
                           </div>
                         </article>
                       </article>
+
+                      <!-- Delete all files [end — when many files] -->
+                      <article
+                        *ngIf="showEndDeleteAll"
+                        matRipple
+                        tabindex="0"
+                        role="button"
+                        class="zx-files-area-item-tiny c-pointer w-100 rounded-3 p-2 m-lg-1 zx-border-gray-v-v-light shadow-85-light flex-shrink-0"
+                        [class.zx-border-gray-25-pr]="isDarkMode"
+                        [class.zx-page-obj-container-bg-darkmode]="isDarkMode"
+                        [matMenuTriggerFor]="clearAllFilesMenuEnd">
+                        <h6
+                          class="mb-0 zx-text-small text-center"
+                          [class.zx-text-white]="isDarkMode">
+                          {{ 'printing-table.clear-all-files' | translate }}
+                        </h6>
+                        <div
+                          class="d-flex justify-content-center align-items-center c-pointer"
+                          [class.zx-bg-light]="!isDarkMode">
+                          <mat-icon class="mx-0 mt-0 mb-1 p-1 zx-text-medium c-pointer">
+                            delete_outline
+                          </mat-icon>
+                        </div>
+                      </article>
+                      <mat-menu #clearAllFilesMenuEnd="matMenu">
+                        <button
+                          class="d-flex align-items-center gap-1 px-2"
+                          mat-menu-item
+                          [class.zx-ltr]="!isRTL"
+                          (click)="onDeleteAllFiles()">
+                          <b
+                            class="text-red zx-text-small m-0"
+                            [class.zx-text-white]="isDarkMode">
+                            {{ 'printing-table.clear-all-files-for-good' | translate }}
+                          </b>
+                          <mat-icon
+                            class="text-red mx-1 p-0 zx-pt-small"
+                            style="min-width: 35px"
+                            [class.zx-text-white]="isDarkMode">
+                            delete_outline
+                          </mat-icon>
+                        </button>
+                      </mat-menu>
                     </div>
                   </div>
                 </div>
@@ -269,14 +415,31 @@
             <div
               *ngIf="uploading"
               class="no-image-selected-upload-file file-btn-hover d-flex flex-column justify-content-center align-items-center position-relative">
-              <b class="zx-text-big text-green">
-                <span>{{ uploadProgress }}</span>
-                <span>%</span>
-              </b>
-              <mat-progress-bar mode="determinate" [value]="uploadProgress" class="w-100"></mat-progress-bar>
-              <h6 class="zx-text-medium mb-0">
-                {{ 'printing-table.uploading-file-one' | translate }}
-              </h6>
+              <div
+                class="w-100 d-flex flex-column justify-content-center align-items-center gap-1 gap-lg-2">
+                <b class="zx-text-big text-green">
+                  <span>{{ uploadProgress }}</span>
+                  <span>%</span>
+                </b>
+                <span class="zx-text-small opacity-75" *ngIf="uploadingCount > 1">
+                  <span>{{ 'printing-table.file' | translate }}</span>
+                  <span>1</span>
+                  <span>{{ 'printing-table.out-of' | translate }}</span>
+                  <span>{{ uploadingCount }}</span>
+                </span>
+              </div>
+              <div
+                class="w-100 d-flex flex-column justify-content-center align-items-center gap-1 gap-lg-2 px-4">
+                <mat-progress-bar mode="determinate" [value]="uploadProgress"></mat-progress-bar>
+                <h6 class="zx-text-medium mb-0">
+                  <span *ngIf="uploadingCount === 1">
+                    {{ 'printing-table.uploading-file-one' | translate }}
+                  </span>
+                  <span *ngIf="uploadingCount > 1">
+                    {{ 'printing-table.uploading-file-multi' | translate }}
+                  </span>
+                </h6>
+              </div>
             </div>
           </article>
         </article>
@@ -285,7 +448,7 @@
           type="file"
           hidden
           multiple
-          accept=".pdf,.jpg,.jpeg,.png,.webp,.tif,.tiff,.heic,.heif,image/*,application/pdf"
+          [attr.accept]="expressFileAccept"
           (change)="onFilesSelected($event)" />
 
         <div

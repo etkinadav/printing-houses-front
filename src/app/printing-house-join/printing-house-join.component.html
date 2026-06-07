@@ -21,7 +21,7 @@
         <input
           #logoFileInput
           type="file"
-          accept="image/*"
+          [attr.accept]="expressFileAccept"
           hidden
           (change)="onLogoFileSelected($event)"
         />

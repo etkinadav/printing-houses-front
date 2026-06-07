@@ -1,0 +1,135 @@
+<div class="h-100 w-100 d-flex flex-column flex-grow-1 overflow-auto">
+
+    <div class="position-absolute w-100 d-flex" [class.justify-content-end]="isRTL">
+        <button type="button" mat-icon-button aria-label="Close dialog" (click)="closeDialog()"
+            class="close-icon d-flex align-items-center justify-content-center" [class.text-white]="isDarkMode">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+
+    <div class="d-flex flex-grow-1 flex-column align-items-center px-3 pt-4 pb-3 px-md-4 pt-md-5 gap-3 w-100">
+        <h4 class="text-center fw-bold m-0 pt-3 pt-lg-0" [class.zx-ltr]="!isRTL" [class.text-white]="isDarkMode">
+            <span *ngIf="state === 'file-format-not-supported'">
+                {{ "file-format-not-supported.title" | translate }}
+            </span>
+            <span *ngIf="state === 'file-not-received-in-server'">
+                {{ "file-issues.server-error-title" | translate }}
+            </span>
+            <span *ngIf="state === 'weird-dpi'">
+                {{ "file-issues.weird-dpi.title" | translate }}
+            </span>
+            <span *ngIf="state === 'file-too-large'">
+                {{ "file-issues.file-too-large.title" | translate }}
+            </span>
+            <span *ngIf="state === 'plotter-processing-failed'">
+                {{ "file-issues.plotter-processing-failed.title" | translate }}
+            </span>
+        </h4>
+
+        <div class="d-flex flex-column gap-3 align-items-center w-100 pt-3">
+            <span class="text-center" [class.zx-ltr]="!isRTL" [class.text-white]="isDarkMode">
+                <span *ngIf="state === 'file-format-not-supported'">
+                    {{ "file-format-not-supported.message" | translate: {fileName: fileName} }}
+                </span>
+                <span *ngIf="state === 'file-not-received-in-server'">
+                    {{ "error-content-UPLOADING_ERROR" | translate }}
+                </span>
+                <span *ngIf="state === 'weird-dpi'">
+                    {{ "file-issues.weird-dpi.message-line1" | translate: {fileName: fileName, dpi: dpi || 'N/A'} }}
+                </span>
+                <span *ngIf="state === 'file-too-large'">
+                    {{ "file-issues.file-too-large.message" | translate: {fileSizeMb: fileSizeMb ?? 0} }}
+                </span>
+                <span *ngIf="state === 'plotter-processing-failed'">
+                    {{ "file-issues.plotter-processing-failed.message" | translate: {fileName: fileName} }}
+                </span>
+            </span>
+
+            <span *ngIf="state === 'weird-dpi'" class="text-center" [class.zx-ltr]="!isRTL" [class.text-white]="isDarkMode">
+                {{ "file-issues.weird-dpi.message-line2" | translate }}
+            </span>
+
+            <span *ngIf="state === 'file-not-received-in-server' && internetSpeedValue !== null"
+                  class="text-center zx-text-pink"
+                  [class.zx-ltr]="!isRTL">
+                {{ "file-issues.speed-message.prefix" | translate }} {{ getRoundedSpeed() }} {{ "file-issues.speed-message.mbps" | translate }} <b>{{ "file-issues.speed-message.middle" | translate }}</b> <b> {{ getSpeedLabel() }}</b> {{ getSpeedMessage() }}
+            </span>
+
+            <div *ngIf="state === 'file-format-not-supported'" class="d-flex flex-wrap gap-2 justify-content-center w-100">
+                <span *ngFor="let format of allowedFormats"
+                      class="rounded-pill px-3 py-1 zx-text-small"
+                      [class.bg-white]="!isDarkMode"
+                      [class.bg-dark]="isDarkMode"
+                      [class.text-dark]="!isDarkMode"
+                      [class.text-white]="isDarkMode"
+                      style="border: 1px solid rgba(0,0,0,0.12);">
+                    {{ format.toUpperCase() }}
+                </span>
+            </div>
+
+            <div *ngIf="(state === 'file-format-not-supported' && !isPhSystemFileFormatIssue()) || state === 'weird-dpi' || state === 'file-too-large' || state === 'plotter-processing-failed'"
+                class="d-flex flex-column w-100" style="max-width: 495px;"
+                [class.align-items-center]="!isRTL" [class.align-items-end]="isRTL" [class.zx-ltr]="!isRTL">
+                <p class="q-and-a-edit-print-shimmer fw-bold mt-3 mb-2 w-100" [class.text-end]="isRTL" [class.text-start]="!isRTL">
+                    {{ "q-and-a.2.content-2" | translate:{count: editGuideSoftwareKeys.length} }}
+                </p>
+                <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mb-3">
+                    <span *ngFor="let key of editGuideSoftwareKeys"
+                          class="rounded-pill px-3 py-1 zx-text-small d-inline-block c-pointer"
+                          [class.bg-white]="!isDarkMode"
+                          [class.bg-dark]="isDarkMode"
+                          [class.text-dark]="!isDarkMode"
+                          [class.text-white]="isDarkMode"
+                          style="border: 1px solid rgba(0,0,0,0.12);"
+                          (click)="goToEditInstructions()">
+                        <span class="q-and-a-edit-print-shimmer">{{ key | translate }}</span>
+                    </span>
+                </div>
+                <p class="w-100 mb-0" [class.text-end]="isRTL" [class.text-start]="!isRTL" [class.text-white]="isDarkMode">
+                    {{ "q-and-a.2.content-3" | translate }}
+                </p>
+            </div>
+            <span class="spacer"></span>
+
+            <button *ngIf="state === 'file-not-received-in-server'" (click)="copyErrorDetails()"
+                class="d-flex align-items-center gap-2 c-pointer border-0 bg-transparent p-0 mb-2"
+                [class.zx-ltr]="!isRTL">
+                <mat-icon class="text-green zx-text-small m-0 copy-error-icon">content_copy</mat-icon>
+                <span class="text-green zx-text-small m-0" [class.zx-text-white]="isDarkMode">
+                    {{ "file-issues.copy-error-details" | translate }}
+                </span>
+            </button>
+
+            <div class="d-flex flex-column flex-lg-row flex-grow-lg-1 justify-content-center align-items-end w-100 gap-3">
+                <button *ngIf="(state === 'file-format-not-supported' && !isPhSystemFileFormatIssue()) || state === 'weird-dpi' || state === 'file-too-large' || state === 'plotter-processing-failed'" type="button" mat-raised-button
+                    class="edit-guide-btn-shimmer-bg text-white rounded-pill zx-btn-single w-100 fw-bold order-1 order-lg-1"
+                    (click)="goToEditInstructions()">
+                    {{ "q-and-a.2.btn-edit-guide" | translate }}
+                </button>
+                <button *ngIf="state === 'file-not-received-in-server'" color="primary" mat-raised-button (click)="openWhatsAppInstructions()"
+                    class="text-white rounded-pill zx-btn-single col-12 col-lg-6 fw-bold order-1 order-lg-1">
+                    {{ "order-complited.printed.title.sub.problme-btn" | translate }}
+                </button>
+                <button (click)="closeDialog()" color="primary" mat-button
+                    class="rounded-pill zx-btn-single col-12 col-lg-6 fw-bold order-2 order-lg-2"
+                    [style.border]="state === 'file-not-received-in-server' ? 'none !important' : ''">
+                    <span *ngIf="state === 'file-format-not-supported'">
+                        {{ "error-content-ok-btn" | translate }}
+                    </span>
+                    <span *ngIf="state === 'file-not-received-in-server'">
+                        {{ "file-issues.try-again" | translate }}
+                    </span>
+                    <span *ngIf="state === 'weird-dpi'">
+                        {{ "error-content-ok-btn" | translate }}
+                    </span>
+                    <span *ngIf="state === 'file-too-large'">
+                        {{ "error-content-ok-btn" | translate }}
+                    </span>
+                    <span *ngIf="state === 'plotter-processing-failed'">
+                        {{ "error-content-ok-btn" | translate }}
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

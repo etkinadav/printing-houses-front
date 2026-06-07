@@ -17,20 +17,12 @@ import { PhPrintingFile } from '../ph-printing-files/ph-printing-file.model';
 import { PhPrintingFilesService } from '../ph-printing-files/ph-printing-files.service';
 import { PhProduct } from '../ph-products/ph-product.model';
 import { PhProductsService } from '../ph-products/ph-products.service';
+import { EXPRESS_FILE_ACCEPT } from '../utils/ph-express-upload';
+import { PhUploadValidationService } from '../utils/ph-upload-validation.service';
 
 const POLL_MS = 4000;
-const MAX_FILE_BYTES = 50 * 1024 * 1024;
-const ALLOWED_EXTENSIONS = new Set([
-  'pdf',
-  'jpg',
-  'jpeg',
-  'png',
-  'webp',
-  'tif',
-  'tiff',
-  'heic',
-  'heif',
-]);
+/** Same threshold as mean-corse-01 printing-table additional controls at list end. */
+const FILES_END_CONTROLS_THRESHOLD = 6;
 
 @Component({
   selector: 'app-print',
@@ -53,6 +45,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   uploading = false;
   uploadProgress = 0;
   uploadingCount = 0;
+  readonly expressFileAccept = EXPRESS_FILE_ACCEPT;
 
   private directionSub?: Subscription;
   private darkModeSub?: Subscription;
@@ -68,6 +61,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     private phProductsService: PhProductsService,
     private translateService: TranslateService,
     private snackBar: MatSnackBar,
+    private phUploadValidation: PhUploadValidationService,
   ) {}
 
   get finishedCount(): number {
@@ -76,6 +70,10 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   get hasFiles(): boolean {
     return this.files.length > 0;
+  }
+
+  get showEndDeleteAll(): boolean {
+    return this.files.length > FILES_END_CONTROLS_THRESHOLD;
   }
 
   ngOnInit(): void {
@@ -153,6 +151,54 @@ export class PrintComponent implements OnInit, OnDestroy {
     // Placeholder — next checkout step will be wired later.
   }
 
+  onDeleteFile(file: PhPrintingFile, event?: Event): void {
+    event?.stopPropagation();
+
+    if (this.uploading || !file?._id) {
+      return;
+    }
+
+    this.phPrintingFilesService.deleteFile(file._id).subscribe({
+      next: () => {
+        this.files = this.files.filter((f) => f._id !== file._id);
+        this.processingFiles = this.processingFiles.filter((f) => f._id !== file._id);
+        if (this.selectedFile?._id === file._id) {
+          this.selectedFile = this.files.find((f) => !this.isFileProcessing(f)) ?? null;
+        }
+      },
+      error: () => {
+        this.snackBar.open(
+          this.translateService.instant('ph-print.delete-failed'),
+          undefined,
+          { duration: 4000 },
+        );
+      },
+    });
+  }
+
+  onDeleteAllFiles(): void {
+    if (this.uploading || !this.hasFiles) {
+      return;
+    }
+
+    this.phPrintingFilesService
+      .deleteAll(this.printingHouseId, this.productId)
+      .subscribe({
+        next: () => {
+          this.files = [];
+          this.processingFiles = [];
+          this.selectedFile = null;
+        },
+        error: () => {
+          this.snackBar.open(
+            this.translateService.instant('ph-print.delete-all-failed'),
+            undefined,
+            { duration: 4000 },
+          );
+        },
+      });
+  }
+
   private loadProductName(): void {
     this.productName = '';
     if (!this.printingHouseId || !this.productId) {
@@ -212,22 +258,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   private uploadFile(file: File): void {
-    const ext = (file.name.split('.').pop() || '').toLowerCase();
-    if (!ALLOWED_EXTENSIONS.has(ext)) {
-      this.snackBar.open(
-        this.translateService.instant('ph-print.invalid-file-type'),
-        undefined,
-        { duration: 4000 },
-      );
-      return;
-    }
-
-    if (file.size > MAX_FILE_BYTES) {
-      this.snackBar.open(
-        this.translateService.instant('ph-print.file-too-large'),
-        undefined,
-        { duration: 4000 },
-      );
+    if (!this.phUploadValidation.validateExpressUpload(file)) {
       return;
     }
 

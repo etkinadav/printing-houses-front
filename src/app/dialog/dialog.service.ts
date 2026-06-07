@@ -6,6 +6,7 @@ import { PreloginComponent } from '../auth/prelogin/prelogin.component';
 import { ErrorComponent } from '../error/error.component';
 import { PhoneComponent } from './phone/phone.component';
 import { LanguageChangeComponent } from './language-change/language-change.component';
+import { FileIssuesComponent } from './file-issues/file-issues.component';
 
 @Injectable({
   providedIn: 'root',
@@ -15,6 +16,7 @@ export class DialogService {
   private dialogErrorRef: MatDialogRef<ErrorComponent> | null = null;
   private dialogPhoneRef: MatDialogRef<PhoneComponent> | null = null;
   private dialogLanguageChangeRef: MatDialogRef<LanguageChangeComponent> | null = null;
+  private dialogFileIssuesRef: MatDialogRef<FileIssuesComponent> | null = null;
 
   public loginDialogClosed$ = new Subject<void>();
 
@@ -136,5 +138,42 @@ export class DialogService {
   /** Stub kept for compatibility with my-profile.component (delete account button). */
   onOpenDeleteUserDialog(_user: any, _isSU: boolean = false): void {
     console.warn('DeleteUserDialog is not implemented in this app.');
+  }
+
+  onOpenFileIssuesDialog(
+    fileName: string,
+    allowedFormats: string[],
+    phoneNumber: string,
+    state: string = 'file-format-not-supported',
+    additionalData?: Record<string, unknown>,
+  ): void {
+    this.dialogFileIssuesRef = this.dialog.open(FileIssuesComponent, {
+      direction: this.getDialogDirection(),
+      panelClass: 'zx-printer-number-dialog',
+      data: {
+        fileName,
+        allowedFormats,
+        phoneNumber,
+        state,
+        serverAddress: additionalData?.['serverAddress'] ?? '',
+        branchName: additionalData?.['branchName'] ?? '',
+        printingService: additionalData?.['printingService'] ?? '',
+        fileFormat: additionalData?.['fileFormat'] ?? '',
+        internetSpeed: additionalData?.['internetSpeed'] ?? '',
+        internetSpeedValue: additionalData?.['internetSpeedValue'] ?? null,
+        dpi: additionalData?.['dpi'] ?? null,
+        fileSizeMb: additionalData?.['fileSizeMb'] ?? null,
+      },
+    });
+    this.dialogFileIssuesRef.afterClosed().subscribe(() => {
+      this.dialogFileIssuesRef = null;
+    });
+    this.focusMain();
+  }
+
+  onCloseFileIssuesDialog(): void {
+    this.dialogFileIssuesRef?.close();
+    this.dialogFileIssuesRef = null;
+    this.focusMain();
   }
 }

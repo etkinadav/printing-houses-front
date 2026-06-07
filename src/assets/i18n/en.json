@@ -64,6 +64,8 @@
 	"ph-print.invalid-file-type": "Unsupported file type",
 	"ph-print.file-too-large": "File is too large",
 	"ph-print.upload-failed": "File upload failed",
+	"ph-print.delete-all-failed": "Failed to delete files",
+	"ph-print.delete-failed": "Failed to delete file",
 	"management.printing-house.edit-product": "Edit",
 	"management.printing-house.delete-product": "Delete",
 	"management.printing-house.delete-product-confirm": "Delete product \"{{name}}\"?",

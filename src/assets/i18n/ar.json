@@ -64,6 +64,8 @@
     "ph-print.invalid-file-type": "نوع ملف غير مدعوم",
     "ph-print.file-too-large": "الملف كبير جداً",
     "ph-print.upload-failed": "فشل رفع الملف",
+    "ph-print.delete-all-failed": "فشل حذف الملفات",
+    "ph-print.delete-failed": "فشل حذف الملف",
     "management.printing-house.edit-product": "تعديل",
     "management.printing-house.delete-product": "حذف",
     "management.printing-house.delete-product-confirm": "حذف المنتج \"{{name}}\"؟",

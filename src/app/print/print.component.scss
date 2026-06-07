@@ -235,15 +235,6 @@
     min-height: unset;
     max-height: unset;
   }
-
-  .zx-files-area-item-small {
-    width: 150px;
-    min-width: 150px;
-    max-width: 150px;
-    height: 201px;
-    min-height: 201px;
-    max-height: 201px;
-  }
 }
 
 .zx-border-choosen {
@@ -395,4 +386,33 @@
     min-width: 45px;
     min-height: 45px;
   }
+}
+
+.zx-pb-12 {
+  padding-bottom: 12px;
+}
+
+.delete-button {
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 250ms;
+  border: 1px solid var(--zx-white-20-pr);
+}
+
+.delete-button-fix-mobile {
+  opacity: 1;
+}
+
+@media only screen and (min-width: 768px) {
+  .delete-button-fix-mobile {
+    opacity: 0;
+  }
+}
+
+.zx-img-obj-container:hover .delete-button {
+  opacity: 1;
+}
+
+.delete-button:hover {
+  border: 1px solid var(--zx-red);
 }

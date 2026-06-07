@@ -64,6 +64,8 @@
     "ph-print.invalid-file-type": "סוג קובץ לא נתמך",
     "ph-print.file-too-large": "הקובץ גדול מדי",
     "ph-print.upload-failed": "העלאת הקובץ נכשלה",
+    "ph-print.delete-all-failed": "מחיקת הקבצים נכשלה",
+    "ph-print.delete-failed": "מחיקת הקובץ נכשלה",
     "management.printing-house.edit-product": "עריכה",
     "management.printing-house.delete-product": "מחיקה",
     "management.printing-house.delete-product-confirm": "למחוק את המוצר \"{{name}}\"?",

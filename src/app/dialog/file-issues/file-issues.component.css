@@ -1,0 +1,144 @@
+::ng-deep .fill-screen-modal-phone {
+    width: 100%;
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
+    max-height: 90vh !important;
+}
+
+.close-icon {
+    opacity: 50%;
+    outline: none;
+    z-index: 1000;
+}
+
+@media only screen and (min-width: 992px) {
+    .close-icon {
+        margin: 15px;
+    }
+}
+
+.close-icon.mat-mdc-icon-button ::ng-deep .mat-mdc-button-persistent-ripple {
+    display: none;
+}
+
+::ng-deep div.mat-expansion-panel-body {
+    padding: 0;
+}
+
+::ng-deep div.mat-mdc-dialog-surface {
+    flex-grow: 1;
+}
+
+.copy-error-icon {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+.q-and-a-edit-print-shimmer {
+    font-weight: bold;
+    color: var(--zx-pink);
+    background: linear-gradient(
+        60deg,
+        var(--zx-pink) 0%,
+        var(--zx-pink) 42%,
+        var(--zx-pink-v-v-light-no-oppacity) 50%,
+        var(--zx-pink) 58%,
+        var(--zx-pink) 100%
+    );
+    background-size: 320% 100%;
+    background-position: 0% 50%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: q-and-a-edit-print-shimmer 6s ease-in-out infinite;
+}
+
+@keyframes q-and-a-edit-print-shimmer {
+    0% {
+        background-position: 0% 50%;
+    }
+    16.67% {
+        background-position: 100% 50%;
+    }
+    33.33% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+:host-context(.darkTheme) .q-and-a-edit-print-shimmer {
+    color: #fff;
+    background: linear-gradient(
+        60deg,
+        #fff 0%,
+        #fff 42%,
+        rgba(255, 255, 255, 0.65) 50%,
+        #fff 58%,
+        #fff 100%
+    );
+    background-size: 320% 100%;
+    background-position: 0% 50%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: q-and-a-edit-print-shimmer 6s ease-in-out infinite;
+}
+
+::ng-deep button.edit-guide-btn-shimmer-bg {
+    color: white !important;
+    background: linear-gradient(
+        60deg,
+        var(--zx-pink) 0%,
+        var(--zx-pink) 42%,
+        var(--zx-pink-v-v-light-no-oppacity) 50%,
+        var(--zx-pink) 58%,
+        var(--zx-pink) 100%
+    ) !important;
+    background-size: 320% 100% !important;
+    background-position: 0% 50%;
+    animation: edit-guide-btn-shimmer-bg 6s ease-in-out infinite;
+    border: none !important;
+    min-height: 44px;
+    padding: 0 20px;
+    font-size: 16px;
+}
+
+::ng-deep button.edit-guide-btn-shimmer-bg .mdc-button__label {
+    color: white !important;
+}
+
+@keyframes edit-guide-btn-shimmer-bg {
+    0% {
+        background-position: 0% 50%;
+    }
+    16.67% {
+        background-position: 100% 50%;
+    }
+    33.33% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+:host-context(.darkTheme) ::ng-deep button.edit-guide-btn-shimmer-bg {
+    color: #262626 !important;
+    background: linear-gradient(
+        60deg,
+        #fff 0%,
+        #fff 42%,
+        rgba(255, 255, 255, 0.65) 50%,
+        #fff 58%,
+        #fff 100%
+    ) !important;
+}
+
+:host-context(.darkTheme) ::ng-deep button.edit-guide-btn-shimmer-bg .mdc-button__label {
+    color: #262626 !important;
+}

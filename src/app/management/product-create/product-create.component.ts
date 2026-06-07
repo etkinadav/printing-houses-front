@@ -22,6 +22,8 @@ import {
 } from '../../ph-files/ph-files.service';
 import { isColorTextureUrl } from '../../ph-products/ph-color-texture.util';
 import { PhProductsService } from '../../ph-products/ph-products.service';
+import { EXPRESS_FILE_ACCEPT } from '../../utils/ph-express-upload';
+import { PhUploadValidationService } from '../../utils/ph-upload-validation.service';
 import {
   CornerType,
   ExtraSettingMode,
@@ -88,6 +90,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   categories: PhCategory[] = [];
   subCategories: PhSubCategory[] = [];
   readonly extraSettingOptions: ExtraSettingKey[] = ['corners', 'bleed', 'folding', 'duplex', 'double-sided'];
+  readonly expressFileAccept = EXPRESS_FILE_ACCEPT;
 
   private readonly positiveNumberValidators = [Validators.required, Validators.min(0)];
   private readonly colorTextureUploads = new Map<AbstractControl, Subscription>();
@@ -148,6 +151,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     private elementRef: ElementRef<HTMLElement>,
     private route: ActivatedRoute,
     private router: Router,
+    private phUploadValidation: PhUploadValidationService,
   ) {}
 
   ngOnInit(): void {
@@ -335,12 +339,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       return;
     }
 
-    if (!file.type.startsWith('image/')) {
-      this.snackBar.open(
-        this.translateService.instant('management.product-create.mockup-upload-invalid-type'),
-        undefined,
-        { duration: 4000 },
-      );
+    if (!this.phUploadValidation.validateExpressUpload(file)) {
       return;
     }
 
@@ -814,12 +813,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       return;
     }
 
-    if (!file.type.startsWith('image/')) {
-      this.snackBar.open(
-        this.translateService.instant('management.product-create.color-texture-invalid-type'),
-        undefined,
-        { duration: 4000 },
-      );
+    if (!this.phUploadValidation.validateExpressUpload(file)) {
       return;
     }
 

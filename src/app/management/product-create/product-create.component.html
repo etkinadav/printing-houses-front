@@ -419,7 +419,7 @@
               <input
                 #colorTextureInput
                 type="file"
-                accept="image/*"
+                [attr.accept]="expressFileAccept"
                 hidden
                 (change)="onColorTextureSelected($event, color)" />
               <div [formGroup]="$any(color.get('label'))" class="size-title-row__field">
@@ -795,7 +795,7 @@
     <input
       #mockupFileInput
       type="file"
-      accept="image/*"
+      [attr.accept]="expressFileAccept"
       hidden
       (change)="onMockupFileSelected($event, sizeGroup)"
     />

@@ -15,6 +15,8 @@ import {
 import { getMapStyleUrl, getMapTransformRequest } from '../maptiler/maptiler-style-url';
 import { PhPrintingHouseService } from '../ph-printing-house/ph-printing-house.service';
 import { offsetPxToRatio } from '../ph-printing-house/logo-crop.util';
+import { EXPRESS_FILE_ACCEPT } from '../utils/ph-express-upload';
+import { PhUploadValidationService } from '../utils/ph-upload-validation.service';
 
 @Component({
   selector: 'app-printing-house-join',
@@ -32,6 +34,7 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
 
   logoUploading = false;
   logoUploadProgress = 0;
+  readonly expressFileAccept = EXPRESS_FILE_ACCEPT;
 
   @ViewChild('mapEl') mapEl?: ElementRef<HTMLDivElement>;
   private map?: maplibregl.Map;
@@ -122,6 +125,7 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
     private phPrintingHouseService: PhPrintingHouseService,
     private phFilesService: PhFilesService,
     private router: Router,
+    private phUploadValidation: PhUploadValidationService,
   ) {}
 
   ngOnInit(): void {
@@ -171,12 +175,7 @@ export class PrintingHouseJoinComponent implements OnInit, OnDestroy, AfterViewI
       return;
     }
 
-    if (!file.type.startsWith('image/')) {
-      this.snackBar.open(
-        this.translateService.instant('printing-house-join.logo-upload-invalid-type'),
-        undefined,
-        { duration: 4000 },
-      );
+    if (!this.phUploadValidation.validateExpressUpload(file)) {
       return;
     }
 
