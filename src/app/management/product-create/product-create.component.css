@@ -1463,3 +1463,154 @@
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
 }
+
+/* ── Mockup upload (same UI as printing-house logo upload) ── */
+.mockup-upload-section {
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+.tree-node--size > .mockup-upload-section {
+  padding-inline-start: 0;
+}
+
+.logo-upload-zone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 220px;
+  padding: 1.25rem 1rem;
+  border-radius: 12px;
+  border: 2px dashed rgba(85, 85, 85, 0.22);
+  background: var(--zx-gray-light-light-light, #f7f7f7);
+  transition: border-color 150ms, background-color 150ms;
+}
+
+.logo-upload-zone:hover {
+  border-color: var(--zx-green, #26a69a);
+  background: rgba(38, 166, 154, 0.06);
+}
+
+.logo-upload-zone--uploading {
+  pointer-events: none;
+}
+
+.logo-upload-zone--uploading:hover {
+  border-color: rgba(85, 85, 85, 0.22);
+  background: var(--zx-gray-light-light-light, #f7f7f7);
+}
+
+.logo-upload-zone__cancel {
+  position: absolute;
+  top: 8px;
+  inset-inline-end: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--zx-dark, #262626);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background-color 150ms;
+}
+
+.logo-upload-zone__cancel:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.logo-upload-zone__cancel .mat-icon {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+  line-height: 20px;
+}
+
+.logo-upload-zone__title {
+  font-size: 1rem;
+  color: var(--zx-dark, #262626);
+}
+
+.logo-upload-zone__icon {
+  width: 120px;
+  max-width: 55%;
+  height: auto;
+}
+
+.logo-upload-zone__hint {
+  font-size: 0.875rem;
+  opacity: 0.8;
+  max-width: 85%;
+  text-align: center;
+}
+
+.logo-upload-zone__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 85%;
+}
+
+.logo-upload-zone__progress-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--zx-green, #26a69a);
+}
+
+.mockup-upload-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mockup-upload-preview__frame {
+  width: 100%;
+  max-width: 320px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(85, 85, 85, 0.14);
+  background: var(--zx-gray-light-light-light, #f7f7f7);
+}
+
+.mockup-upload-preview__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 280px;
+  object-fit: contain;
+}
+
+.mockup-upload-preview__actions {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.mockup-upload-preview__replace-btn {
+  white-space: nowrap;
+}
+
+.text-white .logo-upload-zone__title {
+  color: inherit;
+}
+
+.text-white .logo-upload-zone {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.text-white .logo-upload-zone:hover {
+  border-color: var(--zx-green, #26a69a);
+  background: rgba(38, 166, 154, 0.12);
+}

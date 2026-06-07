@@ -8,6 +8,7 @@ const BACKEND_URL = environment.apiUrl + '/ph-files';
 
 export const PH_FILE_TYPE_PRINTING_HOUSE_LOGO = 'printing-house-logo';
 export const PH_FILE_TYPE_TEXTURE = 'texture';
+export const PH_FILE_TYPE_MOCKUP = 'mockup';
 
 export interface PhUploadedFileRef {
   url: string;

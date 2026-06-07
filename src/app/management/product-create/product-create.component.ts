@@ -15,7 +15,11 @@ import { Subscription } from 'rxjs';
 import { DirectionService } from '../../direction.service';
 import { PhCategoriesService } from '../../ph-categories/ph-categories.service';
 import { PhCategory, PhLabel, PhSubCategory } from '../../ph-categories/ph-category.model';
-import { PH_FILE_TYPE_TEXTURE, PhFilesService } from '../../ph-files/ph-files.service';
+import {
+  PH_FILE_TYPE_MOCKUP,
+  PH_FILE_TYPE_TEXTURE,
+  PhFilesService,
+} from '../../ph-files/ph-files.service';
 import { isColorTextureUrl } from '../../ph-products/ph-color-texture.util';
 import { PhProductsService } from '../../ph-products/ph-products.service';
 import {
@@ -37,6 +41,12 @@ import {
   PhSize,
   PhTreeExtraSettings,
 } from '../../ph-products/ph-product.model';
+
+interface ProductMockupState {
+  url: string;
+  uploading: boolean;
+  progress: number;
+}
 
 @Component({
   selector: 'app-product-create',
@@ -61,6 +71,12 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   private readonly positiveNumberValidators = [Validators.required, Validators.min(0)];
   private readonly colorTextureUploads = new Map<AbstractControl, Subscription>();
   colorTextureUploadProgress = new Map<AbstractControl, number>();
+
+  /** In-memory only — not persisted on product save (for now). */
+  private readonly sizeMockupStates = new WeakMap<AbstractControl, ProductMockupState>();
+  private readonly sizeMockupUploadSubs = new Map<AbstractControl, Subscription>();
+  dynamicMockupState: ProductMockupState = this.createEmptyMockupState();
+  private dynamicMockupUploadSub?: Subscription;
 
   form = new FormGroup({
     name_he: new FormControl<string>('', {
@@ -225,6 +241,149 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     }
     this.colorTextureUploads.clear();
     this.colorTextureUploadProgress.clear();
+    for (const sub of this.sizeMockupUploadSubs.values()) {
+      sub.unsubscribe();
+    }
+    this.dynamicMockupUploadSub?.unsubscribe();
+  }
+
+  hasMockupUrl(sizeGroup: AbstractControl | null): boolean {
+    return !!this.getMockupState(sizeGroup).url.trim();
+  }
+
+  isMockupUploading(sizeGroup: AbstractControl | null): boolean {
+    return this.getMockupState(sizeGroup).uploading;
+  }
+
+  getMockupUploadProgress(sizeGroup: AbstractControl | null): number {
+    return this.getMockupState(sizeGroup).progress;
+  }
+
+  getMockupUrl(sizeGroup: AbstractControl | null): string {
+    return this.getMockupState(sizeGroup).url;
+  }
+
+  triggerMockupFilePicker(sizeGroup: AbstractControl | null, input: HTMLInputElement): void {
+    if (this.isMockupUploading(sizeGroup)) {
+      return;
+    }
+    input.click();
+  }
+
+  onMockupFileSelected(event: Event, sizeGroup: AbstractControl | null): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      this.snackBar.open(
+        this.translateService.instant('management.product-create.mockup-upload-invalid-type'),
+        undefined,
+        { duration: 4000 },
+      );
+      return;
+    }
+
+    this.cancelMockupUpload(sizeGroup);
+
+    const state = this.getMockupState(sizeGroup);
+    state.uploading = true;
+    state.progress = 0;
+
+    const sub = this.phFilesService.upload(PH_FILE_TYPE_MOCKUP, file).subscribe({
+      next: (httpEvent) => {
+        if (httpEvent.type === HttpEventType.UploadProgress) {
+          const total = httpEvent.total ?? 0;
+          state.progress = total ? Math.round((100 * httpEvent.loaded) / total) : 0;
+          return;
+        }
+
+        if (httpEvent.type !== HttpEventType.Response || !httpEvent.body) {
+          return;
+        }
+
+        const mockupUrl =
+          httpEvent.body.thumbnail?.url?.trim() || httpEvent.body.original?.url?.trim() || '';
+
+        if (!mockupUrl) {
+          this.finishMockupUpload(sizeGroup);
+          this.snackBar.open(
+            this.translateService.instant('management.product-create.mockup-upload-failed'),
+            undefined,
+            { duration: 4000 },
+          );
+          return;
+        }
+
+        state.url = mockupUrl;
+        this.finishMockupUpload(sizeGroup);
+      },
+      error: () => {
+        this.finishMockupUpload(sizeGroup);
+        this.snackBar.open(
+          this.translateService.instant('management.product-create.mockup-upload-failed'),
+          undefined,
+          { duration: 4000 },
+        );
+      },
+    });
+
+    this.setMockupUploadSub(sizeGroup, sub);
+  }
+
+  cancelMockupUpload(sizeGroup: AbstractControl | null, event?: Event): void {
+    event?.stopPropagation();
+    event?.preventDefault();
+    this.finishMockupUpload(sizeGroup);
+  }
+
+  clearMockup(sizeGroup: AbstractControl | null): void {
+    const state = this.getMockupState(sizeGroup);
+    state.url = '';
+    this.finishMockupUpload(sizeGroup);
+  }
+
+  private getMockupState(sizeGroup: AbstractControl | null): ProductMockupState {
+    if (sizeGroup) {
+      let state = this.sizeMockupStates.get(sizeGroup);
+      if (!state) {
+        state = this.createEmptyMockupState();
+        this.sizeMockupStates.set(sizeGroup, state);
+      }
+      return state;
+    }
+    return this.dynamicMockupState;
+  }
+
+  private createEmptyMockupState(): ProductMockupState {
+    return { url: '', uploading: false, progress: 0 };
+  }
+
+  private setMockupUploadSub(sizeGroup: AbstractControl | null, sub: Subscription): void {
+    if (sizeGroup) {
+      this.sizeMockupUploadSubs.set(sizeGroup, sub);
+      return;
+    }
+    this.dynamicMockupUploadSub = sub;
+  }
+
+  private finishMockupUpload(sizeGroup: AbstractControl | null): void {
+    const state = this.getMockupState(sizeGroup);
+    state.uploading = false;
+    state.progress = 0;
+
+    if (sizeGroup) {
+      this.sizeMockupUploadSubs.get(sizeGroup)?.unsubscribe();
+      this.sizeMockupUploadSubs.delete(sizeGroup);
+      return;
+    }
+
+    this.dynamicMockupUploadSub?.unsubscribe();
+    this.dynamicMockupUploadSub = undefined;
   }
 
   isColorTexture(value: unknown): boolean {

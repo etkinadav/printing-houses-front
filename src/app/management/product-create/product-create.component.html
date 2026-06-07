@@ -137,6 +137,10 @@
                   }">
                 </ng-container>
               </div>
+
+              <ng-container
+                *ngTemplateOutlet="mockupUploadBlock; context: { sizeGroup: sizeGroup }">
+              </ng-container>
             </div>
             </ng-container>
 
@@ -161,6 +165,10 @@
             </ng-container>
           </div>
         </div>
+
+        <ng-container *ngIf="flexability === 'dynamic'">
+          <ng-container *ngTemplateOutlet="mockupUploadBlock; context: { sizeGroup: null }"></ng-container>
+        </ng-container>
 
         <div class="product-create-save">
           <button
@@ -769,6 +777,89 @@
 
     <div class="double-sided-branch__footer">
       <span class="double-sided-branch__rail-end" aria-hidden="true"></span>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #mockupUploadBlock let-sizeGroup="sizeGroup">
+  <div class="mockup-upload-section">
+    <div class="section-title">
+      {{ 'management.product-create.mockup-title' | translate }}
+    </div>
+
+    <div
+      *ngIf="!hasMockupUrl(sizeGroup)"
+      class="logo-upload-zone"
+      [class.logo-upload-zone--uploading]="isMockupUploading(sizeGroup)"
+      [class.c-pointer]="!isMockupUploading(sizeGroup)"
+      (click)="!isMockupUploading(sizeGroup) && triggerMockupFilePicker(sizeGroup, mockupFileInput)"
+    >
+      <button
+        *ngIf="isMockupUploading(sizeGroup)"
+        type="button"
+        class="logo-upload-zone__cancel"
+        (click)="cancelMockupUpload(sizeGroup, $event)"
+        [attr.aria-label]="'management.product-create.mockup-upload-cancel' | translate"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+
+      <h4 class="logo-upload-zone__title mb-0 fw-bold text-center">
+        {{
+          (isMockupUploading(sizeGroup)
+            ? 'management.product-create.mockup-uploading'
+            : 'management.product-create.mockup-upload')
+            | translate
+        }}
+      </h4>
+
+      <img
+        *ngIf="!isMockupUploading(sizeGroup)"
+        src="assets/images/upload-file-icon.svg"
+        class="logo-upload-zone__icon"
+        alt=""
+      />
+
+      <p *ngIf="!isMockupUploading(sizeGroup)" class="logo-upload-zone__hint mb-0 text-center">
+        {{ 'management.product-create.mockup-upload-hint' | translate }}
+      </p>
+
+      <div *ngIf="isMockupUploading(sizeGroup)" class="logo-upload-zone__progress">
+        <mat-progress-bar mode="determinate" [value]="getMockupUploadProgress(sizeGroup)"></mat-progress-bar>
+        <span class="logo-upload-zone__progress-label">{{ getMockupUploadProgress(sizeGroup) }}%</span>
+      </div>
+
+      <input
+        #mockupFileInput
+        type="file"
+        accept="image/*"
+        hidden
+        (change)="onMockupFileSelected($event, sizeGroup)"
+      />
+    </div>
+
+    <div *ngIf="hasMockupUrl(sizeGroup)" class="mockup-upload-preview w-100">
+      <div class="mockup-upload-preview__frame">
+        <img [src]="getMockupUrl(sizeGroup)" class="mockup-upload-preview__img" alt="" />
+      </div>
+      <div class="mockup-upload-preview__actions">
+        <button
+          mat-stroked-button
+          type="button"
+          class="mockup-upload-preview__replace-btn"
+          [disabled]="isMockupUploading(sizeGroup)"
+          (click)="triggerMockupFilePicker(sizeGroup, mockupReplaceInput)"
+        >
+          {{ 'management.product-create.mockup-replace' | translate }}
+        </button>
+        <input
+          #mockupReplaceInput
+          type="file"
+          accept="image/*"
+          hidden
+          (change)="onMockupFileSelected($event, sizeGroup)"
+        />
+      </div>
     </div>
   </div>
 </ng-template>
