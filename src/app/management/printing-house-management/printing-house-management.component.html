@@ -133,8 +133,10 @@
           <span
             *ngFor="let pill of node.colorPills"
             class="ph-spec-color-pill"
-            [style.background]="pill.hex"
-            [style.color]="colorPillTextColor(pill.hex)">
+            [class.ph-spec-color-pill--texture]="pill.textureUrl"
+            [style.background]="pill.textureUrl ? '#e8e8e8' : pill.hex"
+            [style.backgroundImage]="pill.textureUrl ? 'url(' + pill.textureUrl + ')' : null"
+            [style.color]="pill.textureUrl ? '#000000' : colorPillTextColor(pill.hex)">
             {{ pill.name }}
           </span>
         </div>

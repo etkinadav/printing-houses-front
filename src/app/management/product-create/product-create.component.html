@@ -358,7 +358,62 @@
               </span>
             </div>
             <div class="size-title-row__color-line">
-              <input type="color" formControlName="color" class="color-input" />
+              <input
+                *ngIf="!isColorTexture(color.get('color')?.value)"
+                type="color"
+                formControlName="color"
+                class="color-input"
+                [matTooltip]="'management.product-create.color-picker-tooltip' | translate"
+                [attr.aria-label]="'management.product-create.color-picker-tooltip' | translate" />
+              <div
+                *ngIf="isColorTexture(color.get('color')?.value)"
+                class="color-texture-preview"
+                [style.backgroundImage]="'url(' + color.get('color')?.value + ')'"
+                [attr.title]="'management.product-create.color-texture-preview' | translate">
+                <button
+                  type="button"
+                  class="color-texture-slot__cancel"
+                  (click)="clearColorTexture(color, $event)"
+                  [attr.aria-label]="'management.product-create.color-texture-clear' | translate">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+              <button
+                *ngIf="!isColorTexture(color.get('color')?.value)"
+                type="button"
+                class="color-texture-upload-btn"
+                [class.color-texture-upload-btn--uploading]="isColorTextureUploading(color)"
+                (click)="triggerColorTexturePicker(color, colorTextureInput)"
+                [matTooltip]="'management.product-create.color-texture-upload' | translate"
+                [attr.aria-label]="'management.product-create.color-texture-upload' | translate">
+                <img
+                  *ngIf="!isColorTextureUploading(color)"
+                  src="assets/images/upload-file-icon.svg"
+                  class="color-texture-upload-btn__icon"
+                  alt="" />
+                <mat-progress-spinner
+                  *ngIf="isColorTextureUploading(color)"
+                  mode="determinate"
+                  [value]="getColorTextureUploadProgress(color)"
+                  diameter="28"></mat-progress-spinner>
+                <span
+                  *ngIf="isColorTextureUploading(color)"
+                  class="color-texture-slot__cancel color-texture-slot__cancel--upload"
+                  role="button"
+                  tabindex="0"
+                  (click)="cancelColorTextureUpload(color, $event)"
+                  (keydown.enter)="cancelColorTextureUpload(color, $event)"
+                  (keydown.space)="cancelColorTextureUpload(color, $event)"
+                  [attr.aria-label]="'management.product-create.color-texture-upload-cancel' | translate">
+                  <mat-icon>close</mat-icon>
+                </span>
+              </button>
+              <input
+                #colorTextureInput
+                type="file"
+                accept="image/*"
+                hidden
+                (change)="onColorTextureSelected($event, color)" />
               <div [formGroup]="$any(color.get('label'))" class="size-title-row__field">
                 <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-100">
                   <input

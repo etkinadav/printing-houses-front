@@ -1,4 +1,5 @@
 import { PhCategory, PhLabel, PhSubCategory } from '../ph-categories/ph-category.model';
+import { isColorTextureUrl } from './ph-color-texture.util';
 import {
   PhBleed,
   PhColor,
@@ -16,6 +17,7 @@ import {
 export interface ProductSpecColorPill {
   name: string;
   hex: string;
+  textureUrl?: string;
 }
 
 export interface ProductSpecNode {
@@ -245,9 +247,12 @@ function buildExtraSettingSpecNodes(node: PhTreeExtraSettings, t: TranslateFn): 
 }
 
 function colorToPill(color: PhColor): ProductSpecColorPill {
+  const raw = color.color?.trim() || '#cccccc';
+  const textureUrl = isColorTextureUrl(raw) ? raw : undefined;
   return {
     name: color.label?.he?.trim() || '—',
-    hex: color.color?.trim() || '#cccccc',
+    hex: textureUrl ? '#e8e8e8' : raw,
+    textureUrl,
   };
 }
 
@@ -310,10 +315,7 @@ export function collectProductExtraSettingLines(product: PhProduct, t: Translate
 
 function mapColorPills(colors: PhColor[]): ProductSpecColorPill[] | undefined {
   if (!colors?.length) return undefined;
-  return colors.map((c) => ({
-    name: c.label?.he?.trim() || '—',
-    hex: c.color?.trim() || '#cccccc',
-  }));
+  return colors.map((c) => colorToPill(c));
 }
 
 function formatMaterialDisplayLine(

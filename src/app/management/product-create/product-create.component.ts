@@ -1,3 +1,4 @@
+import { HttpEventType } from '@angular/common/http';
 import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
@@ -14,6 +15,8 @@ import { Subscription } from 'rxjs';
 import { DirectionService } from '../../direction.service';
 import { PhCategoriesService } from '../../ph-categories/ph-categories.service';
 import { PhCategory, PhLabel, PhSubCategory } from '../../ph-categories/ph-category.model';
+import { PH_FILE_TYPE_TEXTURE, PhFilesService } from '../../ph-files/ph-files.service';
+import { isColorTextureUrl } from '../../ph-products/ph-color-texture.util';
 import { PhProductsService } from '../../ph-products/ph-products.service';
 import {
   CornerType,
@@ -56,6 +59,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   readonly extraSettingOptions: ExtraSettingKey[] = ['corners', 'bleed', 'folding', 'duplex', 'double-sided'];
 
   private readonly positiveNumberValidators = [Validators.required, Validators.min(0)];
+  private readonly colorTextureUploads = new Map<AbstractControl, Subscription>();
+  colorTextureUploadProgress = new Map<AbstractControl, number>();
 
   form = new FormGroup({
     name_he: new FormControl<string>('', {
@@ -93,6 +98,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   constructor(
     private phCategoriesService: PhCategoriesService,
     private phProductsService: PhProductsService,
+    private phFilesService: PhFilesService,
     private directionService: DirectionService,
     private translateService: TranslateService,
     private snackBar: MatSnackBar,
@@ -214,6 +220,112 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     this.categorySub?.unsubscribe();
     this.flexabilitySub?.unsubscribe();
     this.railResizeObserver?.disconnect();
+    for (const sub of this.colorTextureUploads.values()) {
+      sub.unsubscribe();
+    }
+    this.colorTextureUploads.clear();
+    this.colorTextureUploadProgress.clear();
+  }
+
+  isColorTexture(value: unknown): boolean {
+    return isColorTextureUrl(String(value ?? ''));
+  }
+
+  isColorTextureUploading(color: AbstractControl): boolean {
+    return this.colorTextureUploads.has(color);
+  }
+
+  getColorTextureUploadProgress(color: AbstractControl): number {
+    return this.colorTextureUploadProgress.get(color) ?? 0;
+  }
+
+  triggerColorTexturePicker(color: AbstractControl, input: HTMLInputElement): void {
+    if (this.isColorTextureUploading(color)) {
+      return;
+    }
+    input.click();
+  }
+
+  onColorTextureSelected(event: Event, color: AbstractControl): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      this.snackBar.open(
+        this.translateService.instant('management.product-create.color-texture-invalid-type'),
+        undefined,
+        { duration: 4000 },
+      );
+      return;
+    }
+
+    this.colorTextureUploads.get(color)?.unsubscribe();
+    this.colorTextureUploadProgress.set(color, 0);
+
+    const sub = this.phFilesService.upload(PH_FILE_TYPE_TEXTURE, file).subscribe({
+      next: (httpEvent) => {
+        if (httpEvent.type === HttpEventType.UploadProgress) {
+          const total = httpEvent.total ?? 0;
+          this.colorTextureUploadProgress.set(
+            color,
+            total ? Math.round((100 * httpEvent.loaded) / total) : 0,
+          );
+          return;
+        }
+
+        if (httpEvent.type !== HttpEventType.Response || !httpEvent.body) {
+          return;
+        }
+
+        const textureUrl =
+          httpEvent.body.thumbnail?.url?.trim() || httpEvent.body.original?.url?.trim() || '';
+
+        if (!textureUrl) {
+          this.finishColorTextureUpload(color);
+          this.snackBar.open(
+            this.translateService.instant('management.product-create.color-texture-upload-failed'),
+            undefined,
+            { duration: 4000 },
+          );
+          return;
+        }
+
+        color.get('color')!.setValue(textureUrl);
+        this.finishColorTextureUpload(color);
+      },
+      error: () => {
+        this.finishColorTextureUpload(color);
+        this.snackBar.open(
+          this.translateService.instant('management.product-create.color-texture-upload-failed'),
+          undefined,
+          { duration: 4000 },
+        );
+      },
+    });
+
+    this.colorTextureUploads.set(color, sub);
+  }
+
+  clearColorTexture(color: AbstractControl, event?: Event): void {
+    event?.stopPropagation();
+    color.get('color')!.setValue('#ffffff');
+  }
+
+  cancelColorTextureUpload(color: AbstractControl, event?: Event): void {
+    event?.stopPropagation();
+    event?.preventDefault();
+    this.finishColorTextureUpload(color);
+  }
+
+  private finishColorTextureUpload(color: AbstractControl): void {
+    this.colorTextureUploads.get(color)?.unsubscribe();
+    this.colorTextureUploads.delete(color);
+    this.colorTextureUploadProgress.delete(color);
   }
 
   ngAfterViewInit(): void {

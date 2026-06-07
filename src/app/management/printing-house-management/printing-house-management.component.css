@@ -402,6 +402,13 @@
   text-overflow: ellipsis;
 }
 
+.ph-spec-color-pill--texture {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.85);
+}
+
 @media only screen and (min-width: 992px) {
   .ph-mgmt-header {
     --ph-logo-size: 144px;

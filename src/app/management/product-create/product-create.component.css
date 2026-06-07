@@ -1319,6 +1319,103 @@
   min-height: var(--field-subscript-reserve);
 }
 
+.color-texture-preview,
+.color-texture-upload-btn {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 0.35rem;
+  box-sizing: border-box;
+}
+
+.color-texture-preview,
+.color-texture-upload-btn {
+  position: relative;
+}
+
+.color-texture-preview {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: #f0f0f0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.color-texture-slot__cancel {
+  position: absolute;
+  top: 2px;
+  inset-inline-end: 2px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--zx-green, #26a69a);
+  color: #fff;
+  cursor: pointer;
+  line-height: 0;
+  pointer-events: auto;
+}
+
+.color-texture-slot__cancel .mat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 11px;
+  height: 11px;
+  font-size: 11px;
+  line-height: 1;
+  margin: 0;
+  transform: translateY(0.5px);
+}
+
+.color-texture-slot__cancel--upload {
+  background: var(--zx-pink, #972563);
+}
+
+.color-texture-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px dashed rgba(85, 85, 85, 0.35);
+  border-radius: 6px;
+  background: rgba(38, 166, 154, 0.06);
+  color: var(--zx-green, #26a69a);
+  cursor: pointer;
+  transition: border-color 150ms, background-color 150ms;
+}
+
+.color-texture-upload-btn:hover:not(:disabled) {
+  border-color: var(--zx-green, #26a69a);
+  background: rgba(38, 166, 154, 0.12);
+}
+
+.color-texture-upload-btn--uploading {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.color-texture-upload-btn--uploading:hover {
+  border-color: rgba(85, 85, 85, 0.35);
+  background: rgba(38, 166, 154, 0.06);
+}
+
+.color-texture-upload-btn__icon {
+  width: 34px;
+  height: auto;
+  max-height: 38px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
 .color-input {
   width: 44px;
   height: 44px;
@@ -1356,6 +1453,13 @@
 }
 
 /* Dark mode */
-.text-white .color-input {
+.text-white .color-input,
+.text-white .color-texture-preview {
   border-color: rgba(255, 255, 255, 0.3);
+}
+
+.text-white .color-texture-upload-btn {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
 }
