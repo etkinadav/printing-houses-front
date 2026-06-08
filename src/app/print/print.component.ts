@@ -283,16 +283,16 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Sum of all label lengths + (buttonCount - 1) * 5.
+   * Sum of all label lengths + optional per-button extra + (buttonCount - 1) * 5.
    * When the score exceeds 30, settings toggles use a stacked centered layout.
    */
-  settingsButtonsShouldWrap(labels: string[]): boolean {
+  settingsButtonsShouldWrap(labels: string[], extraPerButton = 0): boolean {
     const count = labels.length;
     if (count === 0) {
       return false;
     }
     const letterSum = labels.reduce(
-      (sum, label) => sum + (label?.trim().length ?? 0),
+      (sum, label) => sum + (label?.trim().length ?? 0) + extraPerButton,
       0,
     );
     const score = letterSum + (count - 1) * 5;
@@ -324,6 +324,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   get colorSettingsWrap(): boolean {
     return this.settingsButtonsShouldWrap(
       this.colorsForSelectedMaterial.map((color) => this.getColorLabel(color)),
+      3,
     );
   }
 
