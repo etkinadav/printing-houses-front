@@ -17,11 +17,24 @@ import {
   PhPrintingFile,
   PhPrintingFilePrintSettings,
 } from '../ph-printing-files/ph-printing-file.model';
+import {
+  ExtraSettingsUiStateMap,
+  PrintExtraSettingRow,
+  appendExtraSelectionsToPrintSettings,
+  buildDefaultExtraUiStateMap,
+  buildExtraSettingsContext,
+  buildVisibleExtraSettingRows,
+  buildPersistedExtraSelections,
+  reconcileExtraUiStateOnTreeChange,
+  syncExtraUiStateFromSaved,
+  validateExtraSelections,
+} from '../ph-printing-files/ph-print-extra-settings.util';
 import { PhPrintingFilesService } from '../ph-printing-files/ph-printing-files.service';
 import { isColorTextureUrl } from '../ph-products/ph-color-texture.util';
 import {
   PhColor,
   PhDynamicMaterial,
+  ExtraSettingKey,
   PhMaterial,
   PhProduct,
   PhSize,
@@ -74,6 +87,9 @@ export class PrintComponent implements OnInit, OnDestroy {
   currentColorIndex = 0;
   printingLengthCm = 0;
   printingWidthCm = 0;
+  extraSettingsUi: ExtraSettingsUiStateMap = {};
+  /** Cached extra-setting rows — never compute in template (avoids infinite change detection). */
+  extraSettingRows: PrintExtraSettingRow[] = [];
 
   /** Cached product options — never compute in template (avoids infinite change detection). */
   fixedDimensionOptions: FixedDimensionOption[] = [];
@@ -179,6 +195,15 @@ export class PrintComponent implements OnInit, OnDestroy {
     return this.selectedMaterial?.colors ?? [];
   }
 
+  get selectedColor(): PhColor | null {
+    const colors = this.colorsForSelectedMaterial;
+    if (!colors.length) {
+      return null;
+    }
+    const idx = Math.min(Math.max(0, this.currentColorIndex), colors.length - 1);
+    return colors[idx] ?? null;
+  }
+
   get hasSettingsReadyFile(): boolean {
     return !!this.selectedFile && !this.isFileProcessing(this.selectedFile);
   }
@@ -268,6 +293,10 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   trackFileById(_index: number, file: PhPrintingFile): string {
     return file._id;
+  }
+
+  trackExtraSettingRow(_index: number, row: PrintExtraSettingRow): string {
+    return row.key;
   }
 
   isSelected(file: PhPrintingFile): boolean {
@@ -373,6 +402,17 @@ export class PrintComponent implements OnInit, OnDestroy {
       previousMaterials,
       this.currentMaterialIndex,
     );
+    const previousColor = this.getColorAtIndex(
+      previousMaterial,
+      this.currentColorIndex,
+    );
+    const previousExtraCtx = buildExtraSettingsContext(
+      previousSize,
+      previousMaterial,
+      previousColor,
+    );
+    const previousExtraUi = { ...this.extraSettingsUi };
+
     const previousMaterialLabel = previousMaterial
       ? this.getMaterialLabel(previousMaterial)
       : '';
@@ -392,6 +432,12 @@ export class PrintComponent implements OnInit, OnDestroy {
       newMaterial?.colors ?? [],
       previousColorLabel,
     );
+    this.extraSettingsUi = reconcileExtraUiStateOnTreeChange(
+      buildExtraSettingsContext(size, newMaterial, this.getColorAtIndex(newMaterial, this.currentColorIndex)),
+      previousExtraCtx,
+      previousExtraUi,
+    );
+    this.rebuildExtraSettingRows();
     this.printingLengthCm = Number(size.length);
     this.printingWidthCm = Number(size.width);
     this.persistCurrentFileSettings();
@@ -415,8 +461,12 @@ export class PrintComponent implements OnInit, OnDestroy {
       ) {
         return;
       }
+      const previousMaterial = materials[this.currentMaterialIndex] ?? null;
+      const previousColor = this.getColorAtIndex(previousMaterial, this.currentColorIndex);
+      const previousExtraCtx = buildExtraSettingsContext(null, previousMaterial, previousColor);
+      const previousExtraUi = { ...this.extraSettingsUi };
       const previousColorLabel = this.getColorLabelAtIndex(
-        materials[this.currentMaterialIndex],
+        previousMaterial,
         this.currentColorIndex,
       );
       this.currentMaterialIndex = materialIndex;
@@ -425,6 +475,12 @@ export class PrintComponent implements OnInit, OnDestroy {
         material?.colors ?? [],
         previousColorLabel,
       );
+      this.extraSettingsUi = reconcileExtraUiStateOnTreeChange(
+        buildExtraSettingsContext(null, material, this.getColorAtIndex(material, this.currentColorIndex)),
+        previousExtraCtx,
+        previousExtraUi,
+      );
+      this.rebuildExtraSettingRows();
       if (
         !this.areDynamicDimensionsValid(
           material,
@@ -449,8 +505,16 @@ export class PrintComponent implements OnInit, OnDestroy {
       ) {
         return;
       }
+      const previousMaterial = materials[this.currentMaterialIndex] ?? null;
+      const previousColor = this.getColorAtIndex(previousMaterial, this.currentColorIndex);
+      const previousExtraCtx = buildExtraSettingsContext(
+        this.selectedFixedSize,
+        previousMaterial,
+        previousColor,
+      );
+      const previousExtraUi = { ...this.extraSettingsUi };
       const previousColorLabel = this.getColorLabelAtIndex(
-        materials[this.currentMaterialIndex],
+        previousMaterial,
         this.currentColorIndex,
       );
       this.currentMaterialIndex = materialIndex;
@@ -459,6 +523,16 @@ export class PrintComponent implements OnInit, OnDestroy {
         material?.colors ?? [],
         previousColorLabel,
       );
+      this.extraSettingsUi = reconcileExtraUiStateOnTreeChange(
+        buildExtraSettingsContext(
+          this.selectedFixedSize,
+          material,
+          this.getColorAtIndex(material, this.currentColorIndex),
+        ),
+        previousExtraCtx,
+        previousExtraUi,
+      );
+      this.rebuildExtraSettingRows();
       this.persistCurrentFileSettings();
     }
   }
@@ -476,7 +550,39 @@ export class PrintComponent implements OnInit, OnDestroy {
     ) {
       return;
     }
+    const previousExtraCtx = this.getCurrentExtraSettingsContext();
+    const previousExtraUi = { ...this.extraSettingsUi };
     this.currentColorIndex = colorIndex;
+    this.extraSettingsUi = reconcileExtraUiStateOnTreeChange(
+      this.getCurrentExtraSettingsContext(),
+      previousExtraCtx,
+      previousExtraUi,
+    );
+    this.rebuildExtraSettingRows();
+    this.persistCurrentFileSettings();
+  }
+
+  onExtraSettingEnabledChange(key: ExtraSettingKey, enabled: boolean): void {
+    if (this.suppressSettingsPersist) {
+      return;
+    }
+    const current = this.extraSettingsUi[key] ?? { selectedIndex: 0, enabled: false };
+    this.extraSettingsUi = {
+      ...this.extraSettingsUi,
+      [key]: { ...current, enabled },
+    };
+    this.persistCurrentFileSettings();
+  }
+
+  onExtraSettingIndexChange(key: ExtraSettingKey, index: number): void {
+    if (this.suppressSettingsPersist) {
+      return;
+    }
+    const current = this.extraSettingsUi[key] ?? { selectedIndex: 0, enabled: true };
+    this.extraSettingsUi = {
+      ...this.extraSettingsUi,
+      [key]: { ...current, selectedIndex: index, enabled: true },
+    };
     this.persistCurrentFileSettings();
   }
 
@@ -663,8 +769,92 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.currentFixedOptionIndex = null;
     this.currentMaterialIndex = 0;
     this.currentColorIndex = 0;
+    this.extraSettingsUi = {};
+    this.extraSettingRows = [];
     this.printingLengthCm = 0;
     this.printingWidthCm = 0;
+  }
+
+  private rebuildExtraSettingRows(): void {
+    if (!this.product || !this.hasSettingsReadyFile) {
+      this.extraSettingRows = [];
+      return;
+    }
+    this.extraSettingRows = buildVisibleExtraSettingRows(
+      this.getCurrentExtraSettingsContext(),
+      this.extraSettingsUi,
+      (key, params) => this.translateService.instant(key, params),
+    );
+  }
+
+  private getExtraSettingsContextForFile(file: PhPrintingFile) {
+    const ps = file.printSettings;
+    if (this.isFixedProduct) {
+      const sizeIndex = Number(ps?.sizeIndex ?? 0);
+      const size = this.fixedSizes[sizeIndex] ?? null;
+      const materials = size?.materials ?? [];
+      const materialIndex = Number(ps?.materialIndex ?? 0);
+      const material = materials[materialIndex] ?? null;
+      const colors = material?.colors ?? [];
+      const colorIndex = colors.length
+        ? Math.min(Math.max(0, Number(ps?.colorIndex ?? 0)), colors.length - 1)
+        : 0;
+      const color = colors[colorIndex] ?? null;
+      return buildExtraSettingsContext(size, material, color);
+    }
+    if (this.isDynamicProduct) {
+      const materialIndex = Number(ps?.materialIndex ?? 0);
+      const material = this.dynamicMaterials[materialIndex] ?? null;
+      const colors = material?.colors ?? [];
+      const colorIndex = colors.length
+        ? Math.min(Math.max(0, Number(ps?.colorIndex ?? 0)), colors.length - 1)
+        : 0;
+      const color = colors[colorIndex] ?? null;
+      return buildExtraSettingsContext(null, material, color);
+    }
+    return buildExtraSettingsContext(null, null, null);
+  }
+
+  private fileExtraSettingsAreValid(file: PhPrintingFile): boolean {
+    const ps = file.printSettings;
+    if (!ps) {
+      return false;
+    }
+    const ctx = this.getExtraSettingsContextForFile(file);
+    return validateExtraSelections(ctx, {
+      ...buildPersistedExtraSelections(ctx, buildDefaultExtraUiStateMap(ctx)),
+      ...ps,
+    });
+  }
+
+  private getCurrentExtraSettingsContext() {
+    return buildExtraSettingsContext(
+      this.selectedFixedSize,
+      this.selectedMaterial,
+      this.selectedColor,
+    );
+  }
+
+  private getColorAtIndex(
+    material: PhMaterial | PhDynamicMaterial | null | undefined,
+    colorIndex: number,
+  ): PhColor | null {
+    const colors = material?.colors ?? [];
+    if (!colors.length) {
+      return null;
+    }
+    const idx = Math.min(Math.max(0, colorIndex), colors.length - 1);
+    return colors[idx] ?? null;
+  }
+
+  private appendExtrasToSettings(
+    settings: PhPrintingFilePrintSettings,
+  ): PhPrintingFilePrintSettings {
+    return appendExtraSelectionsToPrintSettings(
+      settings,
+      this.getCurrentExtraSettingsContext(),
+      this.extraSettingsUi,
+    );
   }
 
   private getMaterialAtIndex(
@@ -870,7 +1060,7 @@ export class PrintComponent implements OnInit, OnDestroy {
       if (this.pendingDefaultSettingsFileIds.has(file._id)) {
         continue;
       }
-      const defaults = this.buildDefaultPrintSettings();
+      const defaults = this.buildDefaultPrintSettingsForFile(file);
       if (!defaults) {
         continue;
       }
@@ -909,7 +1099,7 @@ export class PrintComponent implements OnInit, OnDestroy {
       return this.isColorIndexValidForMaterial(
         materials[materialIndex],
         Number(ps.colorIndex ?? 0),
-      );
+      ) && this.fileExtraSettingsAreValid(file);
     }
     if (this.isDynamicProduct) {
       const materialIndex = Number(ps.materialIndex ?? 0);
@@ -938,7 +1128,7 @@ export class PrintComponent implements OnInit, OnDestroy {
       return this.isColorIndexValidForMaterial(
         this.dynamicMaterials[materialIndex],
         Number(ps.colorIndex ?? 0),
-      );
+      ) && this.fileExtraSettingsAreValid(file);
     }
     return false;
   }
@@ -954,15 +1144,21 @@ export class PrintComponent implements OnInit, OnDestroy {
         return null;
       }
       const material = size.materials?.[0] ?? null;
-      return this.appendColorIndexToSettings(
-        {
-          paperType: material ? this.getMaterialLabel(material) : option.label,
-          sizeIndex: option.sizeIndex,
-          materialIndex: 0,
-          lengthCm: Number(size.length),
-          widthCm: Number(size.width),
-        },
-        material,
+      const color = material?.colors?.[0] ?? null;
+      const extraCtx = buildExtraSettingsContext(size, material, color);
+      return appendExtraSelectionsToPrintSettings(
+        this.appendColorIndexToSettings(
+          {
+            paperType: material ? this.getMaterialLabel(material) : option.label,
+            sizeIndex: option.sizeIndex,
+            materialIndex: 0,
+            lengthCm: Number(size.length),
+            widthCm: Number(size.width),
+          },
+          material,
+        ),
+        extraCtx,
+        buildDefaultExtraUiStateMap(extraCtx),
       );
     }
     if (this.isDynamicProduct) {
@@ -970,14 +1166,96 @@ export class PrintComponent implements OnInit, OnDestroy {
       if (!material) {
         return null;
       }
-      return this.appendColorIndexToSettings(
-        {
-          paperType: this.getMaterialLabel(material),
-          materialIndex: 0,
-          lengthCm: Number(material.defaultLength),
-          widthCm: Number(material.defaultHeight),
-        },
-        material,
+      const color = material.colors?.[0] ?? null;
+      const extraCtx = buildExtraSettingsContext(null, material, color);
+      return appendExtraSelectionsToPrintSettings(
+        this.appendColorIndexToSettings(
+          {
+            paperType: this.getMaterialLabel(material),
+            materialIndex: 0,
+            lengthCm: Number(material.defaultLength),
+            widthCm: Number(material.defaultHeight),
+          },
+          material,
+        ),
+        extraCtx,
+        buildDefaultExtraUiStateMap(extraCtx),
+      );
+    }
+    return null;
+  }
+
+  private buildDefaultPrintSettingsForFile(file: PhPrintingFile): PhPrintingFilePrintSettings | null {
+    if (!this.product) {
+      return null;
+    }
+    const ps = file.printSettings;
+    if (this.isFixedProduct) {
+      const sizeIndex = Number.isInteger(Number(ps?.sizeIndex)) && Number(ps?.sizeIndex) >= 0
+        ? Number(ps?.sizeIndex)
+        : 0;
+      const size = this.fixedSizes[sizeIndex] ?? this.fixedSizes[0];
+      if (!size) {
+        return null;
+      }
+      const materials = size.materials ?? [];
+      const materialIndex =
+        Number.isInteger(Number(ps?.materialIndex)) &&
+        Number(ps?.materialIndex) >= 0 &&
+        Number(ps?.materialIndex) < materials.length
+          ? Number(ps?.materialIndex)
+          : 0;
+      const material = materials[materialIndex] ?? materials[0] ?? null;
+      const colors = material?.colors ?? [];
+      const colorIndex = colors.length
+        ? Math.min(Math.max(0, Number(ps?.colorIndex ?? 0)), colors.length - 1)
+        : 0;
+      const color = colors[colorIndex] ?? null;
+      const extraCtx = buildExtraSettingsContext(size, material, color);
+      return appendExtraSelectionsToPrintSettings(
+        this.appendColorIndexToSettings(
+          {
+            paperType: material ? this.getMaterialLabel(material) : this.getFixedSizeDisplayLabel(size),
+            sizeIndex,
+            materialIndex,
+            lengthCm: Number(size.length),
+            widthCm: Number(size.width),
+          },
+          material,
+        ),
+        extraCtx,
+        buildDefaultExtraUiStateMap(extraCtx),
+      );
+    }
+    if (this.isDynamicProduct) {
+      const materialIndex =
+        Number.isInteger(Number(ps?.materialIndex)) &&
+        Number(ps?.materialIndex) >= 0 &&
+        Number(ps?.materialIndex) < this.dynamicMaterials.length
+          ? Number(ps?.materialIndex)
+          : 0;
+      const material = this.dynamicMaterials[materialIndex] ?? this.dynamicMaterials[0];
+      if (!material) {
+        return null;
+      }
+      const colors = material.colors ?? [];
+      const colorIndex = colors.length
+        ? Math.min(Math.max(0, Number(ps?.colorIndex ?? 0)), colors.length - 1)
+        : 0;
+      const color = colors[colorIndex] ?? null;
+      const extraCtx = buildExtraSettingsContext(null, material, color);
+      return appendExtraSelectionsToPrintSettings(
+        this.appendColorIndexToSettings(
+          {
+            paperType: this.getMaterialLabel(material),
+            materialIndex,
+            lengthCm: Number(ps?.lengthCm ?? material.defaultLength),
+            widthCm: Number(ps?.widthCm ?? material.defaultHeight),
+          },
+          material,
+        ),
+        extraCtx,
+        buildDefaultExtraUiStateMap(extraCtx),
       );
     }
     return null;
@@ -1016,6 +1294,19 @@ export class PrintComponent implements OnInit, OnDestroy {
         );
         this.printingLengthCm = Number(ps?.lengthCm ?? size?.length ?? 0);
         this.printingWidthCm = Number(ps?.widthCm ?? size?.width ?? 0);
+        this.extraSettingsUi = syncExtraUiStateFromSaved(
+          buildExtraSettingsContext(
+            size,
+            materials[resolvedMaterialIndex] ?? null,
+            (materials[resolvedMaterialIndex]?.colors ?? [])[
+              Math.min(
+                Math.max(0, Number(ps?.colorIndex ?? 0)),
+                Math.max(0, (materials[resolvedMaterialIndex]?.colors ?? []).length - 1),
+              )
+            ] ?? null,
+          ),
+          ps,
+        );
         return;
       }
 
@@ -1038,8 +1329,22 @@ export class PrintComponent implements OnInit, OnDestroy {
         this.printingWidthCm = Number(
           ps?.widthCm ?? material?.defaultHeight ?? 0,
         );
+        this.extraSettingsUi = syncExtraUiStateFromSaved(
+          buildExtraSettingsContext(
+            null,
+            material,
+            (material?.colors ?? [])[
+              Math.min(
+                Math.max(0, Number(ps?.colorIndex ?? 0)),
+                Math.max(0, (material?.colors ?? []).length - 1),
+              )
+            ] ?? null,
+          ),
+          ps,
+        );
       }
     } finally {
+      this.rebuildExtraSettingRows();
       setTimeout(() => {
         this.suppressSettingsPersist = false;
       });
@@ -1062,15 +1367,17 @@ export class PrintComponent implements OnInit, OnDestroy {
         Math.max(0, materials.length - 1),
       );
       const material = materials[materialIndex] ?? null;
-      return this.appendColorIndexToSettings(
-        {
-          paperType: material ? this.getMaterialLabel(material) : option.label,
-          sizeIndex: option.sizeIndex,
-          materialIndex,
-          lengthCm: Number(size.length),
-          widthCm: Number(size.width),
-        },
-        material,
+      return this.appendExtrasToSettings(
+        this.appendColorIndexToSettings(
+          {
+            paperType: material ? this.getMaterialLabel(material) : option.label,
+            sizeIndex: option.sizeIndex,
+            materialIndex,
+            lengthCm: Number(size.length),
+            widthCm: Number(size.width),
+          },
+          material,
+        ),
       );
     }
     if (this.isDynamicProduct) {
@@ -1078,14 +1385,16 @@ export class PrintComponent implements OnInit, OnDestroy {
       if (!material) {
         return null;
       }
-      return this.appendColorIndexToSettings(
-        {
-          paperType: this.getMaterialLabel(material),
-          materialIndex: this.currentMaterialIndex,
-          lengthCm: this.roundCm(this.printingLengthCm) ?? this.printingLengthCm,
-          widthCm: this.roundCm(this.printingWidthCm) ?? this.printingWidthCm,
-        },
-        material,
+      return this.appendExtrasToSettings(
+        this.appendColorIndexToSettings(
+          {
+            paperType: this.getMaterialLabel(material),
+            materialIndex: this.currentMaterialIndex,
+            lengthCm: this.roundCm(this.printingLengthCm) ?? this.printingLengthCm,
+            widthCm: this.roundCm(this.printingWidthCm) ?? this.printingWidthCm,
+          },
+          material,
+        ),
       );
     }
     return null;

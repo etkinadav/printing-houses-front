@@ -482,7 +482,7 @@
                       [class.justify-content-center]="colorSettingsWrap"
                       name="print-color"
                       aria-label="Print color"
-                      [(ngModel)]="currentColorIndex"
+                      [ngModel]="currentColorIndex"
                       (ngModelChange)="onColorChange($event)">
                       <mat-button-toggle
                         *ngFor="let color of colorsForSelectedMaterial; let colorIndex = index"
@@ -498,6 +498,59 @@
                       </mat-button-toggle>
                     </mat-button-toggle-group>
                   </article>
+
+                  <!-- Extra print settings (corners, bleed, folding, duplex, double-sided) -->
+                  <ng-container *ngFor="let row of extraSettingRows; trackBy: trackExtraSettingRow">
+                    <article
+                      *ngIf="row.display === 'boolean-toggle'"
+                      class="zx-min-h-50 w-100 d-flex justify-content-between align-items-center">
+                      <span>{{ row.settingTitle }}</span>
+                      <mat-button-toggle-group
+                        [name]="'extra-enabled-' + row.key"
+                        [attr.aria-label]="row.settingTitle"
+                        [ngModel]="extraSettingsUi[row.key]?.enabled ?? false"
+                        (ngModelChange)="onExtraSettingEnabledChange(row.key, $event)">
+                        <mat-button-toggle
+                          class="zx-rtl position-relative"
+                          [value]="false"
+                          [class.zx-text-white]="isDarkMode">
+                          <span>{{ row.toggleOffLabel }}</span>
+                        </mat-button-toggle>
+                        <mat-button-toggle
+                          class="zx-rtl position-relative"
+                          [value]="true"
+                          [class.zx-text-white]="isDarkMode">
+                          <span>{{ row.toggleOnLabel }}</span>
+                        </mat-button-toggle>
+                      </mat-button-toggle-group>
+                    </article>
+
+                    <article
+                      *ngIf="row.display === 'multi-buttons'"
+                      class="w-100 d-flex align-items-center gap-2"
+                      [class.flex-column]="row.wrap"
+                      [class.justify-content-between]="!row.wrap"
+                      [class.justify-content-center]="row.wrap"
+                      [class.zx-min-h-50]="!row.wrap">
+                      <span>{{ row.settingTitle }}</span>
+                      <mat-button-toggle-group
+                        class="d-flex flex-wrap"
+                        [class.justify-content-end]="!row.wrap"
+                        [class.justify-content-center]="row.wrap"
+                        [name]="'extra-option-' + row.key"
+                        [attr.aria-label]="row.settingTitle"
+                        [ngModel]="extraSettingsUi[row.key]?.selectedIndex ?? 0"
+                        (ngModelChange)="onExtraSettingIndexChange(row.key, $event)">
+                        <mat-button-toggle
+                          *ngFor="let option of row.options"
+                          class="zx-rtl position-relative"
+                          [value]="option.index"
+                          [class.zx-text-white]="isDarkMode">
+                          <span>{{ option.label }}</span>
+                        </mat-button-toggle>
+                      </mat-button-toggle-group>
+                    </article>
+                  </ng-container>
                 </div>
               </div>
             </div>

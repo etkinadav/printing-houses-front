@@ -1,4 +1,16 @@
-export interface PhPrintingFilePrintSettings {
+export interface PhPrintingFileExtraSelections {
+  cornersIndex?: number;
+  bleedIndex?: number;
+  foldingIndex?: number;
+  duplexIndex?: number;
+  cornersEnabled?: boolean;
+  bleedEnabled?: boolean;
+  foldingEnabled?: boolean;
+  duplexEnabled?: boolean;
+  doubleSidedEnabled?: boolean;
+}
+
+export interface PhPrintingFilePrintSettings extends PhPrintingFileExtraSelections {
   paperType?: string;
   sizeIndex?: number;
   materialIndex?: number;
