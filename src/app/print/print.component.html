@@ -3,11 +3,31 @@
     <div
       class="zx-settings-nav flex-shrink h-100 d-flex flex-column overflow-hidden"
       [class.zx-settings-nav-dark]="isDarkMode">
-      <article class="w-100 h-100 d-flex pt-3 flex-column overflow-auto">
-        <article class="w-100 d-flex flex-column gap-2 flex-grow-1">
-          <div *ngIf="productName" class="w-100 px-3 pb-1">
-            <h6 class="mb-0 zx-text-small fw-bold zx-text-sm-medium">{{ productName }}</h6>
-          </div>
+      <article class="w-100 h-100 d-flex flex-column overflow-auto">
+        <article class="w-100 d-flex flex-column flex-grow-1">
+          <header
+            *ngIf="printingHouse"
+            class="ph-print-house-header w-100"
+            [class.ph-print-house-header--dark]="isDarkMode">
+            <div class="ph-print-house-header__inner">
+              <app-ph-logo-crop
+                *ngIf="printingHouseLogoUrl"
+                class="ph-print-house-header__logo"
+                [imageUrl]="printingHouseLogoUrl"
+                [logo]="printingHouse.logo"
+                size="62px" />
+              <div
+                *ngIf="!printingHouseLogoUrl"
+                class="ph-print-house-header__logo ph-print-house-header__logo--placeholder"
+                aria-hidden="true"></div>
+              <div class="ph-print-house-header__info">
+                <h6 class="ph-print-house-header__name">{{ printingHouse.name }}</h6>
+                <p *ngIf="printingHouseAddressLine" class="ph-print-house-header__address">
+                  {{ printingHouseAddressLine }}
+                </p>
+              </div>
+            </div>
+          </header>
 
           <div class="w-100 d-flex flex-column-reverse flex-md-row flex-grow-1">
             <!-- Files column -->
@@ -15,12 +35,6 @@
               <div class="zx-files-area-outer">
                 <div class="zx-files-area" [class.zx-bg-dark]="isDarkMode">
                   <div class="d-flex flex-column gap-2">
-                    <h6
-                      class="mb-0 zx-text-small fw-bold zx-text-sm-medium zx-px-10 d-none d-md-inline">
-                      {{ 'printing-table.my-order' | translate }}
-                    </h6>
-                    <span class="d-md-none"></span>
-
                     <div id="filesAreaPhPrint" class="zx-files-area-inner">
                       <!-- Upload tile -->
                       <article
@@ -313,21 +327,11 @@
                 id="zx-settings-area-inner"
                 class="zx-settings-area-inner w-100 h-100 mh-100 position-absolute d-flex flex-column gap-3"
                 [class.zx-settings-area-inner-rtl]="!isRTL">
-                <div class="d-none d-md-flex align-items-center gap-2 mb-0 zx-pt-md-17 zx-px-10 flex-wrap">
-                  <h6 class="mb-0 zx-text-small fw-bold zx-text-sm-medium">
-                    {{ 'printing-table.printing-settings' | translate }}
-                  </h6>
-                </div>
-                <div class="d-md-none zx-px-10">
-                  <h6 class="mb-0 zx-text-small fw-bold zx-text-sm-medium">
-                    {{ 'printing-table.printing-settings' | translate }}
-                  </h6>
-                </div>
                 <div class="ph-print-settings-panel flex-grow-1 zx-px-10 d-flex flex-column gap-3">
                   <!-- Product name (display only) -->
                   <article
                     *ngIf="hasSettingsReadyFile && productName"
-                    class="zx-min-h-50 w-100 d-flex justify-content-between align-items-center">
+                    class="ph-print-settings-product zx-min-h-50 w-100 d-flex justify-content-between align-items-center">
                     <span>{{ 'printing-table.product' | translate }}</span>
                     <mat-button-toggle-group
                       class="d-flex flex-wrap justify-content-end ph-settings-display-toggle"

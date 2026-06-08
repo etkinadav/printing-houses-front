@@ -25,6 +25,8 @@ import {
   PhSize,
 } from '../ph-products/ph-product.model';
 import { PhProductsService } from '../ph-products/ph-products.service';
+import { PhPrintingHouse } from '../ph-printing-house/ph-printing-house.model';
+import { PhPrintingHouseService } from '../ph-printing-house/ph-printing-house.service';
 
 interface FixedDimensionOption {
   optionIndex: number;
@@ -54,6 +56,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   productId = '';
   productName = '';
   product: PhProduct | null = null;
+  printingHouse: PhPrintingHouse | null = null;
 
   files: PhPrintingFile[] = [];
   processingFiles: PhPrintingFile[] = [];
@@ -95,6 +98,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     private phFilesService: PhFilesService,
     private phPrintingFilesService: PhPrintingFilesService,
     private phProductsService: PhProductsService,
+    private phPrintingHouseService: PhPrintingHouseService,
     private translateService: TranslateService,
     private snackBar: MatSnackBar,
     private phUploadValidation: PhUploadValidationService,
@@ -162,6 +166,44 @@ export class PrintComponent implements OnInit, OnDestroy {
     return !!this.selectedFile && !this.isFileProcessing(this.selectedFile);
   }
 
+  get printingHouseLogoUrl(): string {
+    const ph = this.printingHouse;
+    return (ph?.logo?.url || ph?.logoUrl || '').trim();
+  }
+
+  get printingHouseAddressLine(): string {
+    const addr = this.printingHouse?.address;
+    if (!addr) {
+      return '';
+    }
+
+    const parts: string[] = [];
+    const streetLine = [addr.street, addr.houseNumber].filter((v) => !!v?.trim()).join(' ');
+    if (streetLine) {
+      parts.push(streetLine);
+    }
+    if (addr.city?.trim()) {
+      parts.push(addr.city.trim());
+    }
+
+    const apartment = addr.apartment?.trim();
+    if (apartment) {
+      parts.push(`${this.translateService.instant('printing-house-join.apartment')} ${apartment}`);
+    }
+
+    const floor = addr.floor?.trim();
+    if (floor) {
+      parts.push(`${this.translateService.instant('printing-house-join.floor')} ${floor}`);
+    }
+
+    const notes = addr.notes?.trim();
+    if (notes) {
+      parts.push(notes);
+    }
+
+    return parts.join(', ');
+  }
+
   ngOnInit(): void {
     this.directionSub = this.directionService.direction$.subscribe((direction) => {
       this.isRTL = direction === 'rtl';
@@ -182,6 +224,7 @@ export class PrintComponent implements OnInit, OnDestroy {
         this.resetSettingsUiState();
       }
 
+      this.loadPrintingHouse();
       this.loadProduct();
       this.startPolling();
     });
@@ -409,6 +452,22 @@ export class PrintComponent implements OnInit, OnDestroy {
           );
         },
       });
+  }
+
+  private loadPrintingHouse(): void {
+    this.printingHouse = null;
+    if (!this.printingHouseId) {
+      return;
+    }
+
+    this.phPrintingHouseService.getPrintingHousePublic(this.printingHouseId).subscribe({
+      next: (res) => {
+        this.printingHouse = res.printingHouse ?? null;
+      },
+      error: () => {
+        this.printingHouse = null;
+      },
+    });
   }
 
   private loadProduct(): void {
