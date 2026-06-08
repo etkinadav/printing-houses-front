@@ -331,20 +331,17 @@
                   <!-- Product name (display only) -->
                   <article
                     *ngIf="hasSettingsReadyFile && productName"
-                    class="ph-print-settings-product w-100 d-flex justify-content-between align-items-center"
-                    [class.flex-column]="productSettingsWrap"
+                    class="ph-print-settings-product w-100 d-flex align-items-center ph-settings-row"
+                    [class.ph-settings-row--stacked]="productSettingsWrap"
+                    [class.justify-content-between]="!productSettingsWrap"
                     [class.zx-min-h-50]="!productSettingsWrap">
-                    <span [class.zx-min-h-50]="productSettingsWrap">{{ 'printing-table.product' | translate }}</span>
+                    <span>{{ 'printing-table.product' | translate }}</span>
                     <div
-                      class="d-flex position-relative"
+                      class="d-flex position-relative ph-settings-toggle-host"
                       [class.justify-content-center]="productSettingsWrap"
-                      [class.justify-content-end]="!productSettingsWrap"
-                      style="min-width: 88px">
+                      [class.justify-content-end]="!productSettingsWrap">
                       <mat-button-toggle-group
                         class="ph-settings-display-toggle"
-                        [class.zx-min-h-50]="productSettingsWrap"
-                        [style.flex-wrap]="productSettingsWrap ? 'wrap' : 'nowrap'"
-                        [style.justify-content]="productSettingsWrap ? 'center' : 'flex-start'"
                         [style.width]="'auto'"
                         [style.max-width]="productSettingsWrap ? '100%' : 'none'"
                         name="product-name"
@@ -362,10 +359,11 @@
                   <!-- Fixed: type buttons — hidden when only one option -->
                   <article
                     *ngIf="isFixedProduct && hasSettingsReadyFile && fixedDimensionOptions.length > 1"
-                    class="w-100 d-flex justify-content-between align-items-center"
-                    [class.flex-column]="fixedTypeSettingsWrap"
+                    class="w-100 d-flex align-items-center ph-settings-row"
+                    [class.ph-settings-row--stacked]="fixedTypeSettingsWrap"
+                    [class.justify-content-between]="!fixedTypeSettingsWrap"
                     [class.zx-min-h-50]="!fixedTypeSettingsWrap">
-                    <span [class.zx-min-h-50]="fixedTypeSettingsWrap">{{ 'printing-table.type' | translate }}</span>
+                    <span>{{ 'printing-table.type' | translate }}</span>
                     <div
                       class="d-flex position-relative ph-settings-toggle-host"
                       [class.justify-content-center]="fixedTypeSettingsWrap"
@@ -441,10 +439,11 @@
                   <!-- Fixed: material buttons below size -->
                   <article
                     *ngIf="isFixedProduct && hasSettingsReadyFile && fixedMaterialsForSelectedSize.length"
-                    class="w-100 d-flex justify-content-between align-items-center"
-                    [class.flex-column]="fixedMaterialSettingsWrap"
+                    class="w-100 d-flex align-items-center ph-settings-row"
+                    [class.ph-settings-row--stacked]="fixedMaterialSettingsWrap"
+                    [class.justify-content-between]="!fixedMaterialSettingsWrap"
                     [class.zx-min-h-50]="!fixedMaterialSettingsWrap">
-                    <span [class.zx-min-h-50]="fixedMaterialSettingsWrap">{{ 'printing-table.3dprint-material' | translate }}</span>
+                    <span>{{ 'printing-table.3dprint-material' | translate }}</span>
                     <div
                       class="d-flex position-relative ph-settings-toggle-host"
                       [class.justify-content-center]="fixedMaterialSettingsWrap"
@@ -486,10 +485,11 @@
                   <!-- Dynamic: material buttons below dimensions — hidden when only one option -->
                   <article
                     *ngIf="isDynamicProduct && hasSettingsReadyFile && dynamicMaterials.length > 1"
-                    class="w-100 d-flex justify-content-between align-items-center"
-                    [class.flex-column]="dynamicMaterialSettingsWrap"
+                    class="w-100 d-flex align-items-center ph-settings-row"
+                    [class.ph-settings-row--stacked]="dynamicMaterialSettingsWrap"
+                    [class.justify-content-between]="!dynamicMaterialSettingsWrap"
                     [class.zx-min-h-50]="!dynamicMaterialSettingsWrap">
-                    <span [class.zx-min-h-50]="dynamicMaterialSettingsWrap">{{ 'printing-table.3dprint-material' | translate }}</span>
+                    <span>{{ 'printing-table.3dprint-material' | translate }}</span>
                     <div
                       class="d-flex position-relative ph-settings-toggle-host"
                       [class.justify-content-center]="dynamicMaterialSettingsWrap"
@@ -531,10 +531,11 @@
                   <!-- Color buttons for selected material — hidden when only one option -->
                   <article
                     *ngIf="hasSettingsReadyFile && colorsForSelectedMaterial.length > 1"
-                    class="w-100 d-flex justify-content-between align-items-center"
-                    [class.flex-column]="colorSettingsWrap"
+                    class="w-100 d-flex align-items-center ph-settings-row"
+                    [class.ph-settings-row--stacked]="colorSettingsWrap"
+                    [class.justify-content-between]="!colorSettingsWrap"
                     [class.zx-min-h-50]="!colorSettingsWrap">
-                    <span [class.zx-min-h-50]="colorSettingsWrap">{{ 'printing-table.color' | translate }}</span>
+                    <span>{{ 'printing-table.color' | translate }}</span>
                     <div
                       class="d-flex position-relative ph-settings-toggle-host"
                       [class.justify-content-center]="colorSettingsWrap"
@@ -611,10 +612,11 @@
 
                     <article
                       *ngIf="row.display === 'multi-buttons'"
-                      class="w-100 d-flex justify-content-between align-items-center"
-                      [class.flex-column]="row.wrap"
+                      class="w-100 d-flex align-items-center ph-settings-row"
+                      [class.ph-settings-row--stacked]="row.wrap"
+                      [class.justify-content-between]="!row.wrap"
                       [class.zx-min-h-50]="!row.wrap">
-                      <span [class.zx-min-h-50]="row.wrap">{{ row.settingTitle }}</span>
+                      <span>{{ row.settingTitle }}</span>
                       <div
                         class="d-flex position-relative ph-settings-toggle-host"
                         [class.justify-content-center]="row.wrap"
