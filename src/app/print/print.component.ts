@@ -76,6 +76,8 @@ export class PrintComponent implements OnInit, OnDestroy {
   uploadingCount = 0;
   readonly expressFileAccept = EXPRESS_FILE_ACCEPT;
   readonly sizeTogglePerRow = SIZE_TOGGLE_PER_ROW;
+  /** Keeps the product-name display toggle visually selected (read-only). */
+  readonly productNameToggle = 0;
 
   private directionSub?: Subscription;
   private darkModeSub?: Subscription;
@@ -128,6 +130,27 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   get selectedDynamicMaterial(): PhDynamicMaterial | null {
     const materials = this.dynamicMaterials;
+    if (!materials.length) {
+      return null;
+    }
+    const idx = Math.min(Math.max(0, this.currentMaterialIndex), materials.length - 1);
+    return materials[idx] ?? null;
+  }
+
+  get selectedFixedSize(): PhSize | null {
+    const option = this.getSelectedFixedOption();
+    if (!option) {
+      return null;
+    }
+    return this.fixedSizes[option.sizeIndex] ?? null;
+  }
+
+  get fixedMaterialsForSelectedSize(): PhMaterial[] {
+    return this.selectedFixedSize?.materials ?? [];
+  }
+
+  get selectedFixedMaterial(): PhMaterial | null {
+    const materials = this.fixedMaterialsForSelectedSize;
     if (!materials.length) {
       return null;
     }
@@ -217,9 +240,59 @@ export class PrintComponent implements OnInit, OnDestroy {
       return;
     }
     this.currentFixedOptionIndex = optionIndex;
+    this.currentMaterialIndex = 0;
     this.printingLengthCm = Number(size.length);
     this.printingWidthCm = Number(size.width);
     this.persistCurrentFileSettings();
+  }
+
+  onMaterialChange(materialIndex: number): void {
+    if (this.suppressSettingsPersist) {
+      return;
+    }
+    if (!this.selectedFile) {
+      return;
+    }
+
+    if (this.isDynamicProduct) {
+      const materials = this.dynamicMaterials;
+      if (
+        !materials.length ||
+        !Number.isInteger(materialIndex) ||
+        materialIndex < 0 ||
+        materialIndex >= materials.length
+      ) {
+        return;
+      }
+      this.currentMaterialIndex = materialIndex;
+      const material = materials[materialIndex];
+      if (
+        !this.areDynamicDimensionsValid(
+          material,
+          this.printingLengthCm,
+          this.printingWidthCm,
+        )
+      ) {
+        this.printingLengthCm = Number(material.defaultLength);
+        this.printingWidthCm = Number(material.defaultHeight);
+      }
+      this.persistCurrentFileSettings();
+      return;
+    }
+
+    if (this.isFixedProduct) {
+      const materials = this.fixedMaterialsForSelectedSize;
+      if (
+        !materials.length ||
+        !Number.isInteger(materialIndex) ||
+        materialIndex < 0 ||
+        materialIndex >= materials.length
+      ) {
+        return;
+      }
+      this.currentMaterialIndex = materialIndex;
+      this.persistCurrentFileSettings();
+    }
   }
 
   private getSelectedFixedOption(): FixedDimensionOption | null {
@@ -531,7 +604,15 @@ export class PrintComponent implements OnInit, OnDestroy {
       if (!Number.isInteger(sizeIndex) || sizeIndex < 0 || sizeIndex >= this.fixedSizes.length) {
         return false;
       }
-      return this.fixedDimensionOptions.some((option) => option.sizeIndex === sizeIndex);
+      if (!this.fixedDimensionOptions.some((option) => option.sizeIndex === sizeIndex)) {
+        return false;
+      }
+      const materials = this.fixedSizes[sizeIndex]?.materials ?? [];
+      return (
+        Number.isInteger(materialIndex) &&
+        materialIndex >= 0 &&
+        materialIndex < materials.length
+      );
     }
     if (this.isDynamicProduct) {
       const materialIndex = Number(ps.materialIndex ?? 0);
@@ -567,10 +648,11 @@ export class PrintComponent implements OnInit, OnDestroy {
       if (!option || !size) {
         return null;
       }
+      const material = size.materials?.[0] ?? null;
       return {
-        paperType: option.label,
+        paperType: material ? this.getMaterialLabel(material) : option.label,
         sizeIndex: option.sizeIndex,
-        materialIndex: option.materialIndex,
+        materialIndex: 0,
         lengthCm: Number(size.length),
         widthCm: Number(size.width),
       };
@@ -608,7 +690,12 @@ export class PrintComponent implements OnInit, OnDestroy {
             ? Number(ps.materialIndex)
             : 0;
         const size = this.fixedSizes[sizeIndex] ?? this.fixedSizes[0];
+        const materials = size?.materials ?? [];
         this.currentFixedOptionIndex = this.findFixedOptionIndex(sizeIndex, materialIndex);
+        this.currentMaterialIndex =
+          materials.length && materialIndex >= 0 && materialIndex < materials.length
+            ? materialIndex
+            : 0;
         this.printingLengthCm = Number(ps?.lengthCm ?? size?.length ?? 0);
         this.printingWidthCm = Number(ps?.widthCm ?? size?.width ?? 0);
         return;
@@ -645,10 +732,16 @@ export class PrintComponent implements OnInit, OnDestroy {
       if (!option || !size) {
         return null;
       }
+      const materials = size.materials ?? [];
+      const materialIndex = Math.min(
+        Math.max(0, this.currentMaterialIndex),
+        Math.max(0, materials.length - 1),
+      );
+      const material = materials[materialIndex] ?? null;
       return {
-        paperType: option.label,
+        paperType: material ? this.getMaterialLabel(material) : option.label,
         sizeIndex: option.sizeIndex,
-        materialIndex: option.materialIndex,
+        materialIndex,
         lengthCm: Number(size.length),
         widthCm: Number(size.width),
       };

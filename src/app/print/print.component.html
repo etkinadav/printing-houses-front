@@ -324,13 +324,31 @@
                   </h6>
                 </div>
                 <div class="ph-print-settings-panel flex-grow-1 zx-px-10 d-flex flex-column gap-3">
-                  <!-- Fixed: size buttons only -->
+                  <!-- Product name (display only) -->
                   <article
-                    *ngIf="isFixedProduct && hasSettingsReadyFile && fixedDimensionOptions.length"
+                    *ngIf="hasSettingsReadyFile && productName"
+                    class="zx-min-h-50 w-100 d-flex justify-content-between align-items-center">
+                    <span>{{ 'printing-table.product' | translate }}</span>
+                    <mat-button-toggle-group
+                      class="d-flex flex-wrap justify-content-end ph-settings-display-toggle"
+                      name="product-name"
+                      [ngModel]="productNameToggle">
+                      <mat-button-toggle
+                        class="zx-rtl position-relative"
+                        [value]="0"
+                        [class.zx-text-white]="isDarkMode">
+                        <span>{{ productName }}</span>
+                      </mat-button-toggle>
+                    </mat-button-toggle-group>
+                  </article>
+
+                  <!-- Fixed: type buttons — hidden when only one option -->
+                  <article
+                    *ngIf="isFixedProduct && hasSettingsReadyFile && fixedDimensionOptions.length > 1"
                     class="w-100 d-flex justify-content-between align-items-center"
                     [class.flex-column]="fixedDimensionOptions.length > 2"
                     [class.zx-min-h-50]="fixedDimensionOptions.length <= 2">
-                    <span>{{ 'printing-table.size' | translate }}</span>
+                    <span>{{ 'printing-table.type' | translate }}</span>
                     <mat-button-toggle-group
                       class="d-flex flex-wrap justify-content-end"
                       name="fixed-size"
@@ -385,6 +403,52 @@
                         <span>{{ 'printing-table.dimensions-cm' | translate }}</span>
                       </div>
                     </div>
+                  </article>
+
+                  <!-- Fixed: material buttons below size -->
+                  <article
+                    *ngIf="isFixedProduct && hasSettingsReadyFile && fixedMaterialsForSelectedSize.length"
+                    class="w-100 d-flex justify-content-between align-items-center"
+                    [class.flex-column]="fixedMaterialsForSelectedSize.length > 2"
+                    [class.zx-min-h-50]="fixedMaterialsForSelectedSize.length <= 2">
+                    <span>{{ 'printing-table.3dprint-material' | translate }}</span>
+                    <mat-button-toggle-group
+                      class="d-flex flex-wrap justify-content-end"
+                      name="fixed-material"
+                      aria-label="Fixed material"
+                      [(ngModel)]="currentMaterialIndex"
+                      (ngModelChange)="onMaterialChange($event)">
+                      <mat-button-toggle
+                        *ngFor="let material of fixedMaterialsForSelectedSize; let materialIndex = index"
+                        class="zx-rtl position-relative"
+                        [value]="materialIndex"
+                        [class.zx-text-white]="isDarkMode">
+                        <span>{{ getMaterialLabel(material) }}</span>
+                      </mat-button-toggle>
+                    </mat-button-toggle-group>
+                  </article>
+
+                  <!-- Dynamic: material buttons below dimensions — hidden when only one option -->
+                  <article
+                    *ngIf="isDynamicProduct && hasSettingsReadyFile && dynamicMaterials.length > 1"
+                    class="w-100 d-flex justify-content-between align-items-center"
+                    [class.flex-column]="dynamicMaterials.length > 2"
+                    [class.zx-min-h-50]="dynamicMaterials.length <= 2">
+                    <span>{{ 'printing-table.3dprint-material' | translate }}</span>
+                    <mat-button-toggle-group
+                      class="d-flex flex-wrap justify-content-end"
+                      name="dynamic-material"
+                      aria-label="Dynamic material"
+                      [(ngModel)]="currentMaterialIndex"
+                      (ngModelChange)="onMaterialChange($event)">
+                      <mat-button-toggle
+                        *ngFor="let material of dynamicMaterials; let materialIndex = index"
+                        class="zx-rtl position-relative"
+                        [value]="materialIndex"
+                        [class.zx-text-white]="isDarkMode">
+                        <span>{{ getMaterialLabel(material) }}</span>
+                      </mat-button-toggle>
+                    </mat-button-toggle-group>
                   </article>
                 </div>
               </div>
