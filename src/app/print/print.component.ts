@@ -20,10 +20,18 @@ import {
 import { PhPrintingFilesService } from '../ph-printing-files/ph-printing-files.service';
 import {
   PhDynamicMaterial,
+  PhMaterial,
   PhProduct,
   PhSize,
 } from '../ph-products/ph-product.model';
 import { PhProductsService } from '../ph-products/ph-products.service';
+
+interface FixedDimensionOption {
+  optionIndex: number;
+  sizeIndex: number;
+  materialIndex: number;
+  label: string;
+}
 import { EXPRESS_FILE_ACCEPT } from '../utils/ph-express-upload';
 import { PhUploadValidationService } from '../utils/ph-upload-validation.service';
 
@@ -53,12 +61,17 @@ export class PrintComponent implements OnInit, OnDestroy {
   /** Stable preview URL — only changes when the selected file or its thumbnail changes. */
   previewThumbnailUrl: string | null = null;
 
-  /** Fixed sizes: selected index in properties.fixed.sizes. */
-  currentSizeIndex: number | null = null;
+  /** Fixed: selected index in fixedDimensionOptions. */
+  currentFixedOptionIndex: number | null = null;
   /** Dynamic: selected material index. */
   currentMaterialIndex = 0;
   printingLengthCm = 0;
   printingWidthCm = 0;
+
+  /** Cached product options — never compute in template (avoids infinite change detection). */
+  fixedDimensionOptions: FixedDimensionOption[] = [];
+  fixedOptionRows: FixedDimensionOption[][] = [];
+  dynamicMaterialRows: PhDynamicMaterial[][] = [];
 
   uploading = false;
   uploadProgress = 0;
@@ -73,6 +86,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   private isUpdatingFileSettings = false;
   private settingsSaveInFlightForFileId: string | null = null;
   private pendingDefaultSettingsFileIds = new Set<string>();
+  private suppressSettingsPersist = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -183,50 +197,78 @@ export class PrintComponent implements OnInit, OnDestroy {
     return file.originalFileName?.trim() || this.translateService.instant('printing-table.file');
   }
 
-  getSizeLabel(size: PhSize): string {
-    const label = size.label?.he?.trim();
-    if (label) {
-      return label;
-    }
-    return `${size.length}×${size.width}`;
-  }
-
-  getMaterialLabel(material: PhDynamicMaterial): string {
+  getMaterialLabel(material: PhDynamicMaterial | PhMaterial): string {
     return material.label?.he?.trim() || String(material.weight);
   }
 
-  groupSizesForPreview(rowIndex: number): PhSize[] {
-    const start = rowIndex * SIZE_TOGGLE_PER_ROW;
-    return this.fixedSizes.slice(start, start + SIZE_TOGGLE_PER_ROW);
+  getFixedSizeDisplayLabel(size: PhSize): string {
+    const productName = this.productName?.trim() || '';
+    const sizeLabel = size.label?.he?.trim() || '';
+
+    if (sizeLabel && sizeLabel !== productName) {
+      return sizeLabel;
+    }
+
+    const materials = size.materials ?? [];
+    if (materials.length === 1) {
+      return this.getFixedMaterialDisplayLabel(materials[0], 0);
+    }
+
+    if (materials.length > 1) {
+      return this.getFixedMaterialDisplayLabel(materials[0], 0);
+    }
+
+    return `${size.length}×${size.width}`;
   }
 
-  groupSizesRowIndexes(): number[] {
-    const rowNum = Math.ceil(this.fixedSizes.length / SIZE_TOGGLE_PER_ROW);
-    return Array.from({ length: rowNum }, (_, i) => i);
+  getFixedMaterialDisplayLabel(material: PhMaterial, index: number): string {
+    const productName = this.productName?.trim() || '';
+    const raw = material.label?.he?.trim() || '';
+
+    if (raw && raw !== productName) {
+      return raw;
+    }
+
+    if (material.weight != null) {
+      return String(material.weight);
+    }
+
+    return String(index + 1);
   }
 
-  groupMaterialsForPreview(rowIndex: number): PhDynamicMaterial[] {
-    const start = rowIndex * SIZE_TOGGLE_PER_ROW;
-    return this.dynamicMaterials.slice(start, start + SIZE_TOGGLE_PER_ROW);
-  }
-
-  groupMaterialsRowIndexes(): number[] {
-    const rowNum = Math.ceil(this.dynamicMaterials.length / SIZE_TOGGLE_PER_ROW);
-    return Array.from({ length: rowNum }, (_, i) => i);
-  }
-
-  onFixedSizeChange(sizeIndex: number): void {
-    const size = this.fixedSizes[sizeIndex];
-    if (!size || !this.selectedFile) {
+  onFixedOptionChange(optionIndex: number): void {
+    if (this.suppressSettingsPersist) {
       return;
     }
-    this.currentSizeIndex = sizeIndex;
+    const option = this.fixedDimensionOptions[optionIndex];
+    const size = option ? this.fixedSizes[option.sizeIndex] : null;
+    if (!option || !size || !this.selectedFile) {
+      return;
+    }
+    this.currentFixedOptionIndex = optionIndex;
     this.printingLengthCm = Number(size.length);
     this.printingWidthCm = Number(size.width);
     this.persistCurrentFileSettings();
   }
 
+  private getSelectedFixedOption(): FixedDimensionOption | null {
+    if (this.currentFixedOptionIndex == null) {
+      return this.fixedDimensionOptions[0] ?? null;
+    }
+    return this.fixedDimensionOptions[this.currentFixedOptionIndex] ?? null;
+  }
+
+  private findFixedOptionIndex(sizeIndex: number, materialIndex: number): number {
+    const idx = this.fixedDimensionOptions.findIndex(
+      (option) => option.sizeIndex === sizeIndex && option.materialIndex === materialIndex,
+    );
+    return idx >= 0 ? idx : 0;
+  }
+
   onDynamicMaterialChange(materialIndex: number): void {
+    if (this.suppressSettingsPersist) {
+      return;
+    }
     const material = this.dynamicMaterials[materialIndex];
     if (!material || !this.selectedFile) {
       return;
@@ -344,6 +386,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   private loadProduct(): void {
     this.product = null;
     this.productName = '';
+    this.rebuildProductOptionCaches();
     if (!this.printingHouseId || !this.productId) {
       return;
     }
@@ -354,9 +397,55 @@ export class PrintComponent implements OnInit, OnDestroy {
           (res.products ?? []).find((p: PhProduct) => p._id === this.productId) ?? null;
         this.product = product;
         this.productName = product?.name_he?.trim() || '';
+        this.rebuildProductOptionCaches();
         this.afterProductLoaded();
       },
     });
+  }
+
+  private rebuildProductOptionCaches(): void {
+    const options: FixedDimensionOption[] = [];
+    const sizes = this.fixedSizes;
+    const singleSize = sizes.length === 1;
+    let optionIndex = 0;
+
+    for (let sizeIndex = 0; sizeIndex < sizes.length; sizeIndex += 1) {
+      const size = sizes[sizeIndex];
+      const materials = size.materials ?? [];
+
+      if (singleSize && materials.length > 1) {
+        for (let materialIndex = 0; materialIndex < materials.length; materialIndex += 1) {
+          options.push({
+            optionIndex,
+            sizeIndex,
+            materialIndex,
+            label: this.getFixedMaterialDisplayLabel(materials[materialIndex], materialIndex),
+          });
+          optionIndex += 1;
+        }
+        continue;
+      }
+
+      options.push({
+        optionIndex,
+        sizeIndex,
+        materialIndex: 0,
+        label: this.getFixedSizeDisplayLabel(size),
+      });
+      optionIndex += 1;
+    }
+
+    this.fixedDimensionOptions = options;
+    this.fixedOptionRows = this.chunkForToggleRows(options);
+    this.dynamicMaterialRows = this.chunkForToggleRows(this.dynamicMaterials);
+  }
+
+  private chunkForToggleRows<T>(items: T[]): T[][] {
+    const rows: T[][] = [];
+    for (let i = 0; i < items.length; i += SIZE_TOGGLE_PER_ROW) {
+      rows.push(items.slice(i, i + SIZE_TOGGLE_PER_ROW));
+    }
+    return rows;
   }
 
   private afterProductLoaded(): void {
@@ -370,7 +459,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   private resetSettingsUiState(): void {
-    this.currentSizeIndex = null;
+    this.currentFixedOptionIndex = null;
     this.currentMaterialIndex = 0;
     this.printingLengthCm = 0;
     this.printingWidthCm = 0;
@@ -510,8 +599,14 @@ export class PrintComponent implements OnInit, OnDestroy {
       return false;
     }
     if (this.isFixedProduct) {
-      const idx = Number(ps.sizeIndex);
-      return Number.isInteger(idx) && idx >= 0 && idx < this.fixedSizes.length;
+      const sizeIndex = Number(ps.sizeIndex);
+      const materialIndex = Number(ps.materialIndex ?? 0);
+      if (!Number.isInteger(sizeIndex) || sizeIndex < 0 || sizeIndex >= this.fixedSizes.length) {
+        return false;
+      }
+      return this.fixedDimensionOptions.some(
+        (option) => option.sizeIndex === sizeIndex && option.materialIndex === materialIndex,
+      );
     }
     if (this.isDynamicProduct) {
       const materialIndex = Number(ps.materialIndex ?? 0);
@@ -542,13 +637,15 @@ export class PrintComponent implements OnInit, OnDestroy {
       return null;
     }
     if (this.isFixedProduct) {
-      const size = this.fixedSizes[0];
-      if (!size) {
+      const option = this.fixedDimensionOptions[0];
+      const size = option ? this.fixedSizes[option.sizeIndex] : null;
+      if (!option || !size) {
         return null;
       }
       return {
-        paperType: this.getSizeLabel(size),
-        sizeIndex: 0,
+        paperType: option.label,
+        sizeIndex: option.sizeIndex,
+        materialIndex: option.materialIndex,
         lengthCm: Number(size.length),
         widthCm: Number(size.width),
       };
@@ -573,32 +670,43 @@ export class PrintComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const ps = file.printSettings;
-    if (this.isFixedProduct) {
-      const idx =
-        ps?.sizeIndex != null && Number.isFinite(Number(ps.sizeIndex))
-          ? Number(ps.sizeIndex)
-          : 0;
-      const size = this.fixedSizes[idx] ?? this.fixedSizes[0];
-      this.currentSizeIndex = size ? idx : null;
-      this.printingLengthCm = Number(ps?.lengthCm ?? size?.length ?? 0);
-      this.printingWidthCm = Number(ps?.widthCm ?? size?.width ?? 0);
-      return;
-    }
+    this.suppressSettingsPersist = true;
+    try {
+      const ps = file.printSettings;
+      if (this.isFixedProduct) {
+        const sizeIndex =
+          ps?.sizeIndex != null && Number.isFinite(Number(ps.sizeIndex))
+            ? Number(ps.sizeIndex)
+            : 0;
+        const materialIndex =
+          ps?.materialIndex != null && Number.isFinite(Number(ps.materialIndex))
+            ? Number(ps.materialIndex)
+            : 0;
+        const size = this.fixedSizes[sizeIndex] ?? this.fixedSizes[0];
+        this.currentFixedOptionIndex = this.findFixedOptionIndex(sizeIndex, materialIndex);
+        this.printingLengthCm = Number(ps?.lengthCm ?? size?.length ?? 0);
+        this.printingWidthCm = Number(ps?.widthCm ?? size?.width ?? 0);
+        return;
+      }
 
-    if (this.isDynamicProduct) {
-      const materialIndex =
-        ps?.materialIndex != null && Number.isFinite(Number(ps.materialIndex))
-          ? Number(ps.materialIndex)
-          : 0;
-      const material = this.dynamicMaterials[materialIndex] ?? this.dynamicMaterials[0];
-      this.currentMaterialIndex = material ? materialIndex : 0;
-      this.printingLengthCm = Number(
-        ps?.lengthCm ?? material?.defaultLength ?? 0,
-      );
-      this.printingWidthCm = Number(
-        ps?.widthCm ?? material?.defaultHeight ?? 0,
-      );
+      if (this.isDynamicProduct) {
+        const materialIndex =
+          ps?.materialIndex != null && Number.isFinite(Number(ps.materialIndex))
+            ? Number(ps.materialIndex)
+            : 0;
+        const material = this.dynamicMaterials[materialIndex] ?? this.dynamicMaterials[0];
+        this.currentMaterialIndex = material ? materialIndex : 0;
+        this.printingLengthCm = Number(
+          ps?.lengthCm ?? material?.defaultLength ?? 0,
+        );
+        this.printingWidthCm = Number(
+          ps?.widthCm ?? material?.defaultHeight ?? 0,
+        );
+      }
+    } finally {
+      setTimeout(() => {
+        this.suppressSettingsPersist = false;
+      });
     }
   }
 
@@ -607,14 +715,15 @@ export class PrintComponent implements OnInit, OnDestroy {
       return null;
     }
     if (this.isFixedProduct) {
-      const idx = this.currentSizeIndex ?? 0;
-      const size = this.fixedSizes[idx];
-      if (!size) {
+      const option = this.getSelectedFixedOption();
+      const size = option ? this.fixedSizes[option.sizeIndex] : null;
+      if (!option || !size) {
         return null;
       }
       return {
-        paperType: this.getSizeLabel(size),
-        sizeIndex: idx,
+        paperType: option.label,
+        sizeIndex: option.sizeIndex,
+        materialIndex: option.materialIndex,
         lengthCm: Number(size.length),
         widthCm: Number(size.width),
       };
