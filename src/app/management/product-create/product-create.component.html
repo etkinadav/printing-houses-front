@@ -91,7 +91,7 @@
                       *ngIf="sizes.length > 1"
                       [formGroup]="$any(sizeGroup.get('label'))"
                       class="size-title-row__field">
-                      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-100">
+                      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-100 product-tree-name-field">
                         <input
                           matInput
                           formControlName="he"
@@ -234,7 +234,7 @@
               </span>
             </div>
             <div [formGroup]="$any(material.get('label'))" class="size-title-row__field">
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-100">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-100 product-tree-name-field">
                 <input
                   matInput
                   formControlName="he"
@@ -454,7 +454,7 @@
                 hidden
                 (change)="onColorTextureSelected($event, color)" />
               <div [formGroup]="$any(color.get('label'))" class="size-title-row__field">
-                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-100">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-100 product-tree-name-field">
                   <input
                     matInput
                     formControlName="he"

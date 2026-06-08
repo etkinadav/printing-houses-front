@@ -1324,6 +1324,14 @@
   align-self: flex-start;
 }
 
+:host ::ng-deep .product-tree-name-field .mdc-text-field__input {
+  font-weight: 700;
+}
+
+:host ::ng-deep .product-tree-name-field .mdc-text-field__input::placeholder {
+  font-weight: 700;
+}
+
 .material-weight-field {
   flex: 1 1 100%;
   width: 100%;
