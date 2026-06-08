@@ -124,21 +124,14 @@
   width: 70px;
 }
 
-.ph-dim-cross-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.ph-dim-swap-wrap {
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translate(-50%, -50%);
+.ph-dim-inputs-wrap {
+  min-width: 0;
 }
 
 .ph-dim-swap-icon {
   transform: scale(0.8);
+  line-height: 1;
+  align-self: center;
 }
 
 @media only screen and (min-width: 768px) {

@@ -40,7 +40,8 @@ import { PhUploadValidationService } from '../utils/ph-upload-validation.service
 const POLL_MS = 4000;
 /** Same threshold as mean-corse-01 printing-table additional controls at list end. */
 const FILES_END_CONTROLS_THRESHOLD = 6;
-const SIZE_TOGGLE_PER_ROW = 4;
+/** Settings toggle groups wrap when label score exceeds this threshold. */
+const SETTINGS_BUTTONS_WRAP_SCORE_THRESHOLD = 30;
 
 @Component({
   selector: 'app-print',
@@ -78,7 +79,6 @@ export class PrintComponent implements OnInit, OnDestroy {
   uploadProgress = 0;
   uploadingCount = 0;
   readonly expressFileAccept = EXPRESS_FILE_ACCEPT;
-  readonly sizeTogglePerRow = SIZE_TOGGLE_PER_ROW;
   /** Keeps the product-name display toggle visually selected (read-only). */
   readonly productNameToggle = 0;
 
@@ -263,6 +263,45 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   getMaterialLabel(material: PhDynamicMaterial | PhMaterial): string {
     return material.label?.he?.trim() || String(material.weight);
+  }
+
+  /**
+   * Sum of all label lengths + (buttonCount - 1) * 5.
+   * When the score exceeds 30, settings toggles use a stacked centered layout.
+   */
+  settingsButtonsShouldWrap(labels: string[]): boolean {
+    const count = labels.length;
+    if (count === 0) {
+      return false;
+    }
+    const letterSum = labels.reduce(
+      (sum, label) => sum + (label?.trim().length ?? 0),
+      0,
+    );
+    const score = letterSum + (count - 1) * 5;
+    return score > SETTINGS_BUTTONS_WRAP_SCORE_THRESHOLD;
+  }
+
+  get productSettingsWrap(): boolean {
+    return this.settingsButtonsShouldWrap([this.productName]);
+  }
+
+  get fixedTypeSettingsWrap(): boolean {
+    return this.settingsButtonsShouldWrap(
+      this.fixedDimensionOptions.map((option) => option.label),
+    );
+  }
+
+  get fixedMaterialSettingsWrap(): boolean {
+    return this.settingsButtonsShouldWrap(
+      this.fixedMaterialsForSelectedSize.map((material) => this.getMaterialLabel(material)),
+    );
+  }
+
+  get dynamicMaterialSettingsWrap(): boolean {
+    return this.settingsButtonsShouldWrap(
+      this.dynamicMaterials.map((material) => this.getMaterialLabel(material)),
+    );
   }
 
   getFixedSizeDisplayLabel(size: PhSize): string {
