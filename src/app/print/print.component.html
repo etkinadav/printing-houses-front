@@ -358,6 +358,10 @@
                       </mat-button-toggle-group>
                     </div>
                   </article>
+                  <hr
+                    *ngIf="showPrintSettingsPanel && productName"
+                    class="ph-print-settings-divider"
+                    aria-hidden="true" />
 
                   <!-- Fixed: type buttons — hidden when only one option -->
                   <article
@@ -586,6 +590,10 @@
                       </div>
                     </div>
                   </article>
+                  <hr
+                    *ngIf="showPrintSettingsPanel && colorsForSelectedMaterial.length > 1"
+                    class="ph-print-settings-divider"
+                    aria-hidden="true" />
 
                   <!-- Extra print settings (corners, bleed, folding, duplex, double-sided) -->
                   <ng-container *ngFor="let row of extraSettingRows; trackBy: trackExtraSettingRow">
