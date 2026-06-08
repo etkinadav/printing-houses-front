@@ -32,8 +32,65 @@
   padding: 2px 10px 0;
 }
 
-.ph-print-settings-empty {
+.ph-print-settings-panel {
   min-height: 80px;
+}
+
+.zx-min-h-50 {
+  min-height: 50px;
+}
+
+.ph-dim-input {
+  width: 70px;
+}
+
+.ph-dim-cross-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ph-dim-swap-wrap {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.ph-dim-swap-icon {
+  transform: scale(0.8);
+}
+
+.zx-paper-red {
+  border: 2px solid var(--zx-pink) !important;
+  font-weight: 600;
+  color: var(--zx-pink);
+}
+
+.zx-paper-red-end {
+  border-right: none !important;
+}
+
+.zx-paper-red-end-not-rtl {
+  border-left: none !important;
+}
+
+.zx-paper-red-middle-paper {
+  border-top: 2px solid var(--zx-pink) !important;
+  border-bottom: 2px solid var(--zx-pink) !important;
+  border-left: 2px solid var(--zx-pink) !important;
+  border-right: none !important;
+}
+
+.zx-paper-red-middle-paper-not-rtl {
+  border-top: 2px solid var(--zx-pink) !important;
+  border-bottom: 2px solid var(--zx-pink) !important;
+  border-left: none !important;
+  border-right: 2px solid var(--zx-pink) !important;
+}
+
+.zx-paper-red-single-paper {
+  border: 2px solid var(--zx-pink) !important;
 }
 
 @media only screen and (min-width: 768px) {

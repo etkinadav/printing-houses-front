@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from 'src/environments/environment';
-import { PhPrintingFile } from './ph-printing-file.model';
+import { PhPrintingFile, PhPrintingFilePrintSettings } from './ph-printing-file.model';
 
 const BACKEND_URL = environment.apiUrl + '/ph-printing-files';
 
@@ -22,6 +22,12 @@ export interface PhPrintingFileDeleteResponse {
   deletedFileId: string;
 }
 
+export interface PhPrintingFileSettingsResponse {
+  message: string;
+  file: PhPrintingFile;
+  fileId: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PhPrintingFilesService {
   constructor(private http: HttpClient) {}
@@ -35,6 +41,17 @@ export class PhPrintingFilesService {
       params['productId'] = productId.trim();
     }
     return this.http.get<PhPrintingFilesListResponse>(`${BACKEND_URL}/mine`, { params });
+  }
+
+  updateFileSettings(
+    fileId: string,
+    printSettings: PhPrintingFilePrintSettings,
+    productId: string,
+  ): Observable<PhPrintingFileSettingsResponse> {
+    return this.http.put<PhPrintingFileSettingsResponse>(`${BACKEND_URL}/${fileId}/settings`, {
+      printSettings,
+      productId,
+    });
   }
 
   deleteFile(fileId: string): Observable<PhPrintingFileDeleteResponse> {

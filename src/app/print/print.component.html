@@ -323,7 +323,100 @@
                     {{ 'printing-table.printing-settings' | translate }}
                   </h6>
                 </div>
-                <div class="ph-print-settings-empty flex-grow-1 zx-px-10"></div>
+                <div class="ph-print-settings-panel flex-grow-1 zx-px-10 d-flex flex-column gap-3">
+                  <!-- Fixed sizes -->
+                  <article
+                    *ngIf="isFixedProduct && hasSettingsReadyFile && fixedSizes.length"
+                    class="w-100 d-flex justify-content-between align-items-center"
+                    [class.flex-column]="fixedSizes.length > 2"
+                    [class.zx-min-h-50]="fixedSizes.length <= 2">
+                    <span>{{ 'printing-table.dimensions' | translate }}</span>
+                    <div
+                      *ngFor="let rowIndex of groupSizesRowIndexes()"
+                      class="d-flex position-relative justify-content-end"
+                      style="min-width: 88px">
+                      <mat-button-toggle-group
+                        name="fixed-size"
+                        aria-label="Fixed size"
+                        [(ngModel)]="currentSizeIndex"
+                        (ngModelChange)="onFixedSizeChange($event)">
+                        <mat-button-toggle
+                          *ngFor="let size of groupSizesForPreview(rowIndex); let paperIndex = index"
+                          class="zx-rtl position-relative"
+                          [value]="rowIndex * sizeTogglePerRow + paperIndex"
+                          [class.zx-text-white]="isDarkMode"
+                          [class.zx-paper-red-single-paper]="fixedSizes.length === 1">
+                          <span>{{ getSizeLabel(size) }}</span>
+                        </mat-button-toggle>
+                      </mat-button-toggle-group>
+                    </div>
+                  </article>
+
+                  <!-- Dynamic materials (when more than one) -->
+                  <article
+                    *ngIf="isDynamicProduct && hasSettingsReadyFile && dynamicMaterials.length > 1"
+                    class="w-100 d-flex justify-content-between align-items-center"
+                    [class.flex-column]="dynamicMaterials.length > 2"
+                    [class.zx-min-h-50]="dynamicMaterials.length <= 2">
+                    <span>{{ 'printing-table.paper' | translate }}</span>
+                    <div
+                      *ngFor="let rowIndex of groupMaterialsRowIndexes()"
+                      class="d-flex position-relative justify-content-end"
+                      style="min-width: 88px">
+                      <mat-button-toggle-group
+                        name="dynamic-material"
+                        aria-label="Material"
+                        [(ngModel)]="currentMaterialIndex"
+                        (ngModelChange)="onDynamicMaterialChange($event)">
+                        <mat-button-toggle
+                          *ngFor="let material of groupMaterialsForPreview(rowIndex); let paperIndex = index"
+                          class="zx-rtl position-relative"
+                          [value]="rowIndex * sizeTogglePerRow + paperIndex"
+                          [class.zx-text-white]="isDarkMode">
+                          <span>{{ getMaterialLabel(material) }}</span>
+                        </mat-button-toggle>
+                      </mat-button-toggle-group>
+                    </div>
+                  </article>
+
+                  <!-- Dynamic dimensions -->
+                  <article
+                    *ngIf="isDynamicProduct && hasSettingsReadyFile && selectedDynamicMaterial"
+                    class="zx-min-h-50 w-100 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span>{{ 'printing-table.dimensions' | translate }}</span>
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="d-flex align-items-center gap-1">
+                        <input
+                          type="number"
+                          class="form-control ph-dim-input"
+                          [step]="0.1"
+                          [(ngModel)]="printingLengthCm"
+                          (blur)="onPrintingLengthBlur()"
+                          [placeholder]="selectedDynamicMaterial.defaultLength" />
+                        <div class="ph-dim-cross-cell">
+                          <div class="position-relative d-flex align-items-center">
+                            <span>×</span>
+                            <span class="ph-dim-swap-wrap">
+                              <mat-icon
+                                (click)="swapWidthHeight()"
+                                class="c-pointer text-green ph-dim-swap-icon">
+                                swap_horiz
+                              </mat-icon>
+                            </span>
+                          </div>
+                        </div>
+                        <input
+                          type="number"
+                          class="form-control ph-dim-input"
+                          [step]="0.1"
+                          [(ngModel)]="printingWidthCm"
+                          (blur)="onPrintingWidthBlur()"
+                          [placeholder]="selectedDynamicMaterial.defaultHeight" />
+                        <span>{{ 'printing-table.dimensions-cm' | translate }}</span>
+                      </div>
+                    </div>
+                  </article>
+                </div>
               </div>
             </div>
           </div>

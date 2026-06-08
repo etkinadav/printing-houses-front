@@ -13,9 +13,16 @@ import {
   PH_FILE_TYPE_PRINTING_FILE,
   PhFilesService,
 } from '../ph-files/ph-files.service';
-import { PhPrintingFile } from '../ph-printing-files/ph-printing-file.model';
+import {
+  PhPrintingFile,
+  PhPrintingFilePrintSettings,
+} from '../ph-printing-files/ph-printing-file.model';
 import { PhPrintingFilesService } from '../ph-printing-files/ph-printing-files.service';
-import { PhProduct } from '../ph-products/ph-product.model';
+import {
+  PhDynamicMaterial,
+  PhProduct,
+  PhSize,
+} from '../ph-products/ph-product.model';
 import { PhProductsService } from '../ph-products/ph-products.service';
 import { EXPRESS_FILE_ACCEPT } from '../utils/ph-express-upload';
 import { PhUploadValidationService } from '../utils/ph-upload-validation.service';
@@ -23,6 +30,7 @@ import { PhUploadValidationService } from '../utils/ph-upload-validation.service
 const POLL_MS = 4000;
 /** Same threshold as mean-corse-01 printing-table additional controls at list end. */
 const FILES_END_CONTROLS_THRESHOLD = 6;
+const SIZE_TOGGLE_PER_ROW = 4;
 
 @Component({
   selector: 'app-print',
@@ -37,20 +45,32 @@ export class PrintComponent implements OnInit, OnDestroy {
   printingHouseId = '';
   productId = '';
   productName = '';
+  product: PhProduct | null = null;
 
   files: PhPrintingFile[] = [];
   processingFiles: PhPrintingFile[] = [];
   selectedFile: PhPrintingFile | null = null;
 
+  /** Fixed sizes: selected index in properties.fixed.sizes. */
+  currentSizeIndex: number | null = null;
+  /** Dynamic: selected material index. */
+  currentMaterialIndex = 0;
+  printingLengthCm = 0;
+  printingWidthCm = 0;
+
   uploading = false;
   uploadProgress = 0;
   uploadingCount = 0;
   readonly expressFileAccept = EXPRESS_FILE_ACCEPT;
+  readonly sizeTogglePerRow = SIZE_TOGGLE_PER_ROW;
 
   private directionSub?: Subscription;
   private darkModeSub?: Subscription;
   private pollSub?: Subscription;
   private activeUploads = 0;
+  private isUpdatingFileSettings = false;
+  private settingsSaveInFlightForFileId: string | null = null;
+  private pendingDefaultSettingsFileIds = new Set<string>();
 
   constructor(
     private route: ActivatedRoute,
@@ -76,6 +96,35 @@ export class PrintComponent implements OnInit, OnDestroy {
     return this.files.length > FILES_END_CONTROLS_THRESHOLD;
   }
 
+  get isFixedProduct(): boolean {
+    return this.product?.properties?.dimensionsFlexability === 'fixed';
+  }
+
+  get isDynamicProduct(): boolean {
+    return this.product?.properties?.dimensionsFlexability === 'dynamic';
+  }
+
+  get fixedSizes(): PhSize[] {
+    return this.product?.properties?.fixed?.sizes ?? [];
+  }
+
+  get dynamicMaterials(): PhDynamicMaterial[] {
+    return this.product?.properties?.dynamic?.materials ?? [];
+  }
+
+  get selectedDynamicMaterial(): PhDynamicMaterial | null {
+    const materials = this.dynamicMaterials;
+    if (!materials.length) {
+      return null;
+    }
+    const idx = Math.min(Math.max(0, this.currentMaterialIndex), materials.length - 1);
+    return materials[idx] ?? null;
+  }
+
+  get hasSettingsReadyFile(): boolean {
+    return !!this.selectedFile && !this.isFileProcessing(this.selectedFile);
+  }
+
   ngOnInit(): void {
     this.directionSub = this.directionService.direction$.subscribe((direction) => {
       this.isRTL = direction === 'rtl';
@@ -87,7 +136,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.route.queryParamMap.subscribe((params) => {
       this.printingHouseId = params.get('printingHouseId')?.trim() || '';
       this.productId = params.get('productId')?.trim() || '';
-      this.loadProductName();
+      this.loadProduct();
       this.startPolling();
     });
   }
@@ -107,6 +156,7 @@ export class PrintComponent implements OnInit, OnDestroy {
       return;
     }
     this.selectedFile = file;
+    this.syncSettingsUiFromFile(file);
   }
 
   isSelected(file: PhPrintingFile): boolean {
@@ -115,6 +165,75 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   getDisplayFileName(file: PhPrintingFile): string {
     return file.originalFileName?.trim() || this.translateService.instant('printing-table.file');
+  }
+
+  getSizeLabel(size: PhSize): string {
+    const label = size.label?.he?.trim();
+    if (label) {
+      return label;
+    }
+    return `${size.length}×${size.width}`;
+  }
+
+  getMaterialLabel(material: PhDynamicMaterial): string {
+    return material.label?.he?.trim() || String(material.weight);
+  }
+
+  groupSizesForPreview(rowIndex: number): PhSize[] {
+    const start = rowIndex * SIZE_TOGGLE_PER_ROW;
+    return this.fixedSizes.slice(start, start + SIZE_TOGGLE_PER_ROW);
+  }
+
+  groupSizesRowIndexes(): number[] {
+    const rowNum = Math.ceil(this.fixedSizes.length / SIZE_TOGGLE_PER_ROW);
+    return Array.from({ length: rowNum }, (_, i) => i);
+  }
+
+  groupMaterialsForPreview(rowIndex: number): PhDynamicMaterial[] {
+    const start = rowIndex * SIZE_TOGGLE_PER_ROW;
+    return this.dynamicMaterials.slice(start, start + SIZE_TOGGLE_PER_ROW);
+  }
+
+  groupMaterialsRowIndexes(): number[] {
+    const rowNum = Math.ceil(this.dynamicMaterials.length / SIZE_TOGGLE_PER_ROW);
+    return Array.from({ length: rowNum }, (_, i) => i);
+  }
+
+  onFixedSizeChange(sizeIndex: number): void {
+    const size = this.fixedSizes[sizeIndex];
+    if (!size || !this.selectedFile) {
+      return;
+    }
+    this.currentSizeIndex = sizeIndex;
+    this.printingLengthCm = Number(size.length);
+    this.printingWidthCm = Number(size.width);
+    this.persistCurrentFileSettings();
+  }
+
+  onDynamicMaterialChange(materialIndex: number): void {
+    const material = this.dynamicMaterials[materialIndex];
+    if (!material || !this.selectedFile) {
+      return;
+    }
+    this.currentMaterialIndex = materialIndex;
+    this.printingLengthCm = Number(material.defaultLength);
+    this.printingWidthCm = Number(material.defaultHeight);
+    this.persistCurrentFileSettings();
+  }
+
+  onPrintingLengthBlur(): void {
+    this.onDimensionBlur('L');
+  }
+
+  onPrintingWidthBlur(): void {
+    this.onDimensionBlur('W');
+  }
+
+  swapWidthHeight(): void {
+    const temp = this.printingWidthCm;
+    this.printingWidthCm = this.roundCm(this.printingLengthCm) ?? this.printingLengthCm;
+    this.printingLengthCm = this.roundCm(temp) ?? temp;
+    this.persistCurrentFileSettings();
   }
 
   triggerFilePicker(input: HTMLInputElement): void {
@@ -162,8 +281,12 @@ export class PrintComponent implements OnInit, OnDestroy {
       next: () => {
         this.files = this.files.filter((f) => f._id !== file._id);
         this.processingFiles = this.processingFiles.filter((f) => f._id !== file._id);
+        this.pendingDefaultSettingsFileIds.delete(file._id);
         if (this.selectedFile?._id === file._id) {
           this.selectedFile = this.files.find((f) => !this.isFileProcessing(f)) ?? null;
+          if (this.selectedFile) {
+            this.syncSettingsUiFromFile(this.selectedFile);
+          }
         }
       },
       error: () => {
@@ -188,6 +311,7 @@ export class PrintComponent implements OnInit, OnDestroy {
           this.files = [];
           this.processingFiles = [];
           this.selectedFile = null;
+          this.pendingDefaultSettingsFileIds.clear();
         },
         error: () => {
           this.snackBar.open(
@@ -199,7 +323,8 @@ export class PrintComponent implements OnInit, OnDestroy {
       });
   }
 
-  private loadProductName(): void {
+  private loadProduct(): void {
+    this.product = null;
     this.productName = '';
     if (!this.printingHouseId || !this.productId) {
       return;
@@ -207,10 +332,23 @@ export class PrintComponent implements OnInit, OnDestroy {
 
     this.phProductsService.getProductsByPrintingHousePublic(this.printingHouseId).subscribe({
       next: (res) => {
-        const product = (res.products ?? []).find((p: PhProduct) => p._id === this.productId);
+        const product =
+          (res.products ?? []).find((p: PhProduct) => p._id === this.productId) ?? null;
+        this.product = product;
         this.productName = product?.name_he?.trim() || '';
+        this.afterProductLoaded();
       },
     });
+  }
+
+  private afterProductLoaded(): void {
+    if (!this.product) {
+      return;
+    }
+    this.ensureAllReadyFilesHaveSettings();
+    if (this.selectedFile && !this.isFileProcessing(this.selectedFile)) {
+      this.syncSettingsUiFromFile(this.selectedFile);
+    }
   }
 
   private startPolling(): void {
@@ -233,15 +371,17 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   private applyFilesFromServer(nextFiles: PhPrintingFile[]): void {
-    if (isEqual(nextFiles, this.files)) {
+    const merged = this.mergePolledFilesPreservingInFlightSettings(nextFiles);
+    if (isEqual(merged, this.files)) {
       return;
     }
 
-    this.files = nextFiles;
-    this.processingFiles = nextFiles.filter((file) => this.isFileProcessing(file));
+    const prevSelectedId = this.selectedFile?._id;
+    this.files = merged;
+    this.processingFiles = merged.filter((file) => this.isFileProcessing(file));
 
     if (this.selectedFile) {
-      const still = nextFiles.find((f) => f._id === this.selectedFile!._id);
+      const still = merged.find((f) => f._id === this.selectedFile!._id);
       if (!still || this.isFileProcessing(still)) {
         this.selectedFile = null;
       } else {
@@ -250,11 +390,382 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
 
     if (!this.selectedFile) {
-      const firstReady = nextFiles.find((f) => !this.isFileProcessing(f));
+      const firstReady = merged.find((f) => !this.isFileProcessing(f));
       if (firstReady) {
         this.selectedFile = firstReady;
       }
     }
+
+    this.ensureAllReadyFilesHaveSettings();
+
+    if (this.selectedFile && this.selectedFile._id !== prevSelectedId) {
+      this.syncSettingsUiFromFile(this.selectedFile);
+    }
+  }
+
+  private mergePolledFilesPreservingInFlightSettings(nextFiles: PhPrintingFile[]): PhPrintingFile[] {
+    if (!this.settingsSaveInFlightForFileId) {
+      return nextFiles;
+    }
+    return nextFiles.map((file) => {
+      if (file._id !== this.settingsSaveInFlightForFileId) {
+        return file;
+      }
+      const local = this.files.find((f) => f._id === file._id);
+      if (!local?.printSettings) {
+        return file;
+      }
+      return { ...file, printSettings: local.printSettings };
+    });
+  }
+
+  private ensureAllReadyFilesHaveSettings(): void {
+    if (!this.product) {
+      return;
+    }
+    for (const file of this.files) {
+      if (this.isFileProcessing(file)) {
+        continue;
+      }
+      if (this.fileHasValidPrintSettings(file)) {
+        continue;
+      }
+      if (this.pendingDefaultSettingsFileIds.has(file._id)) {
+        continue;
+      }
+      const defaults = this.buildDefaultPrintSettings();
+      if (!defaults) {
+        continue;
+      }
+      this.pendingDefaultSettingsFileIds.add(file._id);
+      this.saveFileSettings(file._id, defaults, () => {
+        this.pendingDefaultSettingsFileIds.delete(file._id);
+        if (this.selectedFile?._id === file._id) {
+          this.syncSettingsUiFromFile(this.selectedFile);
+        }
+      });
+    }
+  }
+
+  private fileHasValidPrintSettings(file: PhPrintingFile): boolean {
+    const ps = file.printSettings;
+    if (!ps || !this.product) {
+      return false;
+    }
+    if (this.isFixedProduct) {
+      const idx = Number(ps.sizeIndex);
+      return Number.isInteger(idx) && idx >= 0 && idx < this.fixedSizes.length;
+    }
+    if (this.isDynamicProduct) {
+      const materialIndex = Number(ps.materialIndex ?? 0);
+      const lengthCm = Number(ps.lengthCm);
+      const widthCm = Number(ps.widthCm);
+      if (
+        !Number.isInteger(materialIndex) ||
+        materialIndex < 0 ||
+        materialIndex >= this.dynamicMaterials.length ||
+        !Number.isFinite(lengthCm) ||
+        !Number.isFinite(widthCm) ||
+        lengthCm <= 0 ||
+        widthCm <= 0
+      ) {
+        return false;
+      }
+      return this.areDynamicDimensionsValid(
+        this.dynamicMaterials[materialIndex],
+        lengthCm,
+        widthCm,
+      );
+    }
+    return false;
+  }
+
+  private buildDefaultPrintSettings(): PhPrintingFilePrintSettings | null {
+    if (!this.product) {
+      return null;
+    }
+    if (this.isFixedProduct) {
+      const size = this.fixedSizes[0];
+      if (!size) {
+        return null;
+      }
+      return {
+        paperType: this.getSizeLabel(size),
+        sizeIndex: 0,
+        lengthCm: Number(size.length),
+        widthCm: Number(size.width),
+      };
+    }
+    if (this.isDynamicProduct) {
+      const material = this.dynamicMaterials[0];
+      if (!material) {
+        return null;
+      }
+      return {
+        paperType: this.getMaterialLabel(material),
+        materialIndex: 0,
+        lengthCm: Number(material.defaultLength),
+        widthCm: Number(material.defaultHeight),
+      };
+    }
+    return null;
+  }
+
+  private syncSettingsUiFromFile(file: PhPrintingFile): void {
+    if (!this.product || this.isFileProcessing(file)) {
+      return;
+    }
+
+    const ps = file.printSettings;
+    if (this.isFixedProduct) {
+      const idx =
+        ps?.sizeIndex != null && Number.isFinite(Number(ps.sizeIndex))
+          ? Number(ps.sizeIndex)
+          : 0;
+      const size = this.fixedSizes[idx] ?? this.fixedSizes[0];
+      this.currentSizeIndex = size ? idx : null;
+      this.printingLengthCm = Number(ps?.lengthCm ?? size?.length ?? 0);
+      this.printingWidthCm = Number(ps?.widthCm ?? size?.width ?? 0);
+      return;
+    }
+
+    if (this.isDynamicProduct) {
+      const materialIndex =
+        ps?.materialIndex != null && Number.isFinite(Number(ps.materialIndex))
+          ? Number(ps.materialIndex)
+          : 0;
+      const material = this.dynamicMaterials[materialIndex] ?? this.dynamicMaterials[0];
+      this.currentMaterialIndex = material ? materialIndex : 0;
+      this.printingLengthCm = Number(
+        ps?.lengthCm ?? material?.defaultLength ?? 0,
+      );
+      this.printingWidthCm = Number(
+        ps?.widthCm ?? material?.defaultHeight ?? 0,
+      );
+    }
+  }
+
+  private buildSettingsFromUi(): PhPrintingFilePrintSettings | null {
+    if (!this.product) {
+      return null;
+    }
+    if (this.isFixedProduct) {
+      const idx = this.currentSizeIndex ?? 0;
+      const size = this.fixedSizes[idx];
+      if (!size) {
+        return null;
+      }
+      return {
+        paperType: this.getSizeLabel(size),
+        sizeIndex: idx,
+        lengthCm: Number(size.length),
+        widthCm: Number(size.width),
+      };
+    }
+    if (this.isDynamicProduct) {
+      const material = this.selectedDynamicMaterial;
+      if (!material) {
+        return null;
+      }
+      return {
+        paperType: this.getMaterialLabel(material),
+        materialIndex: this.currentMaterialIndex,
+        lengthCm: this.roundCm(this.printingLengthCm) ?? this.printingLengthCm,
+        widthCm: this.roundCm(this.printingWidthCm) ?? this.printingWidthCm,
+      };
+    }
+    return null;
+  }
+
+  private persistCurrentFileSettings(): void {
+    if (!this.selectedFile?._id) {
+      return;
+    }
+    const settings = this.buildSettingsFromUi();
+    if (!settings) {
+      return;
+    }
+    this.saveFileSettings(this.selectedFile._id, settings);
+  }
+
+  private saveFileSettings(
+    fileId: string,
+    printSettings: PhPrintingFilePrintSettings,
+    onDone?: () => void,
+  ): void {
+    if (!this.productId) {
+      onDone?.();
+      return;
+    }
+
+    this.isUpdatingFileSettings = true;
+    this.settingsSaveInFlightForFileId = fileId;
+    this.patchFilePrintSettings(fileId, printSettings);
+
+    this.phPrintingFilesService
+      .updateFileSettings(fileId, printSettings, this.productId)
+      .subscribe({
+        next: (res) => {
+          this.isUpdatingFileSettings = false;
+          this.settingsSaveInFlightForFileId = null;
+          if (res.file?.printSettings) {
+            this.patchFilePrintSettings(fileId, res.file.printSettings);
+          }
+          if (this.selectedFile?._id === fileId) {
+            this.syncSettingsUiFromFile(this.selectedFile);
+          }
+          onDone?.();
+        },
+        error: () => {
+          this.isUpdatingFileSettings = false;
+          this.settingsSaveInFlightForFileId = null;
+          onDone?.();
+        },
+      });
+  }
+
+  private patchFilePrintSettings(
+    fileId: string,
+    printSettings: PhPrintingFilePrintSettings,
+  ): void {
+    this.files = this.files.map((file) =>
+      file._id === fileId ? { ...file, printSettings: { ...printSettings } } : file,
+    );
+    if (this.selectedFile?._id === fileId) {
+      this.selectedFile = {
+        ...this.selectedFile,
+        printSettings: { ...printSettings },
+      };
+    }
+  }
+
+  /**
+   * Dynamic dimension validation — ported from mean-corse ph-printing-table.
+   * Maps אורך → height, רוחב → width in the algorithm.
+   */
+  private onDimensionBlur(axis: 'W' | 'L' = 'W'): void {
+    const material = this.selectedDynamicMaterial;
+    if (!material || !this.selectedFile) {
+      return;
+    }
+
+    let width = this.printingWidthCm;
+    let height = this.printingLengthCm;
+
+    const minW = Number(material.minHeight);
+    const maxW = Number(material.maxHeight);
+    const minH = Number(material.minLength);
+    const maxH = Number(material.maxLength);
+
+    const originalWidth = Number(this.selectedFile.printSettings?.widthCm ?? width);
+    const originalHeight = Number(this.selectedFile.printSettings?.lengthCm ?? height);
+
+    const bigMax = Math.max(maxW, maxH);
+    const smallMax = Math.min(maxW, maxH);
+    const blurAxis = axis === 'L' ? 'H' : 'W';
+
+    if (width < minW) {
+      width = minW;
+    }
+    if (height < minH) {
+      height = minH;
+    }
+
+    let isMainDimValid: boolean;
+    let isMainDimValidCross: boolean;
+    let isCrossDimValid: boolean;
+    let isCrossDimValidCross: boolean;
+
+    if (blurAxis === 'W') {
+      isMainDimValid = width <= maxW;
+      isMainDimValidCross = width <= maxH;
+      isCrossDimValid = height <= maxH;
+      isCrossDimValidCross = height <= maxW;
+    } else {
+      isMainDimValid = height <= maxH;
+      isMainDimValidCross = height <= maxW;
+      isCrossDimValid = width <= maxW;
+      isCrossDimValidCross = width <= maxH;
+    }
+
+    if (isMainDimValid) {
+      if (!isCrossDimValid) {
+        if (isMainDimValidCross) {
+          if (!isCrossDimValidCross) {
+            if (blurAxis === 'W') {
+              height = smallMax;
+            } else {
+              width = smallMax;
+            }
+          }
+        } else if (blurAxis === 'W') {
+          height = smallMax;
+        } else {
+          width = smallMax;
+        }
+      }
+    } else if (isMainDimValidCross) {
+      if (!isCrossDimValidCross) {
+        if (blurAxis === 'W') {
+          height = bigMax;
+        } else {
+          width = bigMax;
+        }
+      }
+    } else {
+      if (blurAxis === 'W') {
+        width = bigMax;
+      } else {
+        height = bigMax;
+      }
+      if (!(isCrossDimValid && isCrossDimValidCross)) {
+        if (blurAxis === 'W') {
+          height = smallMax;
+        } else {
+          width = smallMax;
+        }
+      }
+    }
+
+    width = this.roundCm(width) ?? width;
+    height = this.roundCm(height) ?? height;
+
+    if (
+      !Number.isFinite(originalWidth) ||
+      !Number.isFinite(originalHeight) ||
+      width !== originalWidth ||
+      height !== originalHeight
+    ) {
+      this.printingWidthCm = width;
+      this.printingLengthCm = height;
+      this.persistCurrentFileSettings();
+    } else {
+      this.printingWidthCm = this.roundCm(originalWidth) ?? originalWidth;
+      this.printingLengthCm = this.roundCm(originalHeight) ?? originalHeight;
+    }
+  }
+
+  private areDynamicDimensionsValid(
+    material: PhDynamicMaterial,
+    lengthCm: number,
+    widthCm: number,
+  ): boolean {
+    const minL = Number(material.minLength);
+    const maxL = Number(material.maxLength);
+    const minW = Number(material.minHeight);
+    const maxW = Number(material.maxHeight);
+    const normalValid =
+      lengthCm >= minL && lengthCm <= maxL && widthCm >= minW && widthCm <= maxW;
+    const swappedValid =
+      lengthCm >= minW && lengthCm <= maxW && widthCm >= minL && widthCm <= maxL;
+    return normalValid || swappedValid;
+  }
+
+  private roundCm(value: number): number | null {
+    if (!Number.isFinite(value)) {
+      return null;
+    }
+    return Math.round(value * 10) / 10;
   }
 
   private uploadFile(file: File): void {

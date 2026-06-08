@@ -1,3 +1,11 @@
+export interface PhPrintingFilePrintSettings {
+  paperType?: string;
+  sizeIndex?: number;
+  materialIndex?: number;
+  lengthCm?: number;
+  widthCm?: number;
+}
+
 export interface PhPrintingFile {
   _id: string;
   created: string;
@@ -10,4 +18,5 @@ export interface PhPrintingFile {
   originalUrl: string;
   thumbnailUrl?: string | null;
   processing: boolean;
+  printSettings?: PhPrintingFilePrintSettings;
 }
