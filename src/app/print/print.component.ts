@@ -70,8 +70,6 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   /** Cached product options — never compute in template (avoids infinite change detection). */
   fixedDimensionOptions: FixedDimensionOption[] = [];
-  fixedOptionRows: FixedDimensionOption[][] = [];
-  dynamicMaterialRows: PhDynamicMaterial[][] = [];
 
   uploading = false;
   uploadProgress = 0;
@@ -202,38 +200,11 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   getFixedSizeDisplayLabel(size: PhSize): string {
-    const productName = this.productName?.trim() || '';
-    const sizeLabel = size.label?.he?.trim() || '';
-
-    if (sizeLabel && sizeLabel !== productName) {
+    const sizeLabel = size.label?.he?.trim();
+    if (sizeLabel) {
       return sizeLabel;
     }
-
-    const materials = size.materials ?? [];
-    if (materials.length === 1) {
-      return this.getFixedMaterialDisplayLabel(materials[0], 0);
-    }
-
-    if (materials.length > 1) {
-      return this.getFixedMaterialDisplayLabel(materials[0], 0);
-    }
-
     return `${size.length}×${size.width}`;
-  }
-
-  getFixedMaterialDisplayLabel(material: PhMaterial, index: number): string {
-    const productName = this.productName?.trim() || '';
-    const raw = material.label?.he?.trim() || '';
-
-    if (raw && raw !== productName) {
-      return raw;
-    }
-
-    if (material.weight != null) {
-      return String(material.weight);
-    }
-
-    return String(index + 1);
   }
 
   onFixedOptionChange(optionIndex: number): void {
@@ -258,25 +229,9 @@ export class PrintComponent implements OnInit, OnDestroy {
     return this.fixedDimensionOptions[this.currentFixedOptionIndex] ?? null;
   }
 
-  private findFixedOptionIndex(sizeIndex: number, materialIndex: number): number {
-    const idx = this.fixedDimensionOptions.findIndex(
-      (option) => option.sizeIndex === sizeIndex && option.materialIndex === materialIndex,
-    );
+  private findFixedOptionIndex(sizeIndex: number, _materialIndex: number): number {
+    const idx = this.fixedDimensionOptions.findIndex((option) => option.sizeIndex === sizeIndex);
     return idx >= 0 ? idx : 0;
-  }
-
-  onDynamicMaterialChange(materialIndex: number): void {
-    if (this.suppressSettingsPersist) {
-      return;
-    }
-    const material = this.dynamicMaterials[materialIndex];
-    if (!material || !this.selectedFile) {
-      return;
-    }
-    this.currentMaterialIndex = materialIndex;
-    this.printingLengthCm = Number(material.defaultLength);
-    this.printingWidthCm = Number(material.defaultHeight);
-    this.persistCurrentFileSettings();
   }
 
   onPrintingLengthBlur(): void {
@@ -406,46 +361,18 @@ export class PrintComponent implements OnInit, OnDestroy {
   private rebuildProductOptionCaches(): void {
     const options: FixedDimensionOption[] = [];
     const sizes = this.fixedSizes;
-    const singleSize = sizes.length === 1;
-    let optionIndex = 0;
 
     for (let sizeIndex = 0; sizeIndex < sizes.length; sizeIndex += 1) {
       const size = sizes[sizeIndex];
-      const materials = size.materials ?? [];
-
-      if (singleSize && materials.length > 1) {
-        for (let materialIndex = 0; materialIndex < materials.length; materialIndex += 1) {
-          options.push({
-            optionIndex,
-            sizeIndex,
-            materialIndex,
-            label: this.getFixedMaterialDisplayLabel(materials[materialIndex], materialIndex),
-          });
-          optionIndex += 1;
-        }
-        continue;
-      }
-
       options.push({
-        optionIndex,
+        optionIndex: sizeIndex,
         sizeIndex,
         materialIndex: 0,
         label: this.getFixedSizeDisplayLabel(size),
       });
-      optionIndex += 1;
     }
 
     this.fixedDimensionOptions = options;
-    this.fixedOptionRows = this.chunkForToggleRows(options);
-    this.dynamicMaterialRows = this.chunkForToggleRows(this.dynamicMaterials);
-  }
-
-  private chunkForToggleRows<T>(items: T[]): T[][] {
-    const rows: T[][] = [];
-    for (let i = 0; i < items.length; i += SIZE_TOGGLE_PER_ROW) {
-      rows.push(items.slice(i, i + SIZE_TOGGLE_PER_ROW));
-    }
-    return rows;
   }
 
   private afterProductLoaded(): void {
@@ -604,9 +531,7 @@ export class PrintComponent implements OnInit, OnDestroy {
       if (!Number.isInteger(sizeIndex) || sizeIndex < 0 || sizeIndex >= this.fixedSizes.length) {
         return false;
       }
-      return this.fixedDimensionOptions.some(
-        (option) => option.sizeIndex === sizeIndex && option.materialIndex === materialIndex,
-      );
+      return this.fixedDimensionOptions.some((option) => option.sizeIndex === sizeIndex);
     }
     if (this.isDynamicProduct) {
       const materialIndex = Number(ps.materialIndex ?? 0);
