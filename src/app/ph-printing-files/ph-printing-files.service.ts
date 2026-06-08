@@ -32,6 +32,10 @@ export interface PhPrintingFileSettingsResponse {
 export class PhPrintingFilesService {
   constructor(private http: HttpClient) {}
 
+  /**
+   * List files for user + printing house. `productId` only selects which per-product
+   * print settings are hydrated on each file — it does not filter the file list.
+   */
   getMyFiles(printingHouseId?: string, productId?: string): Observable<PhPrintingFilesListResponse> {
     const params: Record<string, string> = {};
     if (printingHouseId?.trim()) {
@@ -58,16 +62,10 @@ export class PhPrintingFilesService {
     return this.http.delete<PhPrintingFileDeleteResponse>(`${BACKEND_URL}/${fileId}`);
   }
 
-  deleteAll(
-    printingHouseId?: string,
-    productId?: string,
-  ): Observable<PhPrintingFilesDeleteAllResponse> {
+  deleteAll(printingHouseId?: string): Observable<PhPrintingFilesDeleteAllResponse> {
     const params: Record<string, string> = {};
     if (printingHouseId?.trim()) {
       params['printingHouseId'] = printingHouseId.trim();
-    }
-    if (productId?.trim()) {
-      params['productId'] = productId.trim();
     }
     return this.http.delete<PhPrintingFilesDeleteAllResponse>(`${BACKEND_URL}/mine`, { params });
   }

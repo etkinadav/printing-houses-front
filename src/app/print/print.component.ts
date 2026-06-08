@@ -136,8 +136,17 @@ export class PrintComponent implements OnInit, OnDestroy {
     });
 
     this.route.queryParamMap.subscribe((params) => {
-      this.printingHouseId = params.get('printingHouseId')?.trim() || '';
-      this.productId = params.get('productId')?.trim() || '';
+      const nextPrintingHouseId = params.get('printingHouseId')?.trim() || '';
+      const nextProductId = params.get('productId')?.trim() || '';
+      const productChanged = nextProductId !== this.productId;
+
+      this.printingHouseId = nextPrintingHouseId;
+      this.productId = nextProductId;
+
+      if (productChanged) {
+        this.resetSettingsUiState();
+      }
+
       this.loadProduct();
       this.startPolling();
     });
@@ -313,7 +322,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
 
     this.phPrintingFilesService
-      .deleteAll(this.printingHouseId, this.productId)
+      .deleteAll(this.printingHouseId)
       .subscribe({
         next: () => {
           this.files = [];
@@ -358,6 +367,13 @@ export class PrintComponent implements OnInit, OnDestroy {
     if (this.selectedFile && !this.isFileProcessing(this.selectedFile)) {
       this.syncSettingsUiFromFile(this.selectedFile);
     }
+  }
+
+  private resetSettingsUiState(): void {
+    this.currentSizeIndex = null;
+    this.currentMaterialIndex = 0;
+    this.printingLengthCm = 0;
+    this.printingWidthCm = 0;
   }
 
   private startPolling(): void {
