@@ -1207,6 +1207,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
   onSave(): void {
     this.syncAllTreeExtraValidators();
+    this.syncDynamicMaterialDimensionValidators();
     if (this.form.invalid || this.isSaving) {
       this.form.markAllAsTouched();
       return;
@@ -1388,6 +1389,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       maxLength: Number(materialGroup.get('maxLength')!.value),
       minHeight: Number(materialGroup.get('minHeight')!.value),
       maxHeight: Number(materialGroup.get('maxHeight')!.value),
+      defaultLength: Number(materialGroup.get('defaultLength')!.value),
+      defaultHeight: Number(materialGroup.get('defaultHeight')!.value),
       colors: this.readColors(materialGroup),
       ...this.readTreeExtras(materialGroup),
     }));
@@ -1615,6 +1618,102 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       this.syncTreeExtraValidatorsDeep(materialGroup);
     }
     this.form.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private syncDynamicMaterialDimensionValidators(): void {
+    for (const materialGroup of this.dynamicMaterials.controls) {
+      this.applyDynamicMaterialDimensionErrors(materialGroup as FormGroup);
+    }
+    this.form.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private attachDynamicMaterialDimensionValidation(group: FormGroup): void {
+    const dimensionKeys = [
+      'minLength',
+      'maxLength',
+      'minHeight',
+      'maxHeight',
+      'defaultLength',
+      'defaultHeight',
+    ] as const;
+
+    for (const key of dimensionKeys) {
+      group.get(key)?.valueChanges.subscribe(() => {
+        this.applyDynamicMaterialDimensionErrors(group);
+      });
+    }
+
+    this.applyDynamicMaterialDimensionErrors(group);
+  }
+
+  private applyDynamicMaterialDimensionErrors(group: FormGroup): void {
+    const clearKeyError = (controlName: string, errorKey: string) => {
+      const control = group.get(controlName);
+      if (!control?.errors?.[errorKey]) {
+        return;
+      }
+      const nextErrors = { ...control.errors };
+      delete nextErrors[errorKey];
+      control.setErrors(Object.keys(nextErrors).length ? nextErrors : null);
+    };
+
+    for (const controlName of [
+      'maxLength',
+      'maxHeight',
+      'defaultLength',
+      'defaultHeight',
+    ]) {
+      clearKeyError(controlName, 'maxNotGreater');
+      clearKeyError(controlName, 'defaultOutOfRange');
+    }
+
+    const minLength = Number(group.get('minLength')?.value);
+    const maxLength = Number(group.get('maxLength')?.value);
+    const minHeight = Number(group.get('minHeight')?.value);
+    const maxHeight = Number(group.get('maxHeight')?.value);
+    const defaultLength = Number(group.get('defaultLength')?.value);
+    const defaultHeight = Number(group.get('defaultHeight')?.value);
+
+    const hasLengthBounds =
+      !Number.isNaN(minLength) && !Number.isNaN(maxLength);
+    const hasHeightBounds =
+      !Number.isNaN(minHeight) && !Number.isNaN(maxHeight);
+
+    if (hasLengthBounds && maxLength <= minLength) {
+      const maxControl = group.get('maxLength');
+      maxControl?.setErrors({ ...(maxControl.errors || {}), maxNotGreater: true });
+    }
+
+    if (hasHeightBounds && maxHeight <= minHeight) {
+      const maxControl = group.get('maxHeight');
+      maxControl?.setErrors({ ...(maxControl.errors || {}), maxNotGreater: true });
+    }
+
+    if (
+      hasLengthBounds &&
+      !Number.isNaN(defaultLength) &&
+      (defaultLength < minLength || defaultLength > maxLength)
+    ) {
+      const defaultControl = group.get('defaultLength');
+      defaultControl?.setErrors({
+        ...(defaultControl.errors || {}),
+        defaultOutOfRange: true,
+      });
+    }
+
+    if (
+      hasHeightBounds &&
+      !Number.isNaN(defaultHeight) &&
+      (defaultHeight < minHeight || defaultHeight > maxHeight)
+    ) {
+      const defaultControl = group.get('defaultHeight');
+      defaultControl?.setErrors({
+        ...(defaultControl.errors || {}),
+        defaultOutOfRange: true,
+      });
+    }
+
+    group.updateValueAndValidity({ emitEvent: false });
   }
 
   private syncTreeExtraValidatorsDeep(group: AbstractControl): void {
@@ -1934,6 +2033,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       maxLength: number | null;
       minHeight: number | null;
       maxHeight: number | null;
+      defaultLength?: number | null;
+      defaultHeight?: number | null;
       colors: Array<{
         color: string;
         label: Partial<PhProductLabel>;
@@ -1946,11 +2047,15 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     }>,
   ): FormGroup {
     const dimValidators = [Validators.required, Validators.min(0)];
+    const resolvedDefaultLength =
+      material?.defaultLength ?? material?.minLength ?? null;
+    const resolvedDefaultHeight =
+      material?.defaultHeight ?? material?.minHeight ?? null;
     const colors = material?.colors?.length
       ? new FormArray<FormGroup>(material.colors.map((color) => this.createColorGroup(color)))
       : new FormArray<FormGroup>([this.createColorGroup()]);
 
-    return new FormGroup({
+    const group = new FormGroup({
       weight: new FormControl<number | null>(material?.weight ?? null, [
         Validators.required,
         Validators.min(0),
@@ -1970,8 +2075,13 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       maxLength: new FormControl<number | null>(material?.maxLength ?? null, dimValidators),
       minHeight: new FormControl<number | null>(material?.minHeight ?? null, dimValidators),
       maxHeight: new FormControl<number | null>(material?.maxHeight ?? null, dimValidators),
+      defaultLength: new FormControl<number | null>(resolvedDefaultLength, dimValidators),
+      defaultHeight: new FormControl<number | null>(resolvedDefaultHeight, dimValidators),
       colors,
     });
+
+    this.attachDynamicMaterialDimensionValidation(group);
+    return group;
   }
 
   private cloneMaterialGroup(source: AbstractControl, withDimensions: boolean): FormGroup {

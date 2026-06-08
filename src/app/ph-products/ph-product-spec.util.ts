@@ -374,6 +374,8 @@ function buildDynamicMaterialNodes(
       maxL: material.maxLength,
       minH: material.minHeight,
       maxH: material.maxHeight,
+      defaultL: material.defaultLength,
+      defaultH: material.defaultHeight,
     });
     const children: ProductSpecNode[] = [{ label: range, emphasis: false }];
     appendMaterialColorChildren(material, children, t);

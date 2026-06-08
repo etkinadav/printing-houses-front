@@ -278,38 +278,75 @@
           </mat-error>
         </mat-form-field>
 
-        <div class="d-flex gap-2">
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-50">
+        <div class="material-dimensions-group">
+          <span class="material-dimensions-group__title zx-text-small">
+            {{ 'management.product-create.dimension-length' | translate }}
+          </span>
+          <div class="material-dimensions-row">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="material-dimensions-field">
               <mat-label>{{ 'management.product-create.min-length' | translate }}</mat-label>
               <input matInput type="number" formControlName="minLength" />
               <mat-error *ngIf="material.get('minLength')?.hasError('required')">
                 {{ 'management.product-create.min-length-required' | translate }}
               </mat-error>
             </mat-form-field>
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-50">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="material-dimensions-field">
               <mat-label>{{ 'management.product-create.max-length' | translate }}</mat-label>
               <input matInput type="number" formControlName="maxLength" />
               <mat-error *ngIf="material.get('maxLength')?.hasError('required')">
                 {{ 'management.product-create.max-length-required' | translate }}
               </mat-error>
+              <mat-error *ngIf="material.get('maxLength')?.hasError('maxNotGreater')">
+                {{ 'management.product-create.max-length-must-exceed-min' | translate }}
+              </mat-error>
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="material-dimensions-field">
+              <mat-label>{{ 'management.product-create.default-length' | translate }}</mat-label>
+              <input matInput type="number" formControlName="defaultLength" />
+              <mat-error *ngIf="material.get('defaultLength')?.hasError('required')">
+                {{ 'management.product-create.default-length-required' | translate }}
+              </mat-error>
+              <mat-error *ngIf="material.get('defaultLength')?.hasError('defaultOutOfRange')">
+                {{ 'management.product-create.default-length-out-of-range' | translate }}
+              </mat-error>
             </mat-form-field>
           </div>
-          <div class="d-flex gap-2">
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-50">
+        </div>
+
+        <div class="material-dimensions-group">
+          <span class="material-dimensions-group__title zx-text-small">
+            {{ 'management.product-create.dimension-width' | translate }}
+          </span>
+          <div class="material-dimensions-row">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="material-dimensions-field">
               <mat-label>{{ 'management.product-create.min-height' | translate }}</mat-label>
               <input matInput type="number" formControlName="minHeight" />
               <mat-error *ngIf="material.get('minHeight')?.hasError('required')">
                 {{ 'management.product-create.min-height-required' | translate }}
               </mat-error>
             </mat-form-field>
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-50">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="material-dimensions-field">
               <mat-label>{{ 'management.product-create.max-height' | translate }}</mat-label>
               <input matInput type="number" formControlName="maxHeight" />
               <mat-error *ngIf="material.get('maxHeight')?.hasError('required')">
                 {{ 'management.product-create.max-height-required' | translate }}
               </mat-error>
+              <mat-error *ngIf="material.get('maxHeight')?.hasError('maxNotGreater')">
+                {{ 'management.product-create.max-height-must-exceed-min' | translate }}
+              </mat-error>
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="material-dimensions-field">
+              <mat-label>{{ 'management.product-create.default-width' | translate }}</mat-label>
+              <input matInput type="number" formControlName="defaultHeight" />
+              <mat-error *ngIf="material.get('defaultHeight')?.hasError('required')">
+                {{ 'management.product-create.default-width-required' | translate }}
+              </mat-error>
+              <mat-error *ngIf="material.get('defaultHeight')?.hasError('defaultOutOfRange')">
+                {{ 'management.product-create.default-width-out-of-range' | translate }}
+              </mat-error>
             </mat-form-field>
           </div>
+        </div>
           <ng-container *ngTemplateOutlet="extraSettingsPanels; context: { $implicit: material }"></ng-container>
       </div>
 

@@ -70,6 +70,8 @@ export interface PhDynamicMaterial extends PhMaterial {
   maxLength: number;
   minHeight: number;
   maxHeight: number;
+  defaultLength: number;
+  defaultHeight: number;
 }
 
 /** Print area on a mockup image — normalized 0–1 fractions of image width/height. */
