@@ -1,5 +1,44 @@
 /* Copied from mean-corse-01 printing-table — files + settings + preview layout */
 
+:host {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  height: calc(var(--vh, 1vh) * 100 - 45px) !important;
+  max-height: calc(var(--vh, 1vh) * 100 - 45px) !important;
+  overflow: hidden !important;
+}
+
+@supports (height: 100dvh) {
+  :host {
+    height: calc(100dvh - 45px) !important;
+    max-height: calc(100dvh - 45px) !important;
+  }
+}
+
+@media only screen and (min-width: 576px) {
+  :host {
+    height: calc(var(--vh, 1vh) * 100 - 52px) !important;
+    max-height: calc(var(--vh, 1vh) * 100 - 52px) !important;
+  }
+
+  @supports (height: 100dvh) {
+    :host {
+      height: calc(100dvh - 52px) !important;
+      max-height: calc(100dvh - 52px) !important;
+    }
+  }
+}
+
+.zx-settings-nav-ph {
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
 .ph-print-house-header {
   flex-shrink: 0;
   padding: 6px 12px;
@@ -66,9 +105,29 @@
   word-break: break-word;
 }
 
+.print-page {
+  flex: 1 1 0;
+  min-height: 0;
+  flex-direction: column;
+  width: 100%;
+}
+
 .print-page__row {
+  flex: 1 1 0;
   max-width: 100%;
   min-height: 0;
+}
+
+.ph-print-settings-files-row {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+@media only screen and (max-width: 767px) {
+  .ph-print-settings-files-row {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
 }
 
 .zx-files-area {
@@ -88,10 +147,19 @@
   height: 100%;
   flex-grow: 1;
   min-width: 0;
+  min-height: 0;
+}
+
+.zx-mw-100-vw {
+  max-width: 100% !important;
 }
 
 .zx-settings-area-inner {
-  padding: 0 10px 15px;
+  padding: 0 0 15px;
+  overflow-x: hidden;
+  align-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .zx-px-10 {
@@ -100,15 +168,18 @@
 
 .ph-print-settings-panel {
   min-height: 80px;
-}
-
-.ph-print-settings-product {
-  padding-top: 12px;
+  width: 100%;
+  max-width: 100%;
+  align-self: stretch;
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 12px 10px 0;
 }
 
 @media only screen and (min-width: 768px) {
-  .ph-print-settings-product {
-    padding-top: 18px;
+  .ph-print-settings-panel {
+    padding: 18px 15px 0;
   }
 }
 
@@ -176,6 +247,16 @@
 }
 
 @media only screen and (min-width: 768px) {
+  .ph-print-settings-files-row {
+    width: 100%;
+  }
+
+  .zx-settings-area {
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+  }
+
   .zx-files-area-outer-outer {
     display: flex;
     position: relative;
@@ -206,6 +287,11 @@
 
   .zx-settings-area-inner {
     padding: 0 0 15px 15px;
+    overflow-y: auto;
+    inset: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .zx-settings-area-inner-rtl {
@@ -215,6 +301,8 @@
   .zx-px-10 {
     padding: 2px 15px 0;
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 }
 
@@ -292,6 +380,7 @@
     gap: 12px;
     height: unset;
     padding: 0 2px 6px;
+    overflow: visible;
   }
 
   .zx-file-obj {
