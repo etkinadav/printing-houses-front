@@ -414,32 +414,35 @@
                     *ngIf="isDynamicProduct && showPrintSettingsPanel && selectedDynamicMaterial"
                     class="zx-min-h-50 w-100 d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <span>{{ 'printing-table.dimensions' | translate }}</span>
-                    <div class="ph-dim-inputs-wrap d-flex flex-column align-items-end gap-1">
-                      <div class="d-flex align-items-center gap-1">
+                    <div class="ph-dim-inputs-wrap">
+                      <div class="ph-dim-inputs-grid">
                         <input
                           type="number"
-                          class="form-control ph-dim-input"
+                          class="form-control ph-dim-input ph-dim-input--length"
                           [step]="0.1"
                           [(ngModel)]="printingLengthCm"
                           (blur)="onPrintingLengthBlur()"
                           [placeholder]="selectedDynamicMaterial.defaultLength"
                           [attr.aria-label]="'management.product-create.dimension-length' | translate" />
-                        <span>×</span>
+                        <span class="ph-dim-cross">
+                          <span aria-hidden="true">×</span>
+                          <button
+                            type="button"
+                            class="ph-dim-swap-btn"
+                            (click)="swapWidthHeight()">
+                            <mat-icon class="text-green ph-dim-swap-icon">swap_horiz</mat-icon>
+                          </button>
+                        </span>
                         <input
                           type="number"
-                          class="form-control ph-dim-input"
+                          class="form-control ph-dim-input ph-dim-input--width"
                           [step]="0.1"
                           [(ngModel)]="printingWidthCm"
                           (blur)="onPrintingWidthBlur()"
                           [placeholder]="selectedDynamicMaterial.defaultHeight"
                           [attr.aria-label]="'management.product-create.dimension-width' | translate" />
-                        <span>{{ 'printing-table.dimensions-cm' | translate }}</span>
+                        <span class="ph-dim-unit">{{ 'printing-table.dimensions-cm' | translate }}</span>
                       </div>
-                      <mat-icon
-                        (click)="swapWidthHeight()"
-                        class="c-pointer text-green ph-dim-swap-icon">
-                        swap_horiz
-                      </mat-icon>
                     </div>
                   </article>
 

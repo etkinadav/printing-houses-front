@@ -266,12 +266,68 @@
 
 .ph-dim-inputs-wrap {
   min-width: 0;
+  overflow: visible;
+}
+
+.ph-dim-inputs-grid {
+  display: grid;
+  grid-template-columns: 70px auto 70px auto;
+  grid-template-rows: auto;
+  column-gap: 0.25rem;
+  align-items: center;
+  justify-items: center;
+  overflow: visible;
+}
+
+.ph-dim-input--length {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: stretch;
+}
+
+.ph-dim-cross {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  overflow: visible;
+}
+
+.ph-dim-input--width {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: stretch;
+}
+
+.ph-dim-unit {
+  grid-column: 4;
+  grid-row: 1;
+  justify-self: start;
+  white-space: nowrap;
+}
+
+.ph-dim-swap-btn {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  line-height: 1;
 }
 
 .ph-dim-swap-icon {
   transform: scale(0.8);
   line-height: 1;
-  align-self: center;
 }
 
 @media only screen and (min-width: 768px) {
