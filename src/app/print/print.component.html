@@ -331,52 +331,77 @@
                   <!-- Product name (display only) -->
                   <article
                     *ngIf="hasSettingsReadyFile && productName"
-                    class="ph-print-settings-product w-100 d-flex align-items-center gap-2"
+                    class="ph-print-settings-product w-100 d-flex justify-content-between align-items-center"
                     [class.flex-column]="productSettingsWrap"
-                    [class.justify-content-between]="!productSettingsWrap"
-                    [class.justify-content-center]="productSettingsWrap"
                     [class.zx-min-h-50]="!productSettingsWrap">
-                    <span>{{ 'printing-table.product' | translate }}</span>
-                    <mat-button-toggle-group
-                      class="d-flex flex-wrap ph-settings-display-toggle"
-                      [class.justify-content-end]="!productSettingsWrap"
+                    <span [class.zx-min-h-50]="productSettingsWrap">{{ 'printing-table.product' | translate }}</span>
+                    <div
+                      class="d-flex position-relative"
                       [class.justify-content-center]="productSettingsWrap"
-                      name="product-name"
-                      [ngModel]="productNameToggle">
-                      <mat-button-toggle
-                        class="zx-rtl position-relative"
-                        [value]="0"
-                        [class.zx-text-white]="isDarkMode">
-                        <span>{{ productName }}</span>
-                      </mat-button-toggle>
-                    </mat-button-toggle-group>
+                      [class.justify-content-end]="!productSettingsWrap"
+                      style="min-width: 88px">
+                      <mat-button-toggle-group
+                        class="ph-settings-display-toggle"
+                        [class.zx-min-h-50]="productSettingsWrap"
+                        [style.flex-wrap]="productSettingsWrap ? 'wrap' : 'nowrap'"
+                        [style.justify-content]="productSettingsWrap ? 'center' : 'flex-start'"
+                        [style.width]="'auto'"
+                        [style.max-width]="productSettingsWrap ? '100%' : 'none'"
+                        name="product-name"
+                        [ngModel]="productNameToggle">
+                        <mat-button-toggle
+                          class="zx-rtl position-relative"
+                          [value]="0"
+                          [class.zx-text-white]="isDarkMode">
+                          <span>{{ productName }}</span>
+                        </mat-button-toggle>
+                      </mat-button-toggle-group>
+                    </div>
                   </article>
 
                   <!-- Fixed: type buttons — hidden when only one option -->
                   <article
                     *ngIf="isFixedProduct && hasSettingsReadyFile && fixedDimensionOptions.length > 1"
-                    class="w-100 d-flex align-items-center gap-2"
+                    class="w-100 d-flex justify-content-between align-items-center"
                     [class.flex-column]="fixedTypeSettingsWrap"
-                    [class.justify-content-between]="!fixedTypeSettingsWrap"
-                    [class.justify-content-center]="fixedTypeSettingsWrap"
                     [class.zx-min-h-50]="!fixedTypeSettingsWrap">
-                    <span>{{ 'printing-table.type' | translate }}</span>
-                    <mat-button-toggle-group
-                      class="d-flex flex-wrap"
-                      [class.justify-content-end]="!fixedTypeSettingsWrap"
+                    <span [class.zx-min-h-50]="fixedTypeSettingsWrap">{{ 'printing-table.type' | translate }}</span>
+                    <div
+                      class="d-flex position-relative ph-settings-toggle-host"
                       [class.justify-content-center]="fixedTypeSettingsWrap"
-                      name="fixed-size"
-                      aria-label="Fixed size"
-                      [ngModel]="currentFixedOptionIndex"
-                      (ngModelChange)="onFixedOptionChange($event)">
-                      <mat-button-toggle
-                        *ngFor="let option of fixedDimensionOptions"
-                        class="zx-rtl position-relative"
-                        [value]="option.optionIndex"
-                        [class.zx-text-white]="isDarkMode">
-                        <span>{{ option.label }}</span>
-                      </mat-button-toggle>
-                    </mat-button-toggle-group>
+                      [class.justify-content-end]="!fixedTypeSettingsWrap">
+                      <mat-button-toggle-group
+                        *ngIf="!fixedTypeSettingsWrap"
+                        name="fixed-size"
+                        aria-label="Fixed size"
+                        [ngModel]="currentFixedOptionIndex"
+                        (ngModelChange)="onFixedOptionChange($event)">
+                        <mat-button-toggle
+                          *ngFor="let option of fixedDimensionOptions"
+                          class="zx-rtl position-relative"
+                          [value]="option.optionIndex"
+                          [class.zx-text-white]="isDarkMode">
+                          <span>{{ option.label }}</span>
+                        </mat-button-toggle>
+                      </mat-button-toggle-group>
+                      <div
+                        *ngIf="fixedTypeSettingsWrap"
+                        class="ph-settings-individual-toggles justify-content-center">
+                        <mat-button-toggle-group
+                          *ngFor="let option of fixedDimensionOptions"
+                          [name]="'fixed-size-' + option.optionIndex"
+                          aria-label="Fixed size"
+                          [ngModel]="currentFixedOptionIndex"
+                          (ngModelChange)="onFixedOptionChange($event)">
+                          <mat-button-toggle
+                            class="zx-rtl position-relative"
+                            [value]="option.optionIndex"
+                            [class.zx-text-white]="isDarkMode">
+                            <span>{{ option.label }}</span>
+                          </mat-button-toggle>
+                        </mat-button-toggle-group>
+                      </div>
+                    </div>
                   </article>
 
                   <!-- Dynamic: length × width inputs only -->
@@ -416,87 +441,146 @@
                   <!-- Fixed: material buttons below size -->
                   <article
                     *ngIf="isFixedProduct && hasSettingsReadyFile && fixedMaterialsForSelectedSize.length"
-                    class="w-100 d-flex align-items-center gap-2"
+                    class="w-100 d-flex justify-content-between align-items-center"
                     [class.flex-column]="fixedMaterialSettingsWrap"
-                    [class.justify-content-between]="!fixedMaterialSettingsWrap"
-                    [class.justify-content-center]="fixedMaterialSettingsWrap"
                     [class.zx-min-h-50]="!fixedMaterialSettingsWrap">
-                    <span>{{ 'printing-table.3dprint-material' | translate }}</span>
-                    <mat-button-toggle-group
-                      class="d-flex flex-wrap"
-                      [class.justify-content-end]="!fixedMaterialSettingsWrap"
+                    <span [class.zx-min-h-50]="fixedMaterialSettingsWrap">{{ 'printing-table.3dprint-material' | translate }}</span>
+                    <div
+                      class="d-flex position-relative ph-settings-toggle-host"
                       [class.justify-content-center]="fixedMaterialSettingsWrap"
-                      name="fixed-material"
-                      aria-label="Fixed material"
-                      [ngModel]="currentMaterialIndex"
-                      (ngModelChange)="onMaterialChange($event)">
-                      <mat-button-toggle
-                        *ngFor="let material of fixedMaterialsForSelectedSize; let materialIndex = index"
-                        class="zx-rtl position-relative"
-                        [value]="materialIndex"
-                        [class.zx-text-white]="isDarkMode">
-                        <span>{{ getMaterialLabel(material) }}</span>
-                      </mat-button-toggle>
-                    </mat-button-toggle-group>
+                      [class.justify-content-end]="!fixedMaterialSettingsWrap">
+                      <mat-button-toggle-group
+                        *ngIf="!fixedMaterialSettingsWrap"
+                        name="fixed-material"
+                        aria-label="Fixed material"
+                        [ngModel]="currentMaterialIndex"
+                        (ngModelChange)="onMaterialChange($event)">
+                        <mat-button-toggle
+                          *ngFor="let material of fixedMaterialsForSelectedSize; let materialIndex = index"
+                          class="zx-rtl position-relative"
+                          [value]="materialIndex"
+                          [class.zx-text-white]="isDarkMode">
+                          <span>{{ getMaterialLabel(material) }}</span>
+                        </mat-button-toggle>
+                      </mat-button-toggle-group>
+                      <div
+                        *ngIf="fixedMaterialSettingsWrap"
+                        class="ph-settings-individual-toggles justify-content-center">
+                        <mat-button-toggle-group
+                          *ngFor="let material of fixedMaterialsForSelectedSize; let materialIndex = index"
+                          [name]="'fixed-material-' + materialIndex"
+                          aria-label="Fixed material"
+                          [ngModel]="currentMaterialIndex"
+                          (ngModelChange)="onMaterialChange($event)">
+                          <mat-button-toggle
+                            class="zx-rtl position-relative"
+                            [value]="materialIndex"
+                            [class.zx-text-white]="isDarkMode">
+                            <span>{{ getMaterialLabel(material) }}</span>
+                          </mat-button-toggle>
+                        </mat-button-toggle-group>
+                      </div>
+                    </div>
                   </article>
 
                   <!-- Dynamic: material buttons below dimensions — hidden when only one option -->
                   <article
                     *ngIf="isDynamicProduct && hasSettingsReadyFile && dynamicMaterials.length > 1"
-                    class="w-100 d-flex align-items-center gap-2"
+                    class="w-100 d-flex justify-content-between align-items-center"
                     [class.flex-column]="dynamicMaterialSettingsWrap"
-                    [class.justify-content-between]="!dynamicMaterialSettingsWrap"
-                    [class.justify-content-center]="dynamicMaterialSettingsWrap"
                     [class.zx-min-h-50]="!dynamicMaterialSettingsWrap">
-                    <span>{{ 'printing-table.3dprint-material' | translate }}</span>
-                    <mat-button-toggle-group
-                      class="d-flex flex-wrap"
-                      [class.justify-content-end]="!dynamicMaterialSettingsWrap"
+                    <span [class.zx-min-h-50]="dynamicMaterialSettingsWrap">{{ 'printing-table.3dprint-material' | translate }}</span>
+                    <div
+                      class="d-flex position-relative ph-settings-toggle-host"
                       [class.justify-content-center]="dynamicMaterialSettingsWrap"
-                      name="dynamic-material"
-                      aria-label="Dynamic material"
-                      [ngModel]="currentMaterialIndex"
-                      (ngModelChange)="onMaterialChange($event)">
-                      <mat-button-toggle
-                        *ngFor="let material of dynamicMaterials; let materialIndex = index"
-                        class="zx-rtl position-relative"
-                        [value]="materialIndex"
-                        [class.zx-text-white]="isDarkMode">
-                        <span>{{ getMaterialLabel(material) }}</span>
-                      </mat-button-toggle>
-                    </mat-button-toggle-group>
+                      [class.justify-content-end]="!dynamicMaterialSettingsWrap">
+                      <mat-button-toggle-group
+                        *ngIf="!dynamicMaterialSettingsWrap"
+                        name="dynamic-material"
+                        aria-label="Dynamic material"
+                        [ngModel]="currentMaterialIndex"
+                        (ngModelChange)="onMaterialChange($event)">
+                        <mat-button-toggle
+                          *ngFor="let material of dynamicMaterials; let materialIndex = index"
+                          class="zx-rtl position-relative"
+                          [value]="materialIndex"
+                          [class.zx-text-white]="isDarkMode">
+                          <span>{{ getMaterialLabel(material) }}</span>
+                        </mat-button-toggle>
+                      </mat-button-toggle-group>
+                      <div
+                        *ngIf="dynamicMaterialSettingsWrap"
+                        class="ph-settings-individual-toggles justify-content-center">
+                        <mat-button-toggle-group
+                          *ngFor="let material of dynamicMaterials; let materialIndex = index"
+                          [name]="'dynamic-material-' + materialIndex"
+                          aria-label="Dynamic material"
+                          [ngModel]="currentMaterialIndex"
+                          (ngModelChange)="onMaterialChange($event)">
+                          <mat-button-toggle
+                            class="zx-rtl position-relative"
+                            [value]="materialIndex"
+                            [class.zx-text-white]="isDarkMode">
+                            <span>{{ getMaterialLabel(material) }}</span>
+                          </mat-button-toggle>
+                        </mat-button-toggle-group>
+                      </div>
+                    </div>
                   </article>
 
                   <!-- Color buttons for selected material — hidden when only one option -->
                   <article
                     *ngIf="hasSettingsReadyFile && colorsForSelectedMaterial.length > 1"
-                    class="w-100 d-flex align-items-center gap-2"
+                    class="w-100 d-flex justify-content-between align-items-center"
                     [class.flex-column]="colorSettingsWrap"
-                    [class.justify-content-between]="!colorSettingsWrap"
-                    [class.justify-content-center]="colorSettingsWrap"
                     [class.zx-min-h-50]="!colorSettingsWrap">
-                    <span>{{ 'printing-table.color' | translate }}</span>
-                    <mat-button-toggle-group
-                      class="d-flex flex-wrap"
-                      [class.justify-content-end]="!colorSettingsWrap"
+                    <span [class.zx-min-h-50]="colorSettingsWrap">{{ 'printing-table.color' | translate }}</span>
+                    <div
+                      class="d-flex position-relative ph-settings-toggle-host"
                       [class.justify-content-center]="colorSettingsWrap"
-                      name="print-color"
-                      aria-label="Print color"
-                      [ngModel]="currentColorIndex"
-                      (ngModelChange)="onColorChange($event)">
-                      <mat-button-toggle
-                        *ngFor="let color of colorsForSelectedMaterial; let colorIndex = index"
-                        class="zx-rtl position-relative"
-                        [value]="colorIndex"
-                        [class.zx-text-white]="isDarkMode">
-                        <span class="ph-settings-color-toggle">
-                          <span
-                            class="ph-settings-color-swatch"
-                            [ngStyle]="getColorSwatchStyles(color)"></span>
-                          <span>{{ getColorLabel(color) }}</span>
-                        </span>
-                      </mat-button-toggle>
-                    </mat-button-toggle-group>
+                      [class.justify-content-end]="!colorSettingsWrap">
+                      <mat-button-toggle-group
+                        *ngIf="!colorSettingsWrap"
+                        name="print-color"
+                        aria-label="Print color"
+                        [ngModel]="currentColorIndex"
+                        (ngModelChange)="onColorChange($event)">
+                        <mat-button-toggle
+                          *ngFor="let color of colorsForSelectedMaterial; let colorIndex = index"
+                          class="zx-rtl position-relative"
+                          [value]="colorIndex"
+                          [class.zx-text-white]="isDarkMode">
+                          <span class="ph-settings-color-toggle">
+                            <span
+                              class="ph-settings-color-swatch"
+                              [ngStyle]="getColorSwatchStyles(color)"></span>
+                            <span>{{ getColorLabel(color) }}</span>
+                          </span>
+                        </mat-button-toggle>
+                      </mat-button-toggle-group>
+                      <div
+                        *ngIf="colorSettingsWrap"
+                        class="ph-settings-individual-toggles justify-content-center">
+                        <mat-button-toggle-group
+                          *ngFor="let color of colorsForSelectedMaterial; let colorIndex = index"
+                          [name]="'print-color-' + colorIndex"
+                          aria-label="Print color"
+                          [ngModel]="currentColorIndex"
+                          (ngModelChange)="onColorChange($event)">
+                          <mat-button-toggle
+                            class="zx-rtl position-relative"
+                            [value]="colorIndex"
+                            [class.zx-text-white]="isDarkMode">
+                            <span class="ph-settings-color-toggle">
+                              <span
+                                class="ph-settings-color-swatch"
+                                [ngStyle]="getColorSwatchStyles(color)"></span>
+                              <span>{{ getColorLabel(color) }}</span>
+                            </span>
+                          </mat-button-toggle>
+                        </mat-button-toggle-group>
+                      </div>
+                    </div>
                   </article>
 
                   <!-- Extra print settings (corners, bleed, folding, duplex, double-sided) -->
@@ -527,28 +611,46 @@
 
                     <article
                       *ngIf="row.display === 'multi-buttons'"
-                      class="w-100 d-flex align-items-center gap-2"
+                      class="w-100 d-flex justify-content-between align-items-center"
                       [class.flex-column]="row.wrap"
-                      [class.justify-content-between]="!row.wrap"
-                      [class.justify-content-center]="row.wrap"
                       [class.zx-min-h-50]="!row.wrap">
-                      <span>{{ row.settingTitle }}</span>
-                      <mat-button-toggle-group
-                        class="d-flex flex-wrap"
-                        [class.justify-content-end]="!row.wrap"
+                      <span [class.zx-min-h-50]="row.wrap">{{ row.settingTitle }}</span>
+                      <div
+                        class="d-flex position-relative ph-settings-toggle-host"
                         [class.justify-content-center]="row.wrap"
-                        [name]="'extra-option-' + row.key"
-                        [attr.aria-label]="row.settingTitle"
-                        [ngModel]="extraSettingsUi[row.key]?.selectedIndex ?? 0"
-                        (ngModelChange)="onExtraSettingIndexChange(row.key, $event)">
-                        <mat-button-toggle
-                          *ngFor="let option of row.options"
-                          class="zx-rtl position-relative"
-                          [value]="option.index"
-                          [class.zx-text-white]="isDarkMode">
-                          <span>{{ option.label }}</span>
-                        </mat-button-toggle>
-                      </mat-button-toggle-group>
+                        [class.justify-content-end]="!row.wrap">
+                        <mat-button-toggle-group
+                          *ngIf="!row.wrap"
+                          [name]="'extra-option-' + row.key"
+                          [attr.aria-label]="row.settingTitle"
+                          [ngModel]="extraSettingsUi[row.key]?.selectedIndex ?? 0"
+                          (ngModelChange)="onExtraSettingIndexChange(row.key, $event)">
+                          <mat-button-toggle
+                            *ngFor="let option of row.options"
+                            class="zx-rtl position-relative"
+                            [value]="option.index"
+                            [class.zx-text-white]="isDarkMode">
+                            <span>{{ option.label }}</span>
+                          </mat-button-toggle>
+                        </mat-button-toggle-group>
+                        <div
+                          *ngIf="row.wrap"
+                          class="ph-settings-individual-toggles justify-content-center">
+                          <mat-button-toggle-group
+                            *ngFor="let option of row.options"
+                            [name]="'extra-option-' + row.key + '-' + option.index"
+                            [attr.aria-label]="row.settingTitle"
+                            [ngModel]="extraSettingsUi[row.key]?.selectedIndex ?? 0"
+                            (ngModelChange)="onExtraSettingIndexChange(row.key, $event)">
+                            <mat-button-toggle
+                              class="zx-rtl position-relative"
+                              [value]="option.index"
+                              [class.zx-text-white]="isDarkMode">
+                              <span>{{ option.label }}</span>
+                            </mat-button-toggle>
+                          </mat-button-toggle-group>
+                        </div>
+                      </div>
                     </article>
                   </ng-container>
                 </div>

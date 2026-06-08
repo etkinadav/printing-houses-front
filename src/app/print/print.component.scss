@@ -116,6 +116,22 @@
   pointer-events: none;
 }
 
+.ph-settings-toggle-host {
+  min-width: 88px;
+  max-width: 100%;
+}
+
+.ph-settings-individual-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.ph-print-settings-panel ::ng-deep mat-button-toggle.mat-button-toggle-checked:not(.mat-button-toggle-disabled) {
+  font-weight: 600;
+}
+
 .ph-settings-color-toggle {
   display: inline-flex;
   align-items: center;

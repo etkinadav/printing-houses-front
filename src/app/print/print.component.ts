@@ -384,7 +384,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   onFixedOptionChange(optionIndex: number): void {
-    if (this.suppressSettingsPersist) {
+    if (this.suppressSettingsPersist || !Number.isInteger(optionIndex)) {
       return;
     }
     const option = this.fixedDimensionOptions[optionIndex];
@@ -444,7 +444,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   onMaterialChange(materialIndex: number): void {
-    if (this.suppressSettingsPersist) {
+    if (this.suppressSettingsPersist || !Number.isInteger(materialIndex)) {
       return;
     }
     if (!this.selectedFile) {
@@ -575,7 +575,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   onExtraSettingIndexChange(key: ExtraSettingKey, index: number): void {
-    if (this.suppressSettingsPersist) {
+    if (this.suppressSettingsPersist || !Number.isInteger(index)) {
       return;
     }
     const current = this.extraSettingsUi[key] ?? { selectedIndex: 0, enabled: true };
