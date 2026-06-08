@@ -210,6 +210,14 @@ export class PrintComponent implements OnInit, OnDestroy {
     return !!this.selectedFile && !this.isFileProcessing(this.selectedFile);
   }
 
+  get showPrintSettingsPanel(): boolean {
+    return !!this.product;
+  }
+
+  get settingsPanelDisabled(): boolean {
+    return !this.hasSettingsReadyFile;
+  }
+
   get printingHouseLogoUrl(): string {
     const ph = this.printingHouse;
     return (ph?.logo?.url || ph?.logoUrl || '').trim();
@@ -565,7 +573,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   onExtraSettingEnabledChange(key: ExtraSettingKey, enabled: boolean): void {
-    if (this.suppressSettingsPersist) {
+    if (this.suppressSettingsPersist || this.settingsPanelDisabled) {
       return;
     }
     const current = this.extraSettingsUi[key] ?? { selectedIndex: 0, enabled: false };
@@ -578,7 +586,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   onExtraSettingIndexChange(key: ExtraSettingKey, index: number): void {
-    if (this.suppressSettingsPersist || !Number.isInteger(index)) {
+    if (this.suppressSettingsPersist || this.settingsPanelDisabled || !Number.isInteger(index)) {
       return;
     }
     const current = this.extraSettingsUi[key] ?? { selectedIndex: 0, enabled: true };
@@ -687,6 +695,8 @@ export class PrintComponent implements OnInit, OnDestroy {
           this.previewThumbnailUrl = this.selectedFile?.thumbnailUrl?.trim() || null;
           if (this.selectedFile) {
             this.syncSettingsUiFromFile(this.selectedFile);
+          } else if (this.product) {
+            this.syncSettingsUiToProductDefaults();
           }
         }
       },
@@ -714,6 +724,9 @@ export class PrintComponent implements OnInit, OnDestroy {
           this.selectedFile = null;
           this.previewThumbnailUrl = null;
           this.pendingDefaultSettingsFileIds.clear();
+          if (this.product) {
+            this.syncSettingsUiToProductDefaults();
+          }
         },
         error: () => {
           this.snackBar.open(
@@ -783,9 +796,7 @@ export class PrintComponent implements OnInit, OnDestroy {
       return;
     }
     this.ensureAllReadyFilesHaveSettings();
-    if (this.selectedFile && !this.isFileProcessing(this.selectedFile)) {
-      this.syncSettingsUiFromFile(this.selectedFile);
-    }
+    this.applySettingsPanelState();
   }
 
   private resetSettingsUiState(): void {
@@ -799,7 +810,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   private rebuildExtraSettingRows(): void {
-    if (!this.product || !this.hasSettingsReadyFile) {
+    if (!this.product) {
       this.extraSettingRows = [];
       return;
     }
@@ -1021,6 +1032,8 @@ export class PrintComponent implements OnInit, OnDestroy {
 
     if (this.selectedFile && this.selectedFile._id !== prevSelectedId) {
       this.syncSettingsUiFromFile(this.selectedFile);
+    } else if (!this.selectedFile && this.product) {
+      this.syncSettingsUiToProductDefaults();
     }
   }
 
@@ -1282,6 +1295,65 @@ export class PrintComponent implements OnInit, OnDestroy {
       );
     }
     return null;
+  }
+
+  private applySettingsPanelState(): void {
+    if (!this.product) {
+      return;
+    }
+    if (this.hasSettingsReadyFile && this.selectedFile) {
+      this.syncSettingsUiFromFile(this.selectedFile);
+    } else {
+      this.syncSettingsUiToProductDefaults();
+    }
+  }
+
+  private syncSettingsUiToProductDefaults(): void {
+    if (!this.product) {
+      return;
+    }
+
+    this.suppressSettingsPersist = true;
+    try {
+      if (this.isFixedProduct) {
+        const option = this.fixedDimensionOptions[0];
+        const size = option ? this.fixedSizes[option.sizeIndex] : null;
+        if (!option || !size) {
+          return;
+        }
+        const material = size.materials?.[0] ?? null;
+        const color = material?.colors?.[0] ?? null;
+        this.currentFixedOptionIndex = option.optionIndex;
+        this.currentMaterialIndex = 0;
+        this.currentColorIndex = 0;
+        this.printingLengthCm = Number(size.length);
+        this.printingWidthCm = Number(size.width);
+        this.extraSettingsUi = buildDefaultExtraUiStateMap(
+          buildExtraSettingsContext(size, material, color),
+        );
+        return;
+      }
+
+      if (this.isDynamicProduct) {
+        const material = this.dynamicMaterials[0];
+        if (!material) {
+          return;
+        }
+        const color = material.colors?.[0] ?? null;
+        this.currentMaterialIndex = 0;
+        this.currentColorIndex = 0;
+        this.printingLengthCm = Number(material.defaultLength);
+        this.printingWidthCm = Number(material.defaultHeight);
+        this.extraSettingsUi = buildDefaultExtraUiStateMap(
+          buildExtraSettingsContext(null, material, color),
+        );
+      }
+    } finally {
+      this.rebuildExtraSettingRows();
+      setTimeout(() => {
+        this.suppressSettingsPersist = false;
+      });
+    }
   }
 
   private syncSettingsUiFromFile(file: PhPrintingFile): void {

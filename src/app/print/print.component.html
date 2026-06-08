@@ -327,10 +327,13 @@
                 id="zx-settings-area-inner"
                 class="zx-settings-area-inner w-100 h-100 mh-100 zx-mw-100-vw position-absolute d-flex flex-column gap-3"
                 [class.zx-settings-area-inner-rtl]="!isRTL">
-                <div class="ph-print-settings-panel w-100 flex-grow-1 d-flex flex-column gap-3">
+                <div
+                  class="ph-print-settings-panel w-100 flex-grow-1 d-flex flex-column gap-3"
+                  [class.ph-print-settings-panel--disabled]="settingsPanelDisabled"
+                  [attr.aria-disabled]="settingsPanelDisabled || null">
                   <!-- Product name (display only) -->
                   <article
-                    *ngIf="hasSettingsReadyFile && productName"
+                    *ngIf="showPrintSettingsPanel && productName"
                     class="ph-print-settings-product w-100 d-flex align-items-center ph-settings-row"
                     [class.ph-settings-row--stacked]="productSettingsWrap"
                     [class.justify-content-between]="!productSettingsWrap"
@@ -358,7 +361,7 @@
 
                   <!-- Fixed: type buttons — hidden when only one option -->
                   <article
-                    *ngIf="isFixedProduct && hasSettingsReadyFile && fixedDimensionOptions.length > 1"
+                    *ngIf="isFixedProduct && showPrintSettingsPanel && fixedDimensionOptions.length > 1"
                     class="w-100 d-flex align-items-center ph-settings-row"
                     [class.ph-settings-row--stacked]="fixedTypeSettingsWrap"
                     [class.justify-content-between]="!fixedTypeSettingsWrap"
@@ -404,7 +407,7 @@
 
                   <!-- Dynamic: length × width inputs only -->
                   <article
-                    *ngIf="isDynamicProduct && hasSettingsReadyFile && selectedDynamicMaterial"
+                    *ngIf="isDynamicProduct && showPrintSettingsPanel && selectedDynamicMaterial"
                     class="zx-min-h-50 w-100 d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <span>{{ 'printing-table.dimensions' | translate }}</span>
                     <div class="ph-dim-inputs-wrap d-flex flex-column align-items-end gap-1">
@@ -438,7 +441,7 @@
 
                   <!-- Fixed: material buttons below size -->
                   <article
-                    *ngIf="isFixedProduct && hasSettingsReadyFile && fixedMaterialsForSelectedSize.length"
+                    *ngIf="isFixedProduct && showPrintSettingsPanel && fixedMaterialsForSelectedSize.length"
                     class="w-100 d-flex align-items-center ph-settings-row"
                     [class.ph-settings-row--stacked]="fixedMaterialSettingsWrap"
                     [class.justify-content-between]="!fixedMaterialSettingsWrap"
@@ -484,7 +487,7 @@
 
                   <!-- Dynamic: material buttons below dimensions — hidden when only one option -->
                   <article
-                    *ngIf="isDynamicProduct && hasSettingsReadyFile && dynamicMaterials.length > 1"
+                    *ngIf="isDynamicProduct && showPrintSettingsPanel && dynamicMaterials.length > 1"
                     class="w-100 d-flex align-items-center ph-settings-row"
                     [class.ph-settings-row--stacked]="dynamicMaterialSettingsWrap"
                     [class.justify-content-between]="!dynamicMaterialSettingsWrap"
@@ -530,7 +533,7 @@
 
                   <!-- Color buttons for selected material — hidden when only one option -->
                   <article
-                    *ngIf="hasSettingsReadyFile && colorsForSelectedMaterial.length > 1"
+                    *ngIf="showPrintSettingsPanel && colorsForSelectedMaterial.length > 1"
                     class="w-100 d-flex align-items-center ph-settings-row"
                     [class.ph-settings-row--stacked]="colorSettingsWrap"
                     [class.justify-content-between]="!colorSettingsWrap"

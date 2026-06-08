@@ -138,6 +138,9 @@ export function isExtraSettingVisible(ctx: ExtraSettingsContext, key: ExtraSetti
   if (mode === 'optional') {
     return true;
   }
+  if (key === 'double-sided' && mode === 'required') {
+    return true;
+  }
   if (mode === 'required' && optionCount === 1) {
     return true;
   }
@@ -668,7 +671,9 @@ export function buildVisibleExtraSettingRows(
     const toggleLabels = buildBooleanToggleLabels(key, node, t);
 
     let display: PrintExtraSettingDisplay = 'multi-buttons';
-    if (key === 'double-sided' || (optionCount <= 1 && mode === 'optional')) {
+    if (key === 'double-sided') {
+      display = mode === 'required' ? 'single-toggle' : 'boolean-toggle';
+    } else if (optionCount <= 1 && mode === 'optional') {
       display = 'boolean-toggle';
     } else if (optionCount <= 1) {
       display = 'single-toggle';
