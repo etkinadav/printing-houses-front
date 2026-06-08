@@ -50,6 +50,8 @@ export class PrintComponent implements OnInit, OnDestroy {
   files: PhPrintingFile[] = [];
   processingFiles: PhPrintingFile[] = [];
   selectedFile: PhPrintingFile | null = null;
+  /** Stable preview URL — only changes when the selected file or its thumbnail changes. */
+  previewThumbnailUrl: string | null = null;
 
   /** Fixed sizes: selected index in properties.fixed.sizes. */
   currentSizeIndex: number | null = null;
@@ -156,7 +158,12 @@ export class PrintComponent implements OnInit, OnDestroy {
       return;
     }
     this.selectedFile = file;
+    this.previewThumbnailUrl = file.thumbnailUrl?.trim() || null;
     this.syncSettingsUiFromFile(file);
+  }
+
+  trackFileById(_index: number, file: PhPrintingFile): string {
+    return file._id;
   }
 
   isSelected(file: PhPrintingFile): boolean {
@@ -284,6 +291,7 @@ export class PrintComponent implements OnInit, OnDestroy {
         this.pendingDefaultSettingsFileIds.delete(file._id);
         if (this.selectedFile?._id === file._id) {
           this.selectedFile = this.files.find((f) => !this.isFileProcessing(f)) ?? null;
+          this.previewThumbnailUrl = this.selectedFile?.thumbnailUrl?.trim() || null;
           if (this.selectedFile) {
             this.syncSettingsUiFromFile(this.selectedFile);
           }
@@ -311,6 +319,7 @@ export class PrintComponent implements OnInit, OnDestroy {
           this.files = [];
           this.processingFiles = [];
           this.selectedFile = null;
+          this.previewThumbnailUrl = null;
           this.pendingDefaultSettingsFileIds.clear();
         },
         error: () => {
@@ -371,7 +380,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   private applyFilesFromServer(nextFiles: PhPrintingFile[]): void {
-    const merged = this.mergePolledFilesPreservingInFlightSettings(nextFiles);
+    const merged = this.mergePolledFilesWithExisting(nextFiles);
     if (isEqual(merged, this.files)) {
       return;
     }
@@ -384,8 +393,10 @@ export class PrintComponent implements OnInit, OnDestroy {
       const still = merged.find((f) => f._id === this.selectedFile!._id);
       if (!still || this.isFileProcessing(still)) {
         this.selectedFile = null;
+        this.previewThumbnailUrl = null;
       } else {
         this.selectedFile = still;
+        this.updatePreviewThumbnailIfChanged(still);
       }
     }
 
@@ -393,6 +404,7 @@ export class PrintComponent implements OnInit, OnDestroy {
       const firstReady = merged.find((f) => !this.isFileProcessing(f));
       if (firstReady) {
         this.selectedFile = firstReady;
+        this.previewThumbnailUrl = firstReady.thumbnailUrl?.trim() || null;
       }
     }
 
@@ -403,20 +415,49 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
   }
 
-  private mergePolledFilesPreservingInFlightSettings(nextFiles: PhPrintingFile[]): PhPrintingFile[] {
-    if (!this.settingsSaveInFlightForFileId) {
-      return nextFiles;
-    }
-    return nextFiles.map((file) => {
-      if (file._id !== this.settingsSaveInFlightForFileId) {
-        return file;
+  /**
+   * Merge poll results without replacing file objects when only printSettings changed,
+   * so sidebar/preview thumbnails are not reloaded on settings updates.
+   */
+  private mergePolledFilesWithExisting(nextFiles: PhPrintingFile[]): PhPrintingFile[] {
+    const existingById = new Map(this.files.map((file) => [file._id, file]));
+
+    return nextFiles.map((next) => {
+      const prev = existingById.get(next._id);
+      if (!prev) {
+        return next;
       }
-      const local = this.files.find((f) => f._id === file._id);
-      if (!local?.printSettings) {
-        return file;
+
+      let incoming = next;
+      if (
+        this.settingsSaveInFlightForFileId === next._id &&
+        prev.printSettings
+      ) {
+        incoming = { ...next, printSettings: prev.printSettings };
       }
-      return { ...file, printSettings: local.printSettings };
+
+      const thumbnailUnchanged = prev.thumbnailUrl === incoming.thumbnailUrl;
+      const processingUnchanged = prev.processing === incoming.processing;
+
+      if (thumbnailUnchanged && processingUnchanged) {
+        if (!isEqual(prev.printSettings, incoming.printSettings)) {
+          prev.printSettings = incoming.printSettings
+            ? { ...incoming.printSettings }
+            : undefined;
+        }
+        return prev;
+      }
+
+      Object.assign(prev, incoming);
+      return prev;
     });
+  }
+
+  private updatePreviewThumbnailIfChanged(file: PhPrintingFile): void {
+    const nextUrl = file.thumbnailUrl?.trim() || null;
+    if (nextUrl !== this.previewThumbnailUrl) {
+      this.previewThumbnailUrl = nextUrl;
+    }
   }
 
   private ensureAllReadyFilesHaveSettings(): void {
@@ -628,14 +669,15 @@ export class PrintComponent implements OnInit, OnDestroy {
     fileId: string,
     printSettings: PhPrintingFilePrintSettings,
   ): void {
-    this.files = this.files.map((file) =>
-      file._id === fileId ? { ...file, printSettings: { ...printSettings } } : file,
-    );
+    const nextSettings = { ...printSettings };
+    for (const file of this.files) {
+      if (file._id === fileId) {
+        file.printSettings = nextSettings;
+        break;
+      }
+    }
     if (this.selectedFile?._id === fileId) {
-      this.selectedFile = {
-        ...this.selectedFile,
-        printSettings: { ...printSettings },
-      };
+      this.selectedFile.printSettings = nextSettings;
     }
   }
 

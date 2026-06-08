@@ -135,7 +135,7 @@
                       </mat-menu>
 
                       <!-- File tiles -->
-                      <article *ngFor="let file of files" class="zx-file-obj">
+                      <article *ngFor="let file of files; trackBy: trackFileById" class="zx-file-obj">
                         <!-- Processing -->
                         <div
                           *ngIf="isFileProcessing(file)"
@@ -545,20 +545,20 @@
           (change)="onFilesSelected($event)" />
 
         <div
-          *ngIf="hasFiles && selectedFile?.thumbnailUrl"
+          *ngIf="hasFiles && previewThumbnailUrl"
           id="preview-paper"
           class="bg-white shadow-85-strong d-flex flex-column justify-content-center align-items-center position-relative"
           [class.zx-canvas-dark]="isDarkMode">
           <div id="preview-image-container" class="position-absolute ph-print-preview-image-wrap">
             <img
-              [src]="selectedFile!.thumbnailUrl!"
+              [src]="previewThumbnailUrl!"
               class="zx-preview-img ph-print-preview-img"
               alt="" />
           </div>
         </div>
 
         <p
-          *ngIf="hasFiles && !selectedFile?.thumbnailUrl"
+          *ngIf="hasFiles && !previewThumbnailUrl"
           class="zx-text-small opacity-75 mb-0 text-center px-3">
           {{ 'printing-table.still-proccessing' | translate }}
         </p>
