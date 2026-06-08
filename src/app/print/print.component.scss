@@ -228,6 +228,12 @@
   line-height: 1.2;
 }
 
+.ph-print-settings-bottom-spacer {
+  display: block;
+  flex-shrink: 0;
+  height: 15px;
+}
+
 .zx-min-h-50 {
   min-height: 50px;
 }
