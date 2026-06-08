@@ -2,6 +2,7 @@ export interface PhPrintingFilePrintSettings {
   paperType?: string;
   sizeIndex?: number;
   materialIndex?: number;
+  colorIndex?: number;
   lengthCm?: number;
   widthCm?: number;
 }

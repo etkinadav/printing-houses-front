@@ -466,6 +466,38 @@
                       </mat-button-toggle>
                     </mat-button-toggle-group>
                   </article>
+
+                  <!-- Color buttons for selected material — hidden when only one option -->
+                  <article
+                    *ngIf="hasSettingsReadyFile && colorsForSelectedMaterial.length > 1"
+                    class="w-100 d-flex align-items-center gap-2"
+                    [class.flex-column]="colorSettingsWrap"
+                    [class.justify-content-between]="!colorSettingsWrap"
+                    [class.justify-content-center]="colorSettingsWrap"
+                    [class.zx-min-h-50]="!colorSettingsWrap">
+                    <span>{{ 'printing-table.color' | translate }}</span>
+                    <mat-button-toggle-group
+                      class="d-flex flex-wrap"
+                      [class.justify-content-end]="!colorSettingsWrap"
+                      [class.justify-content-center]="colorSettingsWrap"
+                      name="print-color"
+                      aria-label="Print color"
+                      [(ngModel)]="currentColorIndex"
+                      (ngModelChange)="onColorChange($event)">
+                      <mat-button-toggle
+                        *ngFor="let color of colorsForSelectedMaterial; let colorIndex = index"
+                        class="zx-rtl position-relative"
+                        [value]="colorIndex"
+                        [class.zx-text-white]="isDarkMode">
+                        <span class="ph-settings-color-toggle">
+                          <span
+                            class="ph-settings-color-swatch"
+                            [ngStyle]="getColorSwatchStyles(color)"></span>
+                          <span>{{ getColorLabel(color) }}</span>
+                        </span>
+                      </mat-button-toggle>
+                    </mat-button-toggle-group>
+                  </article>
                 </div>
               </div>
             </div>

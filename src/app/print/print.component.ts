@@ -18,7 +18,9 @@ import {
   PhPrintingFilePrintSettings,
 } from '../ph-printing-files/ph-printing-file.model';
 import { PhPrintingFilesService } from '../ph-printing-files/ph-printing-files.service';
+import { isColorTextureUrl } from '../ph-products/ph-color-texture.util';
 import {
+  PhColor,
   PhDynamicMaterial,
   PhMaterial,
   PhProduct,
@@ -69,6 +71,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   currentFixedOptionIndex: number | null = null;
   /** Dynamic: selected material index. */
   currentMaterialIndex = 0;
+  currentColorIndex = 0;
   printingLengthCm = 0;
   printingWidthCm = 0;
 
@@ -160,6 +163,20 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
     const idx = Math.min(Math.max(0, this.currentMaterialIndex), materials.length - 1);
     return materials[idx] ?? null;
+  }
+
+  get selectedMaterial(): PhMaterial | null {
+    if (this.isFixedProduct) {
+      return this.selectedFixedMaterial;
+    }
+    if (this.isDynamicProduct) {
+      return this.selectedDynamicMaterial;
+    }
+    return null;
+  }
+
+  get colorsForSelectedMaterial(): PhColor[] {
+    return this.selectedMaterial?.colors ?? [];
   }
 
   get hasSettingsReadyFile(): boolean {
@@ -304,6 +321,30 @@ export class PrintComponent implements OnInit, OnDestroy {
     );
   }
 
+  get colorSettingsWrap(): boolean {
+    return this.settingsButtonsShouldWrap(
+      this.colorsForSelectedMaterial.map((color) => this.getColorLabel(color)),
+    );
+  }
+
+  getColorLabel(color: PhColor): string {
+    return color.label?.he?.trim() || '—';
+  }
+
+  getColorSwatchStyles(color: PhColor): Record<string, string> {
+    const raw = color.color?.trim() || '#cccccc';
+    if (isColorTextureUrl(raw)) {
+      return {
+        backgroundColor: '#e8e8e8',
+        backgroundImage: `url("${raw}")`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      };
+    }
+    return { backgroundColor: raw };
+  }
+
   getFixedSizeDisplayLabel(size: PhSize): string {
     const sizeLabel = size.label?.he?.trim();
     if (sizeLabel) {
@@ -323,6 +364,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
     this.currentFixedOptionIndex = optionIndex;
     this.currentMaterialIndex = 0;
+    this.currentColorIndex = 0;
     this.printingLengthCm = Number(size.length);
     this.printingWidthCm = Number(size.width);
     this.persistCurrentFileSettings();
@@ -347,6 +389,7 @@ export class PrintComponent implements OnInit, OnDestroy {
         return;
       }
       this.currentMaterialIndex = materialIndex;
+      this.currentColorIndex = 0;
       const material = materials[materialIndex];
       if (
         !this.areDynamicDimensionsValid(
@@ -373,8 +416,26 @@ export class PrintComponent implements OnInit, OnDestroy {
         return;
       }
       this.currentMaterialIndex = materialIndex;
+      this.currentColorIndex = 0;
       this.persistCurrentFileSettings();
     }
+  }
+
+  onColorChange(colorIndex: number): void {
+    if (this.suppressSettingsPersist || !this.selectedFile) {
+      return;
+    }
+    const colors = this.colorsForSelectedMaterial;
+    if (
+      !colors.length ||
+      !Number.isInteger(colorIndex) ||
+      colorIndex < 0 ||
+      colorIndex >= colors.length
+    ) {
+      return;
+    }
+    this.currentColorIndex = colorIndex;
+    this.persistCurrentFileSettings();
   }
 
   private getSelectedFixedOption(): FixedDimensionOption | null {
@@ -559,8 +620,53 @@ export class PrintComponent implements OnInit, OnDestroy {
   private resetSettingsUiState(): void {
     this.currentFixedOptionIndex = null;
     this.currentMaterialIndex = 0;
+    this.currentColorIndex = 0;
     this.printingLengthCm = 0;
     this.printingWidthCm = 0;
+  }
+
+  private resolveColorIndexForMaterial(
+    material: PhMaterial | null | undefined,
+    colorIndex: number,
+  ): number {
+    const colors = material?.colors ?? [];
+    if (!colors.length) {
+      return 0;
+    }
+    if (Number.isInteger(colorIndex) && colorIndex >= 0 && colorIndex < colors.length) {
+      return colorIndex;
+    }
+    return 0;
+  }
+
+  private isColorIndexValidForMaterial(
+    material: PhMaterial | null | undefined,
+    colorIndex: number,
+  ): boolean {
+    const colors = material?.colors ?? [];
+    if (!colors.length) {
+      return true;
+    }
+    return (
+      Number.isInteger(colorIndex) && colorIndex >= 0 && colorIndex < colors.length
+    );
+  }
+
+  private appendColorIndexToSettings(
+    settings: PhPrintingFilePrintSettings,
+    material: PhMaterial | null | undefined,
+  ): PhPrintingFilePrintSettings {
+    const colors = material?.colors ?? [];
+    if (!colors.length) {
+      return settings;
+    }
+    return {
+      ...settings,
+      colorIndex: Math.min(
+        Math.max(0, this.currentColorIndex),
+        colors.length - 1,
+      ),
+    };
   }
 
   private startPolling(): void {
@@ -706,10 +812,16 @@ export class PrintComponent implements OnInit, OnDestroy {
         return false;
       }
       const materials = this.fixedSizes[sizeIndex]?.materials ?? [];
-      return (
-        Number.isInteger(materialIndex) &&
-        materialIndex >= 0 &&
-        materialIndex < materials.length
+      if (
+        !Number.isInteger(materialIndex) ||
+        materialIndex < 0 ||
+        materialIndex >= materials.length
+      ) {
+        return false;
+      }
+      return this.isColorIndexValidForMaterial(
+        materials[materialIndex],
+        Number(ps.colorIndex ?? 0),
       );
     }
     if (this.isDynamicProduct) {
@@ -727,10 +839,18 @@ export class PrintComponent implements OnInit, OnDestroy {
       ) {
         return false;
       }
-      return this.areDynamicDimensionsValid(
+      if (
+        !this.areDynamicDimensionsValid(
+          this.dynamicMaterials[materialIndex],
+          lengthCm,
+          widthCm,
+        )
+      ) {
+        return false;
+      }
+      return this.isColorIndexValidForMaterial(
         this.dynamicMaterials[materialIndex],
-        lengthCm,
-        widthCm,
+        Number(ps.colorIndex ?? 0),
       );
     }
     return false;
@@ -747,25 +867,31 @@ export class PrintComponent implements OnInit, OnDestroy {
         return null;
       }
       const material = size.materials?.[0] ?? null;
-      return {
-        paperType: material ? this.getMaterialLabel(material) : option.label,
-        sizeIndex: option.sizeIndex,
-        materialIndex: 0,
-        lengthCm: Number(size.length),
-        widthCm: Number(size.width),
-      };
+      return this.appendColorIndexToSettings(
+        {
+          paperType: material ? this.getMaterialLabel(material) : option.label,
+          sizeIndex: option.sizeIndex,
+          materialIndex: 0,
+          lengthCm: Number(size.length),
+          widthCm: Number(size.width),
+        },
+        material,
+      );
     }
     if (this.isDynamicProduct) {
       const material = this.dynamicMaterials[0];
       if (!material) {
         return null;
       }
-      return {
-        paperType: this.getMaterialLabel(material),
-        materialIndex: 0,
-        lengthCm: Number(material.defaultLength),
-        widthCm: Number(material.defaultHeight),
-      };
+      return this.appendColorIndexToSettings(
+        {
+          paperType: this.getMaterialLabel(material),
+          materialIndex: 0,
+          lengthCm: Number(material.defaultLength),
+          widthCm: Number(material.defaultHeight),
+        },
+        material,
+      );
     }
     return null;
   }
@@ -790,10 +916,17 @@ export class PrintComponent implements OnInit, OnDestroy {
         const size = this.fixedSizes[sizeIndex] ?? this.fixedSizes[0];
         const materials = size?.materials ?? [];
         this.currentFixedOptionIndex = this.findFixedOptionIndex(sizeIndex, materialIndex);
-        this.currentMaterialIndex =
+        const resolvedMaterialIndex =
           materials.length && materialIndex >= 0 && materialIndex < materials.length
             ? materialIndex
             : 0;
+        this.currentMaterialIndex = resolvedMaterialIndex;
+        this.currentColorIndex = this.resolveColorIndexForMaterial(
+          materials[resolvedMaterialIndex],
+          ps?.colorIndex != null && Number.isFinite(Number(ps.colorIndex))
+            ? Number(ps.colorIndex)
+            : 0,
+        );
         this.printingLengthCm = Number(ps?.lengthCm ?? size?.length ?? 0);
         this.printingWidthCm = Number(ps?.widthCm ?? size?.width ?? 0);
         return;
@@ -806,6 +939,12 @@ export class PrintComponent implements OnInit, OnDestroy {
             : 0;
         const material = this.dynamicMaterials[materialIndex] ?? this.dynamicMaterials[0];
         this.currentMaterialIndex = material ? materialIndex : 0;
+        this.currentColorIndex = this.resolveColorIndexForMaterial(
+          material,
+          ps?.colorIndex != null && Number.isFinite(Number(ps.colorIndex))
+            ? Number(ps.colorIndex)
+            : 0,
+        );
         this.printingLengthCm = Number(
           ps?.lengthCm ?? material?.defaultLength ?? 0,
         );
@@ -836,25 +975,31 @@ export class PrintComponent implements OnInit, OnDestroy {
         Math.max(0, materials.length - 1),
       );
       const material = materials[materialIndex] ?? null;
-      return {
-        paperType: material ? this.getMaterialLabel(material) : option.label,
-        sizeIndex: option.sizeIndex,
-        materialIndex,
-        lengthCm: Number(size.length),
-        widthCm: Number(size.width),
-      };
+      return this.appendColorIndexToSettings(
+        {
+          paperType: material ? this.getMaterialLabel(material) : option.label,
+          sizeIndex: option.sizeIndex,
+          materialIndex,
+          lengthCm: Number(size.length),
+          widthCm: Number(size.width),
+        },
+        material,
+      );
     }
     if (this.isDynamicProduct) {
       const material = this.selectedDynamicMaterial;
       if (!material) {
         return null;
       }
-      return {
-        paperType: this.getMaterialLabel(material),
-        materialIndex: this.currentMaterialIndex,
-        lengthCm: this.roundCm(this.printingLengthCm) ?? this.printingLengthCm,
-        widthCm: this.roundCm(this.printingWidthCm) ?? this.printingWidthCm,
-      };
+      return this.appendColorIndexToSettings(
+        {
+          paperType: this.getMaterialLabel(material),
+          materialIndex: this.currentMaterialIndex,
+          lengthCm: this.roundCm(this.printingLengthCm) ?? this.printingLengthCm,
+          widthCm: this.roundCm(this.printingWidthCm) ?? this.printingWidthCm,
+        },
+        material,
+      );
     }
     return null;
   }
