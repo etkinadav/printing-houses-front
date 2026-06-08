@@ -60,6 +60,9 @@ type TranslateFn = (key: string, params?: Record<string, unknown>) => string;
 
 const SETTINGS_BUTTONS_WRAP_SCORE_THRESHOLD = 30;
 
+/** UI / persisted sentinel for optional multi-option rows: user chose "without". */
+export const EXTRA_OPTION_NONE_INDEX = -1;
+
 export function buildExtraSettingsContext(
   size: PhSize | null,
   material: PhMaterial | null,
@@ -132,10 +135,10 @@ export function isExtraSettingVisible(ctx: ExtraSettingsContext, key: ExtraSetti
   }
   const mode = getExtraSettingMode(node, key);
   const optionCount = getExtraSettingOptionCount(node, key);
-  if (mode === 'required' && optionCount <= 1) {
-    return false;
-  }
   if (mode === 'optional') {
+    return true;
+  }
+  if (mode === 'required' && optionCount === 1) {
     return true;
   }
   return optionCount > 1;
@@ -235,26 +238,18 @@ function formatSizedOptionLabel(size: number | null | undefined, t: TranslateFn)
   return formatCm(t, size) || '—';
 }
 
-function formatFoldingSingleLabel(folding: PhFolding, title: string, t: TranslateFn): string {
-  const countPart = t('management.printing-house.spec.extra-folding-count', {
-    count: folding.count,
-  });
-  const offsetCm = formatCm(t, folding.offset);
-  if (offsetCm) {
-    return t('printing-table.extra.folding-single-line', {
-      title,
-      countPart,
-      offset: offsetCm,
-    });
-  }
-  return t('printing-table.extra.folding-single-line-count', { title, countPart });
+function formatFoldingSingleLabel(folding: PhFolding, _title: string, t: TranslateFn): string {
+  return formatFoldingOptionLabel(folding, t);
 }
 
 function formatFoldingOptionLabel(folding: PhFolding, t: TranslateFn): string {
   const countPart = t('management.printing-house.spec.extra-folding-count', {
     count: folding.count,
   });
-  const offsetCm = formatCm(t, folding.offset);
+  const offset = folding.offset;
+  const hasOffset =
+    offset != null && !Number.isNaN(Number(offset)) && Number(offset) !== 0;
+  const offsetCm = hasOffset ? formatCm(t, offset) : '';
   if (offsetCm) {
     return t('printing-table.extra.folding-option', { countPart, offset: offsetCm });
   }
@@ -399,10 +394,7 @@ export function buildDefaultExtraUiState(
   if (key === 'double-sided') {
     return { selectedIndex: 0, enabled: false };
   }
-  if (optionCount <= 1) {
-    return { selectedIndex: 0, enabled: false };
-  }
-  return { selectedIndex: 0, enabled: true };
+  return { selectedIndex: 0, enabled: false };
 }
 
 export function buildDefaultExtraUiStateMap(ctx: ExtraSettingsContext): ExtraSettingsUiStateMap {
@@ -436,8 +428,8 @@ export function syncExtraUiStateFromSaved(
     }
 
     let enabled = mode === 'required' ? true : readEnabled(saved, key);
-    if (mode === 'optional' && optionCount > 1) {
-      enabled = true;
+    if (mode === 'optional' && saved?.[getEnabledField(key)] == null) {
+      enabled = defaultState.enabled;
     }
     if (mode === 'required' && optionCount <= 1) {
       enabled = true;
@@ -486,9 +478,6 @@ export function reconcileExtraUiStateOnTreeChange(
     }
 
     let enabled = mode === 'required' ? true : prev.enabled;
-    if (mode === 'optional' && optionCount > 1) {
-      enabled = true;
-    }
     if (mode === 'required' && optionCount <= 1) {
       enabled = true;
       selectedIndex = 0;
@@ -544,6 +533,17 @@ export function buildPersistedExtraSelections(
       continue;
     }
 
+    if (mode === 'optional' && optionCount > 1) {
+      assignEnabled(enabledField, state.enabled);
+      if (state.enabled && indexField) {
+        assignIndex(
+          indexField,
+          Math.min(Math.max(0, state.selectedIndex), Math.max(0, optionCount - 1)),
+        );
+      }
+      continue;
+    }
+
     if (indexField) {
       assignIndex(
         indexField,
@@ -577,7 +577,6 @@ export function validateExtraSelections(
     }
     const mode = getExtraSettingMode(node, key);
     const optionCount = getExtraSettingOptionCount(node, key);
-    const enabled = mode === 'required' ? true : readEnabled(saved, key);
 
     if (key === 'double-sided') {
       if (mode === 'optional' && saved?.doubleSidedEnabled == null) {
@@ -597,13 +596,23 @@ export function validateExtraSelections(
       continue;
     }
 
-    if (!enabled) {
-      return false;
+    if (mode === 'optional' && optionCount > 1) {
+      const optionalEnabled = readEnabled(saved, key);
+      if (!optionalEnabled) {
+        continue;
+      }
+      const index = readIndex(saved, key);
+      if (optionCount <= 0 || index < 0 || index >= optionCount) {
+        return false;
+      }
+      continue;
     }
 
-    const index = readIndex(saved, key);
-    if (optionCount <= 0 || index < 0 || index >= optionCount) {
-      return false;
+    if (mode === 'required') {
+      const index = readIndex(saved, key);
+      if (optionCount <= 0 || index < 0 || index >= optionCount) {
+        return false;
+      }
     }
   }
   return true;
@@ -623,7 +632,7 @@ function buildBooleanToggleLabels(
   const options = buildExtraSettingOptions(node, key, t);
   const settingTitle = getExtraSettingTitle(key, t);
   return {
-    off: t('printing-table.extra.without-setting', { name: settingTitle }),
+    off: t('printing-table.extra.without-setting'),
     on: options[0]?.label ?? buildSingleRowLabel(node, key, t),
   };
 }
@@ -643,7 +652,18 @@ export function buildVisibleExtraSettingRows(
     const optionCount = getExtraSettingOptionCount(node, key);
     const state = uiState[key] ?? buildDefaultExtraUiState(ctx, key);
     const settingTitle = getExtraSettingTitle(key, t);
-    const options = buildExtraSettingOptions(node, key, t);
+    const baseOptions = buildExtraSettingOptions(node, key, t);
+    const options =
+      mode === 'optional' && optionCount > 1
+        ? [
+            {
+              index: EXTRA_OPTION_NONE_INDEX,
+              label: t('printing-table.extra.without-setting'),
+              signature: '__none__',
+            },
+            ...baseOptions,
+          ]
+        : baseOptions;
     const singleRowLabel = buildSingleRowLabel(node, key, t);
     const toggleLabels = buildBooleanToggleLabels(key, node, t);
 

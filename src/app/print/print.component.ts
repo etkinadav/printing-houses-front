@@ -25,6 +25,7 @@ import {
   buildExtraSettingsContext,
   buildVisibleExtraSettingRows,
   buildPersistedExtraSelections,
+  EXTRA_OPTION_NONE_INDEX,
   reconcileExtraUiStateOnTreeChange,
   syncExtraUiStateFromSaved,
   validateExtraSelections,
@@ -100,6 +101,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   readonly expressFileAccept = EXPRESS_FILE_ACCEPT;
   /** Keeps the product-name display toggle visually selected (read-only). */
   readonly productNameToggle = 0;
+  readonly extraDisplayToggleValue = 0;
 
   private directionSub?: Subscription;
   private darkModeSub?: Subscription;
@@ -571,6 +573,7 @@ export class PrintComponent implements OnInit, OnDestroy {
       ...this.extraSettingsUi,
       [key]: { ...current, enabled },
     };
+    this.rebuildExtraSettingRows();
     this.persistCurrentFileSettings();
   }
 
@@ -583,7 +586,27 @@ export class PrintComponent implements OnInit, OnDestroy {
       ...this.extraSettingsUi,
       [key]: { ...current, selectedIndex: index, enabled: true },
     };
+    this.rebuildExtraSettingRows();
     this.persistCurrentFileSettings();
+  }
+
+  getExtraOptionToggleValue(key: ExtraSettingKey): number {
+    const state = this.extraSettingsUi[key];
+    if (!state?.enabled) {
+      return EXTRA_OPTION_NONE_INDEX;
+    }
+    return state.selectedIndex ?? 0;
+  }
+
+  onExtraOptionToggleChange(key: ExtraSettingKey, value: number): void {
+    if (this.suppressSettingsPersist || !Number.isInteger(value)) {
+      return;
+    }
+    if (value === EXTRA_OPTION_NONE_INDEX) {
+      this.onExtraSettingEnabledChange(key, false);
+      return;
+    }
+    this.onExtraSettingIndexChange(key, value);
   }
 
   private getSelectedFixedOption(): FixedDimensionOption | null {

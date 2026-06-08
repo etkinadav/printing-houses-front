@@ -669,7 +669,7 @@
     "printing-table.copies-short": "نسخ",
     "printing-table.product": "منتج",
     "printing-table.type": "نوع",
-    "printing-table.extra.without-setting": "بدون {{name}}",
+    "printing-table.extra.without-setting": "بدون",
     "printing-table.extra.corner-single-line": "{{type}} - {{size}}",
     "printing-table.extra.corner-option": "{{type}}، {{size}}",
     "printing-table.extra.corner-type.rounded-short": "مستديرة",

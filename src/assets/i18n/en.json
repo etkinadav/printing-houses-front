@@ -669,7 +669,7 @@
 	"printing-table.copies-short": "Copies",
 	"printing-table.product": "Product",
 	"printing-table.type": "Type",
-	"printing-table.extra.without-setting": "Without {{name}}",
+	"printing-table.extra.without-setting": "Without",
 	"printing-table.extra.corner-single-line": "{{type}} - {{size}}",
 	"printing-table.extra.corner-option": "{{type}}, {{size}}",
 	"printing-table.extra.corner-type.rounded-short": "Rounded",

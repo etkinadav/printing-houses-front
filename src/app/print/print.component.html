@@ -587,6 +587,26 @@
                   <!-- Extra print settings (corners, bleed, folding, duplex, double-sided) -->
                   <ng-container *ngFor="let row of extraSettingRows; trackBy: trackExtraSettingRow">
                     <article
+                      *ngIf="row.display === 'single-toggle'"
+                      class="zx-min-h-50 w-100 d-flex justify-content-between align-items-center">
+                      <span>{{ row.settingTitle }}</span>
+                      <div class="d-flex position-relative ph-settings-toggle-host justify-content-end">
+                        <mat-button-toggle-group
+                          class="ph-settings-display-toggle"
+                          [style.width]="'auto'"
+                          [name]="'extra-display-' + row.key"
+                          [ngModel]="extraDisplayToggleValue">
+                          <mat-button-toggle
+                            class="zx-rtl position-relative"
+                            [value]="extraDisplayToggleValue"
+                            [class.zx-text-white]="isDarkMode">
+                            <span>{{ row.singleRowLabel }}</span>
+                          </mat-button-toggle>
+                        </mat-button-toggle-group>
+                      </div>
+                    </article>
+
+                    <article
                       *ngIf="row.display === 'boolean-toggle'"
                       class="zx-min-h-50 w-100 d-flex justify-content-between align-items-center">
                       <span>{{ row.settingTitle }}</span>
@@ -625,8 +645,8 @@
                           *ngIf="!row.wrap"
                           [name]="'extra-option-' + row.key"
                           [attr.aria-label]="row.settingTitle"
-                          [ngModel]="extraSettingsUi[row.key]?.selectedIndex ?? 0"
-                          (ngModelChange)="onExtraSettingIndexChange(row.key, $event)">
+                          [ngModel]="getExtraOptionToggleValue(row.key)"
+                          (ngModelChange)="onExtraOptionToggleChange(row.key, $event)">
                           <mat-button-toggle
                             *ngFor="let option of row.options"
                             class="zx-rtl position-relative"
@@ -642,8 +662,8 @@
                             *ngFor="let option of row.options"
                             [name]="'extra-option-' + row.key + '-' + option.index"
                             [attr.aria-label]="row.settingTitle"
-                            [ngModel]="extraSettingsUi[row.key]?.selectedIndex ?? 0"
-                            (ngModelChange)="onExtraSettingIndexChange(row.key, $event)">
+                            [ngModel]="getExtraOptionToggleValue(row.key)"
+                            (ngModelChange)="onExtraOptionToggleChange(row.key, $event)">
                             <mat-button-toggle
                               class="zx-rtl position-relative"
                               [value]="option.index"
