@@ -320,7 +320,7 @@ function mapColorPills(colors: PhColor[]): ProductSpecColorPill[] | undefined {
 
 function formatMaterialDisplayLine(
   rawName: string,
-  weight: number,
+  weight: number | null | undefined,
   productName: string | undefined,
   t: TranslateFn,
   fallbackIndex: number,
@@ -331,17 +331,27 @@ function formatMaterialDisplayLine(
     name = t('management.product-create.material-number', { n: fallbackIndex + 1 });
   }
 
+  const hasWeight = weight != null && Number.isFinite(Number(weight));
+
   const productNameTrim = productName?.trim() || '';
   if (stripProductName && productNameTrim) {
     if (name === productNameTrim) {
-      return t('management.printing-house.spec.material-weight-only', { g: weight });
+      return hasWeight
+        ? t('management.printing-house.spec.material-weight-only', { g: weight })
+        : name;
     }
     if (name.startsWith(productNameTrim)) {
       name = name.slice(productNameTrim.length).trim();
     }
     if (!name) {
-      return t('management.printing-house.spec.material-weight-only', { g: weight });
+      return hasWeight
+        ? t('management.printing-house.spec.material-weight-only', { g: weight })
+        : productNameTrim;
     }
+  }
+
+  if (!hasWeight) {
+    return name;
   }
 
   return t('management.printing-house.spec.material-line', { name, g: weight });

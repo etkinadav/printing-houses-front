@@ -60,7 +60,7 @@ export interface PhColor extends PhTreeExtraSettings {
 }
 
 export interface PhMaterial extends PhTreeExtraSettings {
-  weight: number;
+  weight?: number | null;
   label: PhProductLabel;
   colors: PhColor[];
 }

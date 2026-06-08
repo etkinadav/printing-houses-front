@@ -251,9 +251,6 @@
               class="material-weight-field">
               <mat-label>{{ 'management.product-create.weight' | translate }}</mat-label>
               <input matInput type="number" formControlName="weight" />
-              <mat-error *ngIf="material.get('weight')?.hasError('required')">
-                {{ 'management.product-create.weight-required' | translate }}
-              </mat-error>
             </mat-form-field>
           </div>
         </div>
@@ -273,9 +270,6 @@
           class="w-100 material-weight-field material-weight-field--solo">
           <mat-label>{{ 'management.product-create.weight' | translate }}</mat-label>
           <input matInput type="number" formControlName="weight" />
-          <mat-error *ngIf="material.get('weight')?.hasError('required')">
-            {{ 'management.product-create.weight-required' | translate }}
-          </mat-error>
         </mat-form-field>
 
         <div class="material-dimensions-group">

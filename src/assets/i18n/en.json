@@ -816,6 +816,8 @@
 	"printing-table.plz-choose-paper.for-page": "Please choose paper for the page",
 	"printing-table.plz-choose-material": "Please choose material for the file",
 	"printing-table.3dprint-material": "Material",
+	"printing-table.material-with-weight": "{{name}} ({{g}} g)",
+	"printing-table.material-weight-only": "({{g}} g)",
 	"printing-table.3d-material-recommended-hint": "Recommended to use {{material}}",
 	"printing-table.3d-material-recommended-suffix": " - Recommended!",
 	"printing-table.3dprint-color": "Color",

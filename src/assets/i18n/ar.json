@@ -815,6 +815,8 @@
     "printing-table.plz-choose-paper.for-page": "يرجى اختيار الورق للصفحة",
     "printing-table.plz-choose-material": "يرجى اختيار المادة للملف",
     "printing-table.3dprint-material": "المادة",
+    "printing-table.material-with-weight": "{{name}} ({{g}} غ)",
+    "printing-table.material-weight-only": "({{g}} غ)",
     "printing-table.3d-material-recommended-hint": "يُنصح باستخدام {{material}}",
     "printing-table.3d-material-recommended-suffix": " - موصى به!",
     "printing-table.3dprint-color": "اللون",

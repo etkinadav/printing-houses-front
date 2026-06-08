@@ -814,6 +814,8 @@
     "printing-table.plz-choose-paper.for-page": "אנא בחר נייר לעמ'",
     "printing-table.plz-choose-material": "אנא בחר חומר לקובץ",
     "printing-table.3dprint-material": "חומר",
+    "printing-table.material-with-weight": "{{name}} ({{g}} ג')",
+    "printing-table.material-weight-only": "({{g}} ג')",
     "printing-table.3d-material-recommended-hint": "מומלץ להשתמש ב-{{material}}",
     "printing-table.3d-material-recommended-suffix": " - מומלץ!",
     "printing-table.3dprint-color": "צבע",

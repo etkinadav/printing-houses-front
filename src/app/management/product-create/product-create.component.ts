@@ -1383,7 +1383,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
   private readDynamicMaterials(materials: FormArray): PhDynamicMaterial[] {
     return materials.controls.map((materialGroup) => ({
-      weight: Number(materialGroup.get('weight')!.value),
+      weight: this.readNumericOrNull(materialGroup.get('weight')),
       label: this.readMaterialLabelForSave(materialGroup, materials),
       minLength: Number(materialGroup.get('minLength')!.value),
       maxLength: Number(materialGroup.get('maxLength')!.value),
@@ -1398,7 +1398,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
   private readMaterials(materials: FormArray): PhMaterial[] {
     return materials.controls.map((materialGroup) => ({
-      weight: Number(materialGroup.get('weight')!.value),
+      weight: this.readNumericOrNull(materialGroup.get('weight')),
       label: this.readLabel(materialGroup.get('label')!),
       colors: this.readColors(materialGroup),
       ...this.readTreeExtras(materialGroup),
@@ -1968,7 +1968,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
   private createMaterialGroup(
     material?: Partial<{
-      weight: number | null;
+      weight?: number | null;
       label: Partial<PhProductLabel>;
       extraSettings?: ExtraSettingKey[];
       cornersSetting?: Partial<{ mode: ExtraSettingMode }>;
@@ -1996,10 +1996,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       : new FormArray<FormGroup>([this.createColorGroup()]);
 
     return new FormGroup({
-      weight: new FormControl<number | null>(material?.weight ?? null, [
-        Validators.required,
-        Validators.min(0),
-      ]),
+      weight: new FormControl<number | null>(material?.weight ?? null, [Validators.min(0)]),
       label: this.createLabelGroup(material?.label),
       extraSettings: this.createExtraSettingsControl(material?.extraSettings),
       cornersSetting: this.createExtraSettingModeGroup(material?.cornersSetting),
@@ -2017,7 +2014,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
   private createDynamicMaterialGroup(
     material?: Partial<{
-      weight: number | null;
+      weight?: number | null;
       label: Partial<PhProductLabel>;
       extraSettings?: ExtraSettingKey[];
       cornersSetting?: Partial<{ mode: ExtraSettingMode }>;
@@ -2056,10 +2053,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       : new FormArray<FormGroup>([this.createColorGroup()]);
 
     const group = new FormGroup({
-      weight: new FormControl<number | null>(material?.weight ?? null, [
-        Validators.required,
-        Validators.min(0),
-      ]),
+      weight: new FormControl<number | null>(material?.weight ?? null, [Validators.min(0)]),
       label: this.createLabelGroup(material?.label),
       extraSettings: this.createExtraSettingsControl(material?.extraSettings),
       cornersSetting: this.createExtraSettingModeGroup(material?.cornersSetting),
@@ -2107,7 +2101,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       foldings?: Array<{ count: number; offset: number | null }>;
       doubleSided?: Partial<{ mode: ExtraSettingMode }>;
       materials: Array<{
-        weight: number | null;
+        weight?: number | null;
         label: Partial<PhProductLabel>;
         extraSettings?: ExtraSettingKey[];
         corners?: Array<{ type: CornerType; radius: number | null }>;

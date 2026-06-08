@@ -318,7 +318,25 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   getMaterialLabel(material: PhDynamicMaterial | PhMaterial): string {
-    return material.label?.he?.trim() || String(material.weight);
+    const base = material.label?.he?.trim() || '';
+    const weight = material.weight;
+    const hasWeight = weight != null && Number.isFinite(Number(weight));
+
+    if (!base && !hasWeight) {
+      return '';
+    }
+    if (!base && hasWeight) {
+      return this.translateService.instant('printing-table.material-weight-only', {
+        g: weight,
+      });
+    }
+    if (base && !hasWeight) {
+      return base;
+    }
+    return this.translateService.instant('printing-table.material-with-weight', {
+      name: base,
+      g: weight,
+    });
   }
 
   /**
@@ -924,7 +942,13 @@ export class PrintComponent implements OnInit, OnDestroy {
       return 0;
     }
     const idx = materials.findIndex((material) => this.getMaterialLabel(material) === target);
-    return idx >= 0 ? idx : 0;
+    if (idx >= 0) {
+      return idx;
+    }
+    const legacyIdx = materials.findIndex(
+      (material) => (material.label?.he?.trim() || '') === target,
+    );
+    return legacyIdx >= 0 ? legacyIdx : 0;
   }
 
   private findMatchingColorIndex(colors: PhColor[], label: string): number {
