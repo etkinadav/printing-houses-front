@@ -42,14 +42,15 @@
 .ph-print-house-header {
   flex-shrink: 0;
   padding: 6px 12px;
-  color: #fff;
-  background: linear-gradient(135deg, var(--zx-green) 0%, var(--zx-green-dark) 100%);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  color: var(--zx-green);
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
 }
 
 .ph-print-house-header--dark {
-  background: linear-gradient(135deg, var(--zx-green-dark) 0%, #1a2e2c 100%);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  color: var(--zx-green);
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 
 .ph-print-house-header__inner {
@@ -67,17 +68,17 @@
 
 .ph-print-house-header__logo ::ng-deep .ph-logo-crop-viewport {
   border-radius: 10px;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 2px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .ph-print-house-header__logo--placeholder {
   width: 62px;
   height: 62px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 2px solid rgba(255, 255, 255, 0.28);
+  background: rgba(38, 166, 154, 0.08);
+  border: 2px solid rgba(38, 166, 154, 0.22);
 }
 
 .ph-print-house-header__info {
@@ -284,7 +285,7 @@
     gap: 15px;
     height: 100%;
     max-height: 100%;
-    padding: 15px 0 10px;
+    padding: 8px 0 10px;
     overflow: auto;
     position: relative;
     box-shadow: unset;
