@@ -362,9 +362,35 @@ export class PrintComponent implements OnInit, OnDestroy {
     if (!option || !size || !this.selectedFile) {
       return;
     }
+
+    const previousOption = this.getSelectedFixedOption();
+    const previousSize = previousOption
+      ? this.fixedSizes[previousOption.sizeIndex]
+      : null;
+    const previousMaterials = previousSize?.materials ?? [];
+    const previousMaterial = this.getMaterialAtIndex(
+      previousMaterials,
+      this.currentMaterialIndex,
+    );
+    const previousMaterialLabel = previousMaterial
+      ? this.getMaterialLabel(previousMaterial)
+      : '';
+    const previousColorLabel = this.getColorLabelAtIndex(
+      previousMaterial,
+      this.currentColorIndex,
+    );
+
     this.currentFixedOptionIndex = optionIndex;
-    this.currentMaterialIndex = 0;
-    this.currentColorIndex = 0;
+    const newMaterials = size.materials ?? [];
+    this.currentMaterialIndex = this.findMatchingMaterialIndex(
+      newMaterials,
+      previousMaterialLabel,
+    );
+    const newMaterial = newMaterials[this.currentMaterialIndex] ?? null;
+    this.currentColorIndex = this.findMatchingColorIndex(
+      newMaterial?.colors ?? [],
+      previousColorLabel,
+    );
     this.printingLengthCm = Number(size.length);
     this.printingWidthCm = Number(size.width);
     this.persistCurrentFileSettings();
@@ -388,9 +414,16 @@ export class PrintComponent implements OnInit, OnDestroy {
       ) {
         return;
       }
+      const previousColorLabel = this.getColorLabelAtIndex(
+        materials[this.currentMaterialIndex],
+        this.currentColorIndex,
+      );
       this.currentMaterialIndex = materialIndex;
-      this.currentColorIndex = 0;
       const material = materials[materialIndex];
+      this.currentColorIndex = this.findMatchingColorIndex(
+        material?.colors ?? [],
+        previousColorLabel,
+      );
       if (
         !this.areDynamicDimensionsValid(
           material,
@@ -415,8 +448,16 @@ export class PrintComponent implements OnInit, OnDestroy {
       ) {
         return;
       }
+      const previousColorLabel = this.getColorLabelAtIndex(
+        materials[this.currentMaterialIndex],
+        this.currentColorIndex,
+      );
       this.currentMaterialIndex = materialIndex;
-      this.currentColorIndex = 0;
+      const material = materials[materialIndex];
+      this.currentColorIndex = this.findMatchingColorIndex(
+        material?.colors ?? [],
+        previousColorLabel,
+      );
       this.persistCurrentFileSettings();
     }
   }
@@ -623,6 +664,51 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.currentColorIndex = 0;
     this.printingLengthCm = 0;
     this.printingWidthCm = 0;
+  }
+
+  private getMaterialAtIndex(
+    materials: PhMaterial[],
+    materialIndex: number,
+  ): PhMaterial | null {
+    if (!materials.length) {
+      return null;
+    }
+    const idx = Math.min(
+      Math.max(0, materialIndex),
+      materials.length - 1,
+    );
+    return materials[idx] ?? null;
+  }
+
+  private getColorLabelAtIndex(
+    material: PhMaterial | PhDynamicMaterial | null | undefined,
+    colorIndex: number,
+  ): string {
+    const colors = material?.colors ?? [];
+    if (!colors.length) {
+      return '';
+    }
+    const idx = Math.min(Math.max(0, colorIndex), colors.length - 1);
+    const color = colors[idx];
+    return color ? this.getColorLabel(color) : '';
+  }
+
+  private findMatchingMaterialIndex(materials: PhMaterial[], label: string): number {
+    const target = label.trim();
+    if (!target || !materials.length) {
+      return 0;
+    }
+    const idx = materials.findIndex((material) => this.getMaterialLabel(material) === target);
+    return idx >= 0 ? idx : 0;
+  }
+
+  private findMatchingColorIndex(colors: PhColor[], label: string): number {
+    const target = label.trim();
+    if (!target || !colors.length) {
+      return 0;
+    }
+    const idx = colors.findIndex((color) => this.getColorLabel(color) === target);
+    return idx >= 0 ? idx : 0;
   }
 
   private resolveColorIndexForMaterial(

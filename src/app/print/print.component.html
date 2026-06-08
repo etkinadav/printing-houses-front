@@ -367,7 +367,7 @@
                       [class.justify-content-center]="fixedTypeSettingsWrap"
                       name="fixed-size"
                       aria-label="Fixed size"
-                      [(ngModel)]="currentFixedOptionIndex"
+                      [ngModel]="currentFixedOptionIndex"
                       (ngModelChange)="onFixedOptionChange($event)">
                       <mat-button-toggle
                         *ngFor="let option of fixedDimensionOptions"
@@ -428,7 +428,7 @@
                       [class.justify-content-center]="fixedMaterialSettingsWrap"
                       name="fixed-material"
                       aria-label="Fixed material"
-                      [(ngModel)]="currentMaterialIndex"
+                      [ngModel]="currentMaterialIndex"
                       (ngModelChange)="onMaterialChange($event)">
                       <mat-button-toggle
                         *ngFor="let material of fixedMaterialsForSelectedSize; let materialIndex = index"
@@ -455,7 +455,7 @@
                       [class.justify-content-center]="dynamicMaterialSettingsWrap"
                       name="dynamic-material"
                       aria-label="Dynamic material"
-                      [(ngModel)]="currentMaterialIndex"
+                      [ngModel]="currentMaterialIndex"
                       (ngModelChange)="onMaterialChange($event)">
                       <mat-button-toggle
                         *ngFor="let material of dynamicMaterials; let materialIndex = index"
