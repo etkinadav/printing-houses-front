@@ -973,24 +973,7 @@ export class PrintComponent implements OnInit, OnDestroy {
 
     this.phPrintingFilesService.deleteFile(file._id).subscribe({
       next: () => {
-        this.files = this.files.filter((f) => f._id !== file._id);
-        this.processingFiles = this.processingFiles.filter((f) => f._id !== file._id);
-        this.pendingDefaultSettingsFileIds.delete(file._id);
-        if (this.selectedFile?._id === file._id) {
-          const nextFile = this.files.find((f) => !this.isFileProcessing(f)) ?? null;
-          if (nextFile) {
-            this.selectImage(nextFile, this.getFileImages(nextFile)[0] ?? null, 0);
-          } else {
-            this.selectedFile = null;
-            this.selectedImage = null;
-            this.currentImageIndex = 0;
-            this.previewThumbnailUrl = null;
-            this.refreshResolvedFileDimensions();
-            if (this.product) {
-              this.clearSettingsUiUnselected();
-            }
-          }
-        }
+        this.removeFileFromLocalState(file._id, true);
       },
       error: () => {
         this.snackBar.open(
@@ -1000,6 +983,118 @@ export class PrintComponent implements OnInit, OnDestroy {
         );
       },
     });
+  }
+
+  onDeleteFileOrImage(
+    file: PhPrintingFile,
+    image: PhPrintingFileImage,
+    imageIndex: number,
+    forceDeleteFile = false,
+    event?: Event,
+  ): void {
+    event?.stopPropagation();
+
+    if (this.uploading || !file?._id || !image?._id) {
+      return;
+    }
+
+    const deleteWholeFile =
+      forceDeleteFile ||
+      this.isFileProcessing(file) ||
+      this.getFileImages(file).length <= 1;
+
+    if (deleteWholeFile) {
+      this.onDeleteFile(file);
+      return;
+    }
+
+    this.selectImage(file, image, imageIndex);
+
+    this.phPrintingFilesService
+      .deleteImage(file._id, image._id, this.productId)
+      .subscribe({
+        next: (response) => {
+          if (response.deletedFileId) {
+            this.removeFileFromLocalState(file._id, true);
+            return;
+          }
+
+          const fileIndex = this.files.findIndex((f) => f._id === file._id);
+          if (fileIndex === -1) {
+            return;
+          }
+
+          const wasSelected =
+            this.selectedFile?._id === file._id &&
+            this.selectedImage?._id === image._id;
+          const selectedIndexBefore = this.currentImageIndex;
+
+          if (response.file) {
+            this.files[fileIndex] = response.file;
+          } else {
+            this.files[fileIndex] = {
+              ...this.files[fileIndex],
+              images: this.getFileImages(this.files[fileIndex]).filter(
+                (img) => img._id !== image._id,
+              ),
+            };
+          }
+
+          const updatedFile = this.files[fileIndex];
+          const remaining = this.getFileImages(updatedFile);
+
+          if (wasSelected) {
+            const newIndex = Math.min(
+              imageIndex,
+              Math.max(0, remaining.length - 1),
+            );
+            this.selectImage(updatedFile, remaining[newIndex] ?? null, newIndex);
+          } else if (
+            this.selectedFile?._id === file._id &&
+            selectedIndexBefore > imageIndex
+          ) {
+            const newIndex = selectedIndexBefore - 1;
+            this.selectImage(updatedFile, remaining[newIndex] ?? null, newIndex);
+          }
+        },
+        error: () => {
+          this.snackBar.open(
+            this.translateService.instant('ph-print.delete-failed'),
+            undefined,
+            { duration: 4000 },
+          );
+        },
+      });
+  }
+
+  canDeletePageFromFile(file: PhPrintingFile): boolean {
+    return this.getFileImages(file).length > 1;
+  }
+
+  private removeFileFromLocalState(fileId: string, clearSelectionIfSelected: boolean): void {
+    const wasSelected = clearSelectionIfSelected && this.selectedFile?._id === fileId;
+    this.files = this.files.filter((f) => f._id !== fileId);
+    this.processingFiles = this.processingFiles.filter((f) => f._id !== fileId);
+    this.pendingDefaultSettingsFileIds.delete(fileId);
+
+    if (!wasSelected) {
+      return;
+    }
+
+    const nextFile = this.files.find((f) => !this.isFileProcessing(f)) ?? null;
+    if (nextFile) {
+      this.selectImage(nextFile, this.getFileImages(nextFile)[0] ?? null, 0);
+      return;
+    }
+
+    this.selectedFile = null;
+    this.selectedImage = null;
+    this.currentImageIndex = 0;
+    this.previewThumbnailUrl = null;
+    this.refreshResolvedFileDimensions();
+    if (this.product) {
+      this.clearSettingsUiUnselected();
+    }
   }
 
   onDeleteAllFiles(): void {

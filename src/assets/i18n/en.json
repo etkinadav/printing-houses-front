@@ -725,7 +725,7 @@
 	"printing-table.explain-title-align": "Centering or alignment",
 	"printing-table.explain-align": "Use this option to center the file or align it to the edges of the print area.",
 	"printing-table.delete-file-for-good": "Delete file",
-	"printing-table.delete-page-for-good": "Delete page",
+	"printing-table.delete-page-for-good": "Delete page {{page}}/{{total}}",
 	"printing-table.clear-all-files": "Clear order",
 	"printing-table.clear-all-files-for-good": "Are you sure you want to delete all the uploaded files?",
 	"printing-table.delete-all-3d-files-success": "{{count}} files deleted successfully",

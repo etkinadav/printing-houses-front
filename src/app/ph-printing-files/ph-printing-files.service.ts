@@ -22,6 +22,13 @@ export interface PhPrintingFileDeleteResponse {
   deletedFileId: string;
 }
 
+export interface PhPrintingFileImageDeleteResponse {
+  message: string;
+  deletedImageId: string;
+  deletedFileId?: string;
+  file?: PhPrintingFile;
+}
+
 export interface PhPrintingFileSettingsResponse {
   message: string;
   file: PhPrintingFile;
@@ -62,6 +69,21 @@ export class PhPrintingFilesService {
 
   deleteFile(fileId: string): Observable<PhPrintingFileDeleteResponse> {
     return this.http.delete<PhPrintingFileDeleteResponse>(`${BACKEND_URL}/${fileId}`);
+  }
+
+  deleteImage(
+    fileId: string,
+    imageId: string,
+    productId?: string,
+  ): Observable<PhPrintingFileImageDeleteResponse> {
+    const params: Record<string, string> = {};
+    if (productId?.trim()) {
+      params['productId'] = productId.trim();
+    }
+    return this.http.delete<PhPrintingFileImageDeleteResponse>(
+      `${BACKEND_URL}/${fileId}/images/${imageId}`,
+      { params },
+    );
   }
 
   deleteAll(printingHouseId?: string): Observable<PhPrintingFilesDeleteAllResponse> {

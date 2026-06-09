@@ -725,7 +725,7 @@
     "printing-table.explain-title-align": "מרכוז או הצמדה",
     "printing-table.explain-align": "השתמש באפשרות זאת בכדי למרכז את הקובץ או להצמיד אותו לשוליים של איזור ההדפסה.",
     "printing-table.delete-file-for-good": "מחק קובץ",
-    "printing-table.delete-page-for-good": "מחק את עמוד",
+    "printing-table.delete-page-for-good": "מחק עמוד {{page}}/{{total}}",
     "printing-table.clear-all-files": "מחק הזמנה",
     "printing-table.clear-all-files-for-good": "האם אתה בטוח שברצונך למחוק את כלל הקבצים שהעלית?",
     "printing-table.delete-all-3d-files-success": "נמחקו {{count}} קבצים בהצלחה",

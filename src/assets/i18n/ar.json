@@ -725,7 +725,7 @@
     "printing-table.explain-title-align": "المحاذاة أو التوسيط",
     "printing-table.explain-align": "استخدم هذا الخيار لتوسيط الملف أو محاذاته مع حواف منطقة الطباعة.",
     "printing-table.delete-file-for-good": "حذف الملف",
-    "printing-table.delete-page-for-good": "حذف صفحة",
+    "printing-table.delete-page-for-good": "حذف صفحة {{page}}/{{total}}",
     "printing-table.clear-all-files": "مسح الطلب",
     "printing-table.clear-all-files-for-good": "هل أنت متأكد أنك تريد حذف جميع الملفات التي تم رفعها؟",
     "printing-table.delete-all-3d-files-success": "تم حذف {{count}} ملفات بنجاح",

@@ -282,22 +282,46 @@
                                   class="zx-img-obj"
                                   alt="" />
                                 <div
-                                  class="position-absolute d-none d-md-flex px-2 zx-pb-12 rounded-pill bottom-0 zx-z-index-1 w-100">
+                                  class="position-absolute d-flex px-2 zx-pb-12 rounded-pill bottom-0 zx-z-index-1 w-100">
                                   <div
                                     matRipple
                                     [matMenuTriggerFor]="deleteReadyMenu"
                                     (click)="$event.stopPropagation()"
-                                    class="delete-button d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                                    class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
                                     <mat-icon class="text-red mx-0 mt-0 mb-1 p-1 zx-text-medium">
                                       delete_outline
                                     </mat-icon>
                                   </div>
                                   <mat-menu #deleteReadyMenu="matMenu">
                                     <button
+                                      *ngIf="canDeletePageFromFile(entry.file)"
                                       class="d-flex align-items-center gap-1 px-2"
                                       mat-menu-item
                                       [class.zx-ltr]="!isRTL"
-                                      (click)="onDeleteFile(entry.file)">
+                                      (click)="onDeleteFileOrImage(entry.file, image, getFileListImageIndex(entry, j), false, $event)">
+                                      <b
+                                        class="text-red zx-text-small m-0"
+                                        [class.zx-text-white]="isDarkMode">
+                                        {{
+                                          'printing-table.delete-page-for-good'
+                                            | translate
+                                              : {
+                                                  page: getFileListImageIndex(entry, j) + 1,
+                                                  total: getFileImages(entry.file).length
+                                                }
+                                        }}
+                                      </b>
+                                      <mat-icon
+                                        class="text-red mx-1 p-0 zx-pt-small"
+                                        [class.zx-text-white]="isDarkMode">
+                                        delete_outline
+                                      </mat-icon>
+                                    </button>
+                                    <button
+                                      class="d-flex align-items-center gap-1 px-2"
+                                      mat-menu-item
+                                      [class.zx-ltr]="!isRTL"
+                                      (click)="onDeleteFileOrImage(entry.file, image, getFileListImageIndex(entry, j), true, $event)">
                                       <b
                                         class="text-red zx-text-small m-0"
                                         [class.zx-text-white]="isDarkMode">
