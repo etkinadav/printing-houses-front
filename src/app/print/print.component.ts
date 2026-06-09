@@ -112,9 +112,10 @@ export class PrintComponent implements OnInit, OnDestroy {
   uploadProgress = 0;
   uploadingCount = 0;
   readonly expressFileAccept = EXPRESS_FILE_ACCEPT;
+  /** Value used for single-option display toggles when a file is ready. */
+  readonly singleOptionToggleValue = 0;
   /** Keeps the product-name display toggle visually selected (read-only). */
   readonly productNameToggle = 0;
-  readonly extraDisplayToggleValue = 0;
 
   private directionSub?: Subscription;
   private darkModeSub?: Subscription;
@@ -186,13 +187,17 @@ export class PrintComponent implements OnInit, OnDestroy {
     return materials[idx] ?? null;
   }
 
-  /** Fixed size context for settings panel rows (single-size products show materials even when unselected). */
+  /** Fixed size context for settings panel rows when no file is ready (first size). */
   get settingsPanelFixedSize(): PhSize | null {
     if (this.selectedFixedSize) {
       return this.selectedFixedSize;
     }
-    if (this.settingsControlsDisabled && this.isFixedProduct && this.fixedSizes.length === 1) {
-      return this.fixedSizes[0];
+    if (this.settingsControlsDisabled && this.isFixedProduct && this.fixedSizes.length > 0) {
+      const firstOption = this.fixedDimensionOptions[0];
+      if (firstOption != null) {
+        return this.fixedSizes[firstOption.sizeIndex] ?? this.fixedSizes[0] ?? null;
+      }
+      return this.fixedSizes[0] ?? null;
     }
     return null;
   }
@@ -278,6 +283,24 @@ export class PrintComponent implements OnInit, OnDestroy {
   /** Per-control disabled — like mean-corse `[disabled]="!currentImage || files.length === 0"`. */
   get settingsControlsDisabled(): boolean {
     return this.finishedCount === 0 || !this.selectedImage;
+  }
+
+  /** ngModel for toggles when disabled — no checked/gray background. */
+  get materialToggleModel(): number | null {
+    return this.settingsControlsDisabled ? null : this.currentMaterialIndex;
+  }
+
+  get colorToggleModel(): number | null {
+    return this.settingsControlsDisabled ? null : this.currentColorIndex;
+  }
+
+  get fixedOptionToggleModel(): number | null {
+    return this.settingsControlsDisabled ? null : this.currentFixedOptionIndex;
+  }
+
+  /** Single-option rows: display when ready, disabled+unchecked when empty (mean-corse). */
+  get singleOptionToggleModel(): number | null {
+    return this.settingsControlsDisabled ? null : this.singleOptionToggleValue;
   }
 
   get selectedFileDimensionsLine(): string {
@@ -1637,7 +1660,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Empty / processing-only table: disabled controls with no toggle selected (mean-corse). */
+  /** Empty / processing-only table: all rows visible (first material/color context), controls disabled, no selection styling. */
   private clearSettingsUiUnselected(): void {
     if (!this.product) {
       return;

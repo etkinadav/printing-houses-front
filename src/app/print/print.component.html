@@ -347,7 +347,7 @@
                       [class.justify-content-center]="productSettingsWrap"
                       [class.justify-content-end]="!productSettingsWrap">
                       <mat-button-toggle-group
-                        class="ph-settings-display-toggle"
+                        class="ph-settings-display-toggle ph-settings-display-toggle-product"
                         [style.width]="'auto'"
                         [style.max-width]="productSettingsWrap ? '100%' : 'none'"
                         name="product-name"
@@ -366,7 +366,37 @@
                     class="ph-print-settings-divider"
                     aria-hidden="true" />
 
-                  <!-- Fixed: type buttons — hidden when only one option -->
+                  <!-- Fixed: type — single option (display only) -->
+                  <article
+                    *ngIf="isFixedProduct && showPrintSettingsPanel && fixedDimensionOptions.length === 1"
+                    class="w-100 d-flex align-items-center ph-settings-row"
+                    [class.ph-settings-row--stacked]="fixedTypeSettingsWrap"
+                    [class.justify-content-between]="!fixedTypeSettingsWrap"
+                    [class.zx-min-h-50]="!fixedTypeSettingsWrap">
+                    <span>{{ 'printing-table.type' | translate }}</span>
+                    <div
+                      class="d-flex position-relative ph-settings-toggle-host"
+                      [class.justify-content-center]="fixedTypeSettingsWrap"
+                      [class.justify-content-end]="!fixedTypeSettingsWrap">
+                      <mat-button-toggle-group
+                        class="ph-settings-single-option-toggle"
+                        [class.ph-settings-display-toggle]="!settingsControlsDisabled"
+                        [style.width]="'auto'"
+                        name="fixed-size-single"
+                        aria-label="Fixed size"
+                        [disabled]="settingsControlsDisabled"
+                        [ngModel]="singleOptionToggleModel">
+                        <mat-button-toggle
+                          class="zx-rtl position-relative"
+                          [value]="singleOptionToggleValue"
+                          [class.zx-text-white]="isDarkMode">
+                          <span>{{ fixedDimensionOptions[0].label }}</span>
+                        </mat-button-toggle>
+                      </mat-button-toggle-group>
+                    </div>
+                  </article>
+
+                  <!-- Fixed: type buttons — multiple options -->
                   <article
                     *ngIf="isFixedProduct && showPrintSettingsPanel && fixedDimensionOptions.length > 1"
                     class="w-100 d-flex align-items-center ph-settings-row"
@@ -383,7 +413,7 @@
                         name="fixed-size"
                         aria-label="Fixed size"
                         [disabled]="settingsControlsDisabled"
-                        [ngModel]="currentFixedOptionIndex"
+                        [ngModel]="fixedOptionToggleModel"
                         (ngModelChange)="onFixedOptionChange($event)">
                         <mat-button-toggle
                           *ngFor="let option of fixedDimensionOptions"
@@ -401,7 +431,7 @@
                           [name]="'fixed-size-' + option.optionIndex"
                           aria-label="Fixed size"
                           [disabled]="settingsControlsDisabled"
-                          [ngModel]="currentFixedOptionIndex"
+                          [ngModel]="fixedOptionToggleModel"
                           (ngModelChange)="onFixedOptionChange($event)">
                           <mat-button-toggle
                             class="zx-rtl position-relative"
@@ -454,9 +484,39 @@
                     </div>
                   </article>
 
-                  <!-- Fixed: material buttons below size -->
+                  <!-- Fixed: material — single option (display only) -->
                   <article
-                    *ngIf="isFixedProduct && showPrintSettingsPanel && fixedMaterialsForSelectedSize.length"
+                    *ngIf="isFixedProduct && showPrintSettingsPanel && fixedMaterialsForSelectedSize.length === 1"
+                    class="w-100 d-flex align-items-center ph-settings-row"
+                    [class.ph-settings-row--stacked]="fixedMaterialSettingsWrap"
+                    [class.justify-content-between]="!fixedMaterialSettingsWrap"
+                    [class.zx-min-h-50]="!fixedMaterialSettingsWrap">
+                    <span>{{ 'printing-table.3dprint-material' | translate }}</span>
+                    <div
+                      class="d-flex position-relative ph-settings-toggle-host"
+                      [class.justify-content-center]="fixedMaterialSettingsWrap"
+                      [class.justify-content-end]="!fixedMaterialSettingsWrap">
+                      <mat-button-toggle-group
+                        class="ph-settings-single-option-toggle"
+                        [class.ph-settings-display-toggle]="!settingsControlsDisabled"
+                        [style.width]="'auto'"
+                        name="fixed-material-single"
+                        aria-label="Fixed material"
+                        [disabled]="settingsControlsDisabled"
+                        [ngModel]="singleOptionToggleModel">
+                        <mat-button-toggle
+                          class="zx-rtl position-relative"
+                          [value]="singleOptionToggleValue"
+                          [class.zx-text-white]="isDarkMode">
+                          <span>{{ getMaterialLabel(fixedMaterialsForSelectedSize[0]) }}</span>
+                        </mat-button-toggle>
+                      </mat-button-toggle-group>
+                    </div>
+                  </article>
+
+                  <!-- Fixed: material — multiple options -->
+                  <article
+                    *ngIf="isFixedProduct && showPrintSettingsPanel && fixedMaterialsForSelectedSize.length > 1"
                     class="w-100 d-flex align-items-center ph-settings-row"
                     [class.ph-settings-row--stacked]="fixedMaterialSettingsWrap"
                     [class.justify-content-between]="!fixedMaterialSettingsWrap"
@@ -471,7 +531,7 @@
                         name="fixed-material"
                         aria-label="Fixed material"
                         [disabled]="settingsControlsDisabled"
-                        [ngModel]="currentMaterialIndex"
+                        [ngModel]="materialToggleModel"
                         (ngModelChange)="onMaterialChange($event)">
                         <mat-button-toggle
                           *ngFor="let material of fixedMaterialsForSelectedSize; let materialIndex = index"
@@ -489,7 +549,7 @@
                           [name]="'fixed-material-' + materialIndex"
                           aria-label="Fixed material"
                           [disabled]="settingsControlsDisabled"
-                          [ngModel]="currentMaterialIndex"
+                          [ngModel]="materialToggleModel"
                           (ngModelChange)="onMaterialChange($event)">
                           <mat-button-toggle
                             class="zx-rtl position-relative"
@@ -502,7 +562,37 @@
                     </div>
                   </article>
 
-                  <!-- Dynamic: material buttons below dimensions — hidden when only one option -->
+                  <!-- Dynamic: material — single option (display only) -->
+                  <article
+                    *ngIf="isDynamicProduct && showPrintSettingsPanel && dynamicMaterials.length === 1"
+                    class="w-100 d-flex align-items-center ph-settings-row"
+                    [class.ph-settings-row--stacked]="dynamicMaterialSettingsWrap"
+                    [class.justify-content-between]="!dynamicMaterialSettingsWrap"
+                    [class.zx-min-h-50]="!dynamicMaterialSettingsWrap">
+                    <span>{{ 'printing-table.3dprint-material' | translate }}</span>
+                    <div
+                      class="d-flex position-relative ph-settings-toggle-host"
+                      [class.justify-content-center]="dynamicMaterialSettingsWrap"
+                      [class.justify-content-end]="!dynamicMaterialSettingsWrap">
+                      <mat-button-toggle-group
+                        class="ph-settings-single-option-toggle"
+                        [class.ph-settings-display-toggle]="!settingsControlsDisabled"
+                        [style.width]="'auto'"
+                        name="dynamic-material-single"
+                        aria-label="Dynamic material"
+                        [disabled]="settingsControlsDisabled"
+                        [ngModel]="singleOptionToggleModel">
+                        <mat-button-toggle
+                          class="zx-rtl position-relative"
+                          [value]="singleOptionToggleValue"
+                          [class.zx-text-white]="isDarkMode">
+                          <span>{{ getMaterialLabel(dynamicMaterials[0]) }}</span>
+                        </mat-button-toggle>
+                      </mat-button-toggle-group>
+                    </div>
+                  </article>
+
+                  <!-- Dynamic: material — multiple options -->
                   <article
                     *ngIf="isDynamicProduct && showPrintSettingsPanel && dynamicMaterials.length > 1"
                     class="w-100 d-flex align-items-center ph-settings-row"
@@ -519,7 +609,7 @@
                         name="dynamic-material"
                         aria-label="Dynamic material"
                         [disabled]="settingsControlsDisabled"
-                        [ngModel]="currentMaterialIndex"
+                        [ngModel]="materialToggleModel"
                         (ngModelChange)="onMaterialChange($event)">
                         <mat-button-toggle
                           *ngFor="let material of dynamicMaterials; let materialIndex = index"
@@ -537,7 +627,7 @@
                           [name]="'dynamic-material-' + materialIndex"
                           aria-label="Dynamic material"
                           [disabled]="settingsControlsDisabled"
-                          [ngModel]="currentMaterialIndex"
+                          [ngModel]="materialToggleModel"
                           (ngModelChange)="onMaterialChange($event)">
                           <mat-button-toggle
                             class="zx-rtl position-relative"
@@ -550,7 +640,42 @@
                     </div>
                   </article>
 
-                  <!-- Color buttons for selected material — hidden when only one option -->
+                  <!-- Color — single option (display only) -->
+                  <article
+                    *ngIf="showPrintSettingsPanel && colorsForSelectedMaterial.length === 1"
+                    class="w-100 d-flex align-items-center ph-settings-row"
+                    [class.ph-settings-row--stacked]="colorSettingsWrap"
+                    [class.justify-content-between]="!colorSettingsWrap"
+                    [class.zx-min-h-50]="!colorSettingsWrap">
+                    <span>{{ 'printing-table.color' | translate }}</span>
+                    <div
+                      class="d-flex position-relative ph-settings-toggle-host"
+                      [class.justify-content-center]="colorSettingsWrap"
+                      [class.justify-content-end]="!colorSettingsWrap">
+                      <mat-button-toggle-group
+                        class="ph-settings-single-option-toggle"
+                        [class.ph-settings-display-toggle]="!settingsControlsDisabled"
+                        [style.width]="'auto'"
+                        name="print-color-single"
+                        aria-label="Print color"
+                        [disabled]="settingsControlsDisabled"
+                        [ngModel]="singleOptionToggleModel">
+                        <mat-button-toggle
+                          class="zx-rtl position-relative"
+                          [value]="singleOptionToggleValue"
+                          [class.zx-text-white]="isDarkMode">
+                          <span class="ph-settings-color-toggle">
+                            <span
+                              class="ph-settings-color-swatch"
+                              [ngStyle]="getColorSwatchStyles(colorsForSelectedMaterial[0])"></span>
+                            <span>{{ getColorLabel(colorsForSelectedMaterial[0]) }}</span>
+                          </span>
+                        </mat-button-toggle>
+                      </mat-button-toggle-group>
+                    </div>
+                  </article>
+
+                  <!-- Color — multiple options -->
                   <article
                     *ngIf="showPrintSettingsPanel && colorsForSelectedMaterial.length > 1"
                     class="w-100 d-flex align-items-center ph-settings-row"
@@ -567,7 +692,7 @@
                         name="print-color"
                         aria-label="Print color"
                         [disabled]="settingsControlsDisabled"
-                        [ngModel]="currentColorIndex"
+                        [ngModel]="colorToggleModel"
                         (ngModelChange)="onColorChange($event)">
                         <mat-button-toggle
                           *ngFor="let color of colorsForSelectedMaterial; let colorIndex = index"
@@ -590,7 +715,7 @@
                           [name]="'print-color-' + colorIndex"
                           aria-label="Print color"
                           [disabled]="settingsControlsDisabled"
-                          [ngModel]="currentColorIndex"
+                          [ngModel]="colorToggleModel"
                           (ngModelChange)="onColorChange($event)">
                           <mat-button-toggle
                             class="zx-rtl position-relative"
@@ -608,7 +733,7 @@
                     </div>
                   </article>
                   <hr
-                    *ngIf="showPrintSettingsPanel && colorsForSelectedMaterial.length > 1"
+                    *ngIf="showPrintSettingsPanel && colorsForSelectedMaterial.length > 0"
                     class="ph-print-settings-divider"
                     aria-hidden="true" />
 
@@ -620,13 +745,15 @@
                       <span>{{ row.settingTitle }}</span>
                       <div class="d-flex position-relative ph-settings-toggle-host justify-content-end">
                         <mat-button-toggle-group
-                          class="ph-settings-display-toggle"
+                          class="ph-settings-single-option-toggle"
+                          [class.ph-settings-display-toggle]="!settingsControlsDisabled"
                           [style.width]="'auto'"
                           [name]="'extra-display-' + row.key"
-                          [ngModel]="extraDisplayToggleValue">
+                          [disabled]="settingsControlsDisabled"
+                          [ngModel]="singleOptionToggleModel">
                           <mat-button-toggle
                             class="zx-rtl position-relative"
-                            [value]="extraDisplayToggleValue"
+                            [value]="singleOptionToggleValue"
                             [class.zx-text-white]="isDarkMode">
                             <span>{{ row.singleRowLabel }}</span>
                           </mat-button-toggle>
