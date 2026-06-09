@@ -180,166 +180,308 @@
                       </mat-menu>
 
                       <!-- File tiles -->
-                      <article
-                        *ngFor="let entry of getFileListEntries(); trackBy: trackFileListEntry"
-                        class="zx-file-obj">
+                      <ng-container
+                        *ngFor="let item of getSidebarDisplayItems(); trackBy: trackSidebarItem">
                         <!-- Processing -->
-                        <div
-                          *ngIf="isFileProcessing(entry.file)"
-                          class="zx-files-area-item-small zx-img-obj-container rounded-3 pb-2 zx-border-gray-v-v-light shadow-85-light d-flex flex-column justify-content-between align-items-center position-relative"
-                          [class.zx-border-gray-25-pr]="isDarkMode"
-                          [class.zx-page-obj-container-bg-darkmode]="isDarkMode">
+                        <article *ngIf="item.kind === 'processing'" class="zx-file-obj">
                           <div
-                            class="position-absolute d-flex px-2 zx-pb-12 rounded-pill bottom-0 w-100">
+                            class="zx-files-area-item-small zx-img-obj-container rounded-3 pb-2 zx-border-gray-v-v-light shadow-85-light d-flex flex-column justify-content-between align-items-center position-relative"
+                            [class.zx-border-gray-25-pr]="isDarkMode"
+                            [class.zx-page-obj-container-bg-darkmode]="isDarkMode">
                             <div
-                              matRipple
-                              [matMenuTriggerFor]="deleteProcessingMenu"
-                              (click)="$event.stopPropagation()"
-                              class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
-                              <mat-icon class="text-red mx-0 mt-0 mb-1 p-1 zx-text-medium c-pointer">
-                                delete_outline
-                              </mat-icon>
-                            </div>
-                            <mat-menu #deleteProcessingMenu="matMenu">
-                              <button
-                                class="d-flex align-items-center gap-1 px-2"
-                                mat-menu-item
-                                [class.zx-ltr]="!isRTL"
-                                (click)="onDeleteFile(entry.file)">
-                                <b
-                                  class="text-red zx-text-small m-0"
-                                  [class.zx-text-white]="isDarkMode">
-                                  {{ 'printing-table.delete-file-for-good' | translate }}
-                                </b>
-                                <mat-icon
-                                  class="text-red mx-1 p-0 zx-pt-small"
-                                  [class.zx-text-white]="isDarkMode">
+                              class="position-absolute d-flex px-2 zx-pb-12 rounded-pill bottom-0 w-100">
+                              <div
+                                matRipple
+                                [matMenuTriggerFor]="deleteProcessingMenu"
+                                (click)="$event.stopPropagation()"
+                                class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                                <mat-icon class="text-red mx-0 mt-0 mb-1 p-1 zx-text-medium c-pointer">
                                   delete_outline
                                 </mat-icon>
-                              </button>
-                            </mat-menu>
-                          </div>
-                          <div class="w-100 d-flex justify-content-center align-items-center">
-                            <span class="opacity-trans" [class.opacity-trans-not-rtl]="!isRTL">
-                              <span class="zx-text-tiny fw-bold">
-                                {{ getDisplayFileName(entry.file) | slice: 0 : 16 }}
-                              </span>
-                              <span
-                                class="zx-text-tiny"
-                                *ngIf="getDisplayFileName(entry.file).length > 16">
-                                ...
-                              </span>
-                            </span>
-                          </div>
-                          <div class="zx-small-icon-size zx-small-plus-icon-size-lg">
-                            <mat-spinner class="w-100 h-100"></mat-spinner>
-                          </div>
-                          <h6
-                            class="mb-0 zx-text-small text-center opacity-trans zx-z-index-1"
-                            [class.opacity-trans-not-rtl]="!isRTL"
-                            [matTooltip]="'printing-table.proccessing.explain' | translate"
-                            matTooltipPosition="above">
-                            {{ 'printing-table.proccessing' | translate }}
-                          </h6>
-                        </div>
-
-                        <!-- Ready — grouped multi-page or one tile per page when double-sided is required -->
-                        <div
-                          *ngIf="!isFileProcessing(entry.file)"
-                          class="zx-page-obj-container"
-                          [class.zx-bg-choosen]="isSelected(entry.file) && isFileListEntryGroupedMultiPage(entry)"
-                          [class.zx-page-obj-container-bg]="isFileListEntryGroupedMultiPage(entry)"
-                          [class.zx-page-obj-container-bg-darkmode]="isFileListEntryGroupedMultiPage(entry) && isDarkMode">
-                          <article
-                            *ngFor="let image of entry.images; let j = index; trackBy: trackImageById"
-                            tabindex="0"
-                            role="button"
-                            class="zx-page-obj"
-                            [class.zx-page-obj-first]="j === 0 && isFileListEntryGroupedMultiPage(entry)"
-                            (click)="selectImage(entry.file, image, getFileListImageIndex(entry, j))"
-                            (keyup.enter)="selectImage(entry.file, image, getFileListImageIndex(entry, j))">
-                            <div
-                              class="zx-img-obj-container-container c-pointer rounded-3 d-flex flex-column zx-border-gray-v-v-light shadow-85-light w-100 h-100 flex-grow-1"
-                              [class.zx-border-choosen]="isSelectedImage(entry.file, getFileListImageIndex(entry, j))"
-                              [class.zx-border-gray-25-pr]="isDarkMode"
-                              [class.bg-white]="isDarkMode">
-                              <span
-                                class="zx-text-tiny fw-bold w-100 text-center"
-                                [class.text-green]="isSelectedImage(entry.file, getFileListImageIndex(entry, j))"
-                                [class.text-black-imp]="isDarkMode && !isSelectedImage(entry.file, getFileListImageIndex(entry, j))"
-                                [class.text-green-imp]="isSelectedImage(entry.file, getFileListImageIndex(entry, j)) && isDarkMode">
-                                <span>{{ getDisplayFileName(entry.file) | slice: 0 : 16 }}</span>
-                                <span class="zx-text-tiny" *ngIf="getDisplayFileName(entry.file).length > 16">
+                              </div>
+                              <mat-menu #deleteProcessingMenu="matMenu">
+                                <button
+                                  class="d-flex align-items-center gap-1 px-2"
+                                  mat-menu-item
+                                  [class.zx-ltr]="!isRTL"
+                                  (click)="onDeleteFile(item.file)">
+                                  <b
+                                    class="text-red zx-text-small m-0"
+                                    [class.zx-text-white]="isDarkMode">
+                                    {{ 'printing-table.delete-file-for-good' | translate }}
+                                  </b>
+                                  <mat-icon
+                                    class="text-red mx-1 p-0 zx-pt-small"
+                                    [class.zx-text-white]="isDarkMode">
+                                    delete_outline
+                                  </mat-icon>
+                                </button>
+                              </mat-menu>
+                            </div>
+                            <div class="w-100 d-flex justify-content-center align-items-center">
+                              <span class="opacity-trans" [class.opacity-trans-not-rtl]="!isRTL">
+                                <span class="zx-text-tiny fw-bold">
+                                  {{ getDisplayFileName(item.file) | slice: 0 : 16 }}
+                                </span>
+                                <span
+                                  class="zx-text-tiny"
+                                  *ngIf="getDisplayFileName(item.file).length > 16">
                                   ...
                                 </span>
-                                <span class="zx-text-tiny" *ngIf="isFileListEntryGroupedMultiPage(entry)">
-                                  ({{ j + 1 }}/{{ entry.images.length }})
-                                </span>
                               </span>
-                              <div class="zx-img-obj-container">
-                                <img
-                                  [src]="image.thumbnailUrl"
-                                  class="zx-img-obj"
-                                  alt="" />
+                            </div>
+                            <div class="zx-small-icon-size zx-small-plus-icon-size-lg">
+                              <mat-spinner class="w-100 h-100"></mat-spinner>
+                            </div>
+                            <h6
+                              class="mb-0 zx-text-small text-center opacity-trans zx-z-index-1"
+                              [class.opacity-trans-not-rtl]="!isRTL"
+                              [matTooltip]="'printing-table.proccessing.explain' | translate"
+                              matTooltipPosition="above">
+                              {{ 'printing-table.proccessing' | translate }}
+                            </h6>
+                          </div>
+                        </article>
+
+                        <!-- Duplex pair (double-sided required) -->
+                        <article *ngIf="item.kind === 'duplex-pair'" class="zx-file-obj">
+                          <div
+                            class="zx-duplex-pair-container rounded-3"
+                            [class.zx-duplex-pair-container--incomplete]="item.pair.isIncomplete"
+                            [class.zx-bg-choosen]="isDuplexPairSelected(item.pair) && !item.pair.isIncomplete"
+                            [class.zx-border-gray-v-v-light]="true"
+                            [class.zx-border-gray-25-pr]="isDarkMode"
+                            [class.shadow-85-light]="true"
+                            tabindex="0"
+                            role="button"
+                            (click)="!item.pair.isIncomplete && selectDuplexPair(item.pair)"
+                            (keyup.enter)="!item.pair.isIncomplete && selectDuplexPair(item.pair)">
+                            <!-- Back side (top-right, behind) -->
+                            <div
+                              *ngIf="item.pair.back; else duplexBackPlaceholder"
+                              class="zx-duplex-pair-side zx-duplex-pair-side--back">
+                              <ng-container
+                                *ngTemplateOutlet="
+                                  duplexSideCard;
+                                  context: {
+                                    side: item.pair.back,
+                                    pair: item.pair,
+                                    showDeletePage: canDeletePageFromFile(item.pair.back!.file)
+                                  }
+                                ">
+                              </ng-container>
+                            </div>
+                            <ng-template #duplexBackPlaceholder>
+                              <div
+                                class="zx-duplex-pair-side zx-duplex-pair-side--back zx-duplex-pair-side--placeholder c-pointer"
+                                (click)="!uploading && triggerFilePicker(sidebarFileInput); $event.stopPropagation()">
                                 <div
-                                  class="position-absolute d-flex px-2 zx-pb-12 rounded-pill bottom-0 zx-z-index-1 w-100">
-                                  <div
-                                    matRipple
-                                    [matMenuTriggerFor]="deleteReadyMenu"
-                                    (click)="$event.stopPropagation()"
-                                    class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
-                                    <mat-icon class="text-red mx-0 mt-0 mb-1 p-1 zx-text-medium">
-                                      delete_outline
-                                    </mat-icon>
-                                  </div>
-                                  <mat-menu #deleteReadyMenu="matMenu">
-                                    <button
-                                      *ngIf="canDeletePageFromFile(entry.file)"
-                                      class="d-flex align-items-center gap-1 px-2"
-                                      mat-menu-item
-                                      [class.zx-ltr]="!isRTL"
-                                      (click)="onDeleteFileOrImage(entry.file, image, getFileListImageIndex(entry, j), false, $event)">
-                                      <b
-                                        class="text-red zx-text-small m-0"
-                                        [class.zx-text-white]="isDarkMode">
-                                        {{
-                                          'printing-table.delete-page-for-good'
-                                            | translate
-                                              : {
-                                                  page: getFileListImageIndex(entry, j) + 1,
-                                                  total: getFileImages(entry.file).length
-                                                }
-                                        }}
-                                      </b>
-                                      <mat-icon
-                                        class="text-red mx-1 p-0 zx-pt-small"
-                                        [class.zx-text-white]="isDarkMode">
-                                        delete_outline
-                                      </mat-icon>
-                                    </button>
-                                    <button
-                                      class="d-flex align-items-center gap-1 px-2"
-                                      mat-menu-item
-                                      [class.zx-ltr]="!isRTL"
-                                      (click)="onDeleteFileOrImage(entry.file, image, getFileListImageIndex(entry, j), true, $event)">
-                                      <b
-                                        class="text-red zx-text-small m-0"
-                                        [class.zx-text-white]="isDarkMode">
-                                        {{ 'printing-table.delete-file-for-good' | translate }}
-                                      </b>
-                                      <mat-icon
-                                        class="text-red mx-1 p-0 zx-pt-small"
-                                        [class.zx-text-white]="isDarkMode">
-                                        delete_outline
-                                      </mat-icon>
-                                    </button>
-                                  </mat-menu>
+                                  class="zx-duplex-pair-side__inner zx-duplex-upload-placeholder d-flex flex-column justify-content-center align-items-center h-100 w-100 rounded-3 zx-border-gray-v-v-light"
+                                  [class.zx-border-gray-25-pr]="isDarkMode">
+                                  <img
+                                    src="assets/images/upload-file-icon.svg"
+                                    class="zx-duplex-upload-placeholder__icon svg"
+                                    alt="" />
+                                  <span class="zx-duplex-upload-placeholder__label text-center">
+                                    {{
+                                      (hasFiles ? 'printing-table.upload-file-next' : 'printing-table.upload-file')
+                                        | translate
+                                    }}
+                                  </span>
                                 </div>
                               </div>
+                            </ng-template>
+
+                            <!-- Front side (bottom-left, on top) -->
+                            <div
+                              class="zx-duplex-pair-side zx-duplex-pair-side--front"
+                              [class.zx-duplex-pair-side--disabled]="item.pair.isIncomplete">
+                              <ng-container
+                                *ngTemplateOutlet="
+                                  duplexSideCard;
+                                  context: {
+                                    side: item.pair.front,
+                                    pair: item.pair,
+                                    showDeletePage: canDeletePageFromFile(item.pair.front.file)
+                                  }
+                                ">
+                              </ng-container>
                             </div>
-                          </article>
+                          </div>
+                        </article>
+
+                        <!-- Standard file / multi-page -->
+                        <article *ngIf="item.kind === 'file-entry'" class="zx-file-obj">
+                          <div
+                            *ngIf="!isFileProcessing(item.entry.file)"
+                            class="zx-page-obj-container"
+                            [class.zx-bg-choosen]="isSelected(item.entry.file) && isFileListEntryGroupedMultiPage(item.entry)"
+                            [class.zx-page-obj-container-bg]="isFileListEntryGroupedMultiPage(item.entry)"
+                            [class.zx-page-obj-container-bg-darkmode]="isFileListEntryGroupedMultiPage(item.entry) && isDarkMode">
+                            <article
+                              *ngFor="let image of item.entry.images; let j = index; trackBy: trackImageById"
+                              tabindex="0"
+                              role="button"
+                              class="zx-page-obj"
+                              [class.zx-page-obj-first]="j === 0 && isFileListEntryGroupedMultiPage(item.entry)"
+                              (click)="selectImage(item.entry.file, image, getFileListImageIndex(item.entry, j))"
+                              (keyup.enter)="selectImage(item.entry.file, image, getFileListImageIndex(item.entry, j))">
+                              <div
+                                class="zx-img-obj-container-container c-pointer rounded-3 d-flex flex-column zx-border-gray-v-v-light shadow-85-light w-100 h-100 flex-grow-1"
+                                [class.zx-border-choosen]="isSelectedImage(item.entry.file, getFileListImageIndex(item.entry, j))"
+                                [class.zx-border-gray-25-pr]="isDarkMode"
+                                [class.bg-white]="isDarkMode">
+                                <span
+                                  class="zx-text-tiny fw-bold w-100 text-center"
+                                  [class.text-green]="isSelectedImage(item.entry.file, getFileListImageIndex(item.entry, j))"
+                                  [class.text-black-imp]="isDarkMode && !isSelectedImage(item.entry.file, getFileListImageIndex(item.entry, j))"
+                                  [class.text-green-imp]="isSelectedImage(item.entry.file, getFileListImageIndex(item.entry, j)) && isDarkMode">
+                                  <span>{{ getDisplayFileName(item.entry.file) | slice: 0 : 16 }}</span>
+                                  <span class="zx-text-tiny" *ngIf="getDisplayFileName(item.entry.file).length > 16">
+                                    ...
+                                  </span>
+                                  <span class="zx-text-tiny" *ngIf="isFileListEntryGroupedMultiPage(item.entry)">
+                                    ({{ j + 1 }}/{{ item.entry.images.length }})
+                                  </span>
+                                </span>
+                                <div class="zx-img-obj-container">
+                                  <img [src]="image.thumbnailUrl" class="zx-img-obj" alt="" />
+                                  <div
+                                    class="position-absolute d-flex px-2 zx-pb-12 rounded-pill bottom-0 zx-z-index-1 w-100">
+                                    <div
+                                      matRipple
+                                      [matMenuTriggerFor]="deleteReadyMenu"
+                                      (click)="$event.stopPropagation()"
+                                      class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                                      <mat-icon class="text-red mx-0 mt-0 mb-1 p-1 zx-text-medium">
+                                        delete_outline
+                                      </mat-icon>
+                                    </div>
+                                    <mat-menu #deleteReadyMenu="matMenu">
+                                      <button
+                                        *ngIf="canDeletePageFromFile(item.entry.file)"
+                                        class="d-flex align-items-center gap-1 px-2"
+                                        mat-menu-item
+                                        [class.zx-ltr]="!isRTL"
+                                        (click)="onDeleteFileOrImage(item.entry.file, image, getFileListImageIndex(item.entry, j), false, $event)">
+                                        <b
+                                          class="text-red zx-text-small m-0"
+                                          [class.zx-text-white]="isDarkMode">
+                                          {{
+                                            'printing-table.delete-page-for-good'
+                                              | translate
+                                                : {
+                                                    page: getFileListImageIndex(item.entry, j) + 1,
+                                                    total: getFileImages(item.entry.file).length
+                                                  }
+                                          }}
+                                        </b>
+                                        <mat-icon
+                                          class="text-red mx-1 p-0 zx-pt-small"
+                                          [class.zx-text-white]="isDarkMode">
+                                          delete_outline
+                                        </mat-icon>
+                                      </button>
+                                      <button
+                                        class="d-flex align-items-center gap-1 px-2"
+                                        mat-menu-item
+                                        [class.zx-ltr]="!isRTL"
+                                        (click)="onDeleteFileOrImage(item.entry.file, image, getFileListImageIndex(item.entry, j), true, $event)">
+                                        <b
+                                          class="text-red zx-text-small m-0"
+                                          [class.zx-text-white]="isDarkMode">
+                                          {{ 'printing-table.delete-file-for-good' | translate }}
+                                        </b>
+                                        <mat-icon
+                                          class="text-red mx-1 p-0 zx-pt-small"
+                                          [class.zx-text-white]="isDarkMode">
+                                          delete_outline
+                                        </mat-icon>
+                                      </button>
+                                    </mat-menu>
+                                  </div>
+                                </div>
+                              </div>
+                            </article>
+                          </div>
+                        </article>
+                      </ng-container>
+
+                      <ng-template
+                        #duplexSideCard
+                        let-side="side"
+                        let-pair="pair"
+                        let-showDeletePage="showDeletePage">
+                        <div
+                          class="zx-duplex-pair-side__inner zx-img-obj-container-container d-flex flex-column shadow-85-light w-100 h-100 rounded-3 zx-border-gray-v-v-light"
+                          [class.zx-border-gray-25-pr]="isDarkMode"
+                          [class.bg-white]="isDarkMode">
+                          <span
+                            class="zx-text-tiny fw-bold w-100 text-center px-1"
+                            [class.text-green]="isDuplexPairSelected(pair) && !pair.isIncomplete"
+                            [class.text-black-imp]="isDarkMode && (!isDuplexPairSelected(pair) || pair.isIncomplete)"
+                            [class.text-green-imp]="isDuplexPairSelected(pair) && !pair.isIncomplete && isDarkMode">
+                            {{ getDisplayPageLabel(side.file, side.image, side.imageIndex) | slice: 0 : 22 }}
+                          </span>
+                          <div class="zx-img-obj-container flex-grow-1">
+                            <img [src]="side.image.thumbnailUrl" class="zx-img-obj" alt="" />
+                            <div
+                              class="position-absolute d-flex px-1 zx-pb-8 rounded-pill bottom-0 zx-z-index-1 w-100">
+                              <div
+                                matRipple
+                                [matMenuTriggerFor]="duplexDeleteMenu"
+                                (click)="$event.stopPropagation()"
+                                class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                                <mat-icon class="text-red mx-0 mt-0 mb-1 p-1 zx-text-small">
+                                  delete_outline
+                                </mat-icon>
+                              </div>
+                              <mat-menu #duplexDeleteMenu="matMenu">
+                                <button
+                                  *ngIf="showDeletePage"
+                                  class="d-flex align-items-center gap-1 px-2"
+                                  mat-menu-item
+                                  [class.zx-ltr]="!isRTL"
+                                  (click)="onDeleteFileOrImage(side.file, side.image, side.imageIndex, false, $event)">
+                                  <b
+                                    class="text-red zx-text-small m-0"
+                                    [class.zx-text-white]="isDarkMode">
+                                    {{
+                                      'printing-table.delete-page-for-good'
+                                        | translate
+                                          : {
+                                              page: side.image.page ?? side.imageIndex + 1,
+                                              total: getFileImages(side.file).length
+                                            }
+                                    }}
+                                  </b>
+                                  <mat-icon
+                                    class="text-red mx-1 p-0 zx-pt-small"
+                                    [class.zx-text-white]="isDarkMode">
+                                    delete_outline
+                                  </mat-icon>
+                                </button>
+                                <button
+                                  class="d-flex align-items-center gap-1 px-2"
+                                  mat-menu-item
+                                  [class.zx-ltr]="!isRTL"
+                                  (click)="onDeleteFileOrImage(side.file, side.image, side.imageIndex, true, $event)">
+                                  <b
+                                    class="text-red zx-text-small m-0"
+                                    [class.zx-text-white]="isDarkMode">
+                                    {{ 'printing-table.delete-file-for-good' | translate }}
+                                  </b>
+                                  <mat-icon
+                                    class="text-red mx-1 p-0 zx-pt-small"
+                                    [class.zx-text-white]="isDarkMode">
+                                    delete_outline
+                                  </mat-icon>
+                                </button>
+                              </mat-menu>
+                            </div>
+                          </div>
                         </div>
-                      </article>
+                      </ng-template>
 
                       <!-- Delete all files [end — when many files] -->
                       <article

@@ -792,3 +792,111 @@
 .delete-button:hover {
   border: 1px solid var(--zx-red);
 }
+
+.zx-duplex-pair-container {
+  position: relative;
+  width: 150px;
+  min-width: 150px;
+  max-width: 150px;
+  height: 120px;
+  min-height: 120px;
+  max-height: 120px;
+  background: #ebebeb;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.zx-duplex-pair-container.zx-bg-choosen {
+  border-color: var(--zx-green-vivid-light, rgba(38, 166, 154, 0.45));
+  box-shadow: 0 0 8px var(--zx-green-vivid-light, rgba(38, 166, 154, 0.35));
+}
+
+.zx-duplex-pair-container--incomplete {
+  opacity: 0.92;
+}
+
+.zx-duplex-pair-side {
+  position: absolute;
+  width: 70%;
+  height: 70%;
+}
+
+.zx-duplex-pair-side--back {
+  top: 0;
+  right: 0;
+  z-index: 1;
+}
+
+.zx-duplex-pair-side--front {
+  left: 0;
+  bottom: 0;
+  z-index: 2;
+}
+
+.zx-duplex-pair-side--disabled {
+  cursor: not-allowed;
+}
+
+.zx-duplex-pair-side--placeholder {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.zx-duplex-pair-side__inner {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: #fff;
+  pointer-events: none;
+}
+
+.zx-duplex-pair-side .delete-button {
+  pointer-events: auto;
+}
+
+.zx-duplex-pair-side [matMenuTriggerFor] {
+  pointer-events: auto;
+}
+
+.zx-duplex-pair-side--placeholder .zx-duplex-pair-side__inner {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.zx-duplex-upload-placeholder {
+  gap: 2px;
+  padding: 4px;
+  overflow: hidden;
+}
+
+.zx-duplex-upload-placeholder__icon {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.zx-duplex-upload-placeholder__label {
+  font-size: 9px;
+  line-height: 1.15;
+  font-weight: 600;
+  max-width: 100%;
+  padding: 0 2px;
+  color: var(--zx-gray-dark, #666);
+}
+
+.zx-pb-8 {
+  padding-bottom: 8px;
+}
+
+@media only screen and (min-width: 768px) {
+  .zx-duplex-pair-container {
+    width: 150px;
+    min-width: 150px;
+    max-width: 150px;
+    height: 201px;
+    min-height: 201px;
+    max-height: 201px;
+  }
+}

@@ -40,6 +40,12 @@ import {
   pixelsToOriginalCmString,
   resolveImageOriginalDpi,
 } from '../ph-printing-files/ph-file-dimensions.util';
+import {
+  buildDuplexPairDisplayEntries,
+  DuplexPairDisplayEntry,
+  findDuplexPartnerSide,
+  findDuplexPairForSide,
+} from '../ph-printing-files/ph-duplex-pairing.util';
 import { PhPrintingFilesService } from '../ph-printing-files/ph-printing-files.service';
 import { isColorTextureUrl } from '../ph-products/ph-color-texture.util';
 import {
@@ -75,6 +81,11 @@ export interface FileListDisplayEntry {
   imageIndex: number;
   splitMode: boolean;
 }
+
+export type SidebarDisplayItem =
+  | { kind: 'processing'; file: PhPrintingFile }
+  | { kind: 'file-entry'; entry: FileListDisplayEntry }
+  | { kind: 'duplex-pair'; pair: DuplexPairDisplayEntry };
 
 @Component({
   selector: 'app-print',
@@ -463,16 +474,90 @@ export class PrintComponent implements OnInit, OnDestroy {
     return this.getFileImages(file).length > 1;
   }
 
-  /** When double-sided is required, multi-page files render as separate single-page tiles. */
-  shouldSplitFilePagesInList(file: PhPrintingFile): boolean {
-    if (!this.isMultiPageFile(file)) {
+  /** True when double-sided is required for the current product settings context. */
+  isDuplexPairingModeActive(): boolean {
+    if (!this.product) {
       return false;
     }
-    const firstImage = this.getFileImages(file)[0];
-    if (!firstImage) {
+    return isDoubleSidedRequired(this.getCurrentExtraSettingsContext());
+  }
+
+  getDuplexPairEntries(): DuplexPairDisplayEntry[] {
+    return buildDuplexPairDisplayEntries(this.files);
+  }
+
+  getSidebarDisplayItems(): SidebarDisplayItem[] {
+    if (this.isDuplexPairingModeActive()) {
+      const items: SidebarDisplayItem[] = [];
+      for (const file of this.files) {
+        if (this.isFileProcessing(file)) {
+          items.push({ kind: 'processing', file });
+        }
+      }
+      for (const pair of this.getDuplexPairEntries()) {
+        items.push({ kind: 'duplex-pair', pair });
+      }
+      return items;
+    }
+
+    return this.getFileListEntries().map((entry) => ({
+      kind: 'file-entry' as const,
+      entry,
+    }));
+  }
+
+  trackSidebarItem = (_index: number, item: SidebarDisplayItem): string => {
+    if (item.kind === 'processing') {
+      return `processing:${item.file._id}`;
+    }
+    if (item.kind === 'duplex-pair') {
+      const frontId = item.pair.front.image._id;
+      const backId = item.pair.back?.image._id ?? 'placeholder';
+      return `pair:${item.pair.pairIndex}:${frontId}:${backId}`;
+    }
+    return item.entry.file._id;
+  };
+
+  trackDuplexPair(_index: number, pair: DuplexPairDisplayEntry): string {
+    const backId = pair.back?.image._id ?? 'placeholder';
+    return `${pair.pairIndex}:${pair.front.image._id}:${backId}`;
+  }
+
+  getDisplayPageLabel(
+    file: PhPrintingFile,
+    image: PhPrintingFileImage,
+    imageIndex: number,
+  ): string {
+    const page = image.page ?? imageIndex + 1;
+    return this.translateService.instant('ph-print.file-page-label', {
+      name: this.getDisplayFileName(file),
+      page,
+    });
+  }
+
+  isDuplexPairSelected(pair: DuplexPairDisplayEntry): boolean {
+    if (!this.selectedFile || !this.selectedImage) {
       return false;
     }
-    return isDoubleSidedRequired(this.getExtraSettingsContextForImage(firstImage));
+    const selectedId = this.selectedImage._id;
+    if (
+      pair.front.file._id === this.selectedFile._id &&
+      pair.front.image._id === selectedId
+    ) {
+      return true;
+    }
+    return (
+      !!pair.back &&
+      pair.back.file._id === this.selectedFile._id &&
+      pair.back.image._id === selectedId
+    );
+  }
+
+  selectDuplexPair(pair: DuplexPairDisplayEntry): void {
+    if (pair.isIncomplete) {
+      return;
+    }
+    this.selectImage(pair.front.file, pair.front.image, pair.front.imageIndex);
   }
 
   getFileListEntries(): FileListDisplayEntry[] {
@@ -482,23 +567,14 @@ export class PrintComponent implements OnInit, OnDestroy {
         entries.push({ file, images: [], imageIndex: 0, splitMode: false });
         continue;
       }
-      const images = this.getFileImages(file);
-      if (images.length > 1 && this.shouldSplitFilePagesInList(file)) {
-        images.forEach((image, imageIndex) => {
-          entries.push({ file, images: [image], imageIndex, splitMode: true });
-        });
-      } else {
-        entries.push({ file, images, imageIndex: 0, splitMode: false });
-      }
+      entries.push({
+        file,
+        images: this.getFileImages(file),
+        imageIndex: 0,
+        splitMode: false,
+      });
     }
     return entries;
-  }
-
-  trackFileListEntry(_index: number, entry: FileListDisplayEntry): string {
-    if (entry.splitMode && entry.images[0]) {
-      return `${entry.file._id}:${entry.images[0]._id}`;
-    }
-    return entry.file._id;
   }
 
   getFileListImageIndex(entry: FileListDisplayEntry, loopIndex: number): number {
@@ -524,6 +600,12 @@ export class PrintComponent implements OnInit, OnDestroy {
   selectImage(file: PhPrintingFile, image: PhPrintingFileImage | null, index: number): void {
     if (this.isFileProcessing(file) || !image) {
       return;
+    }
+    if (this.isDuplexPairingModeActive()) {
+      const pair = findDuplexPairForSide(this.getDuplexPairEntries(), file._id, image._id);
+      if (pair?.isIncomplete) {
+        return;
+      }
     }
     this.selectedFile = file;
     this.selectedImage = image;
@@ -973,6 +1055,12 @@ export class PrintComponent implements OnInit, OnDestroy {
 
     this.phPrintingFilesService.deleteFile(file._id).subscribe({
       next: () => {
+        const prevSelectedFileId = this.selectedFile?._id ?? null;
+        const prevSelectedImageId = this.selectedImage?._id ?? null;
+        if (this.isDuplexPairingModeActive()) {
+          this.refreshFilesAfterDuplexMutation(prevSelectedFileId, prevSelectedImageId);
+          return;
+        }
         this.removeFileFromLocalState(file._id, true);
       },
       error: () => {
@@ -1008,12 +1096,22 @@ export class PrintComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.selectImage(file, image, imageIndex);
+    const prevSelectedFileId = this.selectedFile?._id ?? null;
+    const prevSelectedImageId = this.selectedImage?._id ?? null;
+
+    if (!this.isDuplexPairingModeActive()) {
+      this.selectImage(file, image, imageIndex);
+    }
 
     this.phPrintingFilesService
-      .deleteImage(file._id, image._id, this.productId)
+      .deleteImage(file._id, image._id, this.productId, this.printingHouseId)
       .subscribe({
         next: (response) => {
+          if (this.isDuplexPairingModeActive()) {
+            this.refreshFilesAfterDuplexMutation(prevSelectedFileId, prevSelectedImageId);
+            return;
+          }
+
           if (response.deletedFileId) {
             this.removeFileFromLocalState(file._id, true);
             return;
@@ -1068,7 +1166,24 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   canDeletePageFromFile(file: PhPrintingFile): boolean {
+    if (this.isDuplexPairingModeActive()) {
+      return true;
+    }
     return this.getFileImages(file).length > 1;
+  }
+
+  private refreshFilesAfterDuplexMutation(
+    prevSelectedFileId: string | null,
+    prevSelectedImageId: string | null,
+  ): void {
+    this.phPrintingFilesService
+      .getMyFiles(this.printingHouseId, this.productId)
+      .subscribe({
+        next: (res) => {
+          this.applyFilesFromServer(res.files ?? [], prevSelectedFileId, prevSelectedImageId);
+        },
+        error: () => {},
+      });
   }
 
   private removeFileFromLocalState(fileId: string, clearSelectionIfSelected: boolean): void {
@@ -1401,9 +1516,11 @@ export class PrintComponent implements OnInit, OnDestroy {
       });
   }
 
-  private applyFilesFromServer(nextFiles: PhPrintingFile[]): void {
-    const prevSelectedFileId = this.selectedFile?._id;
-    const prevSelectedImageId = this.selectedImage?._id;
+  private applyFilesFromServer(
+    nextFiles: PhPrintingFile[],
+    prevSelectedFileId = this.selectedFile?._id ?? null,
+    prevSelectedImageId = this.selectedImage?._id ?? null,
+  ): void {
 
     // Compare server payload before merge mutates this.files in place (isEqual(merged, this.files) is always true after soft merge).
     if (this.isSameFileListPollState(nextFiles, this.files)) {
@@ -1428,9 +1545,20 @@ export class PrintComponent implements OnInit, OnDestroy {
     // Mean-corse ph-printing-table: !isChosen && not all processing → first ready file + preview.
     if (!this.selectedImage && this.processingFiles.length !== this.files.length) {
       const firstReady = merged.find((f) => !this.isFileProcessing(f));
-      const firstImage = firstReady ? this.getFileImages(firstReady)[0] : null;
-      if (firstReady && firstImage) {
-        this.selectImage(firstReady, firstImage, 0);
+      if (this.isDuplexPairingModeActive()) {
+        const firstPair = buildDuplexPairDisplayEntries(merged).find((p) => !p.isIncomplete);
+        if (firstPair) {
+          this.selectImage(
+            firstPair.front.file,
+            firstPair.front.image,
+            firstPair.front.imageIndex,
+          );
+        }
+      } else {
+        const firstImage = firstReady ? this.getFileImages(firstReady)[0] : null;
+        if (firstReady && firstImage) {
+          this.selectImage(firstReady, firstImage, 0);
+        }
       }
     }
 
@@ -1499,6 +1627,21 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
     this.selectedImage = images[index] ?? null;
     this.currentImageIndex = this.selectedImage ? index : 0;
+
+    if (
+      this.isDuplexPairingModeActive() &&
+      this.selectedImage &&
+      preferImageId
+    ) {
+      const pair = findDuplexPairForSide(
+        this.getDuplexPairEntries(),
+        file._id,
+        preferImageId,
+      );
+      if (pair?.isIncomplete) {
+        this.clearSelection();
+      }
+    }
   }
 
   /**
@@ -2028,6 +2171,14 @@ export class PrintComponent implements OnInit, OnDestroy {
           const savedImage = (res.file?.images ?? []).find((img) => img._id === imageId);
           if (savedImage?.printSettings) {
             this.patchImagePrintSettings(fileId, imageId, savedImage.printSettings);
+            const partner = findDuplexPartnerSide(this.files, fileId, imageId);
+            if (partner) {
+              this.patchImagePrintSettings(
+                partner.file._id,
+                partner.image._id,
+                savedImage.printSettings,
+              );
+            }
           }
           if (this.selectedImage?._id === imageId) {
             this.syncSettingsUiFromImage(this.selectedImage);

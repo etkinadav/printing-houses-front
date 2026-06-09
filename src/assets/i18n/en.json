@@ -66,6 +66,7 @@
 	"ph-print.upload-failed": "File upload failed",
 	"ph-print.delete-all-failed": "Failed to delete files",
 	"ph-print.delete-failed": "Failed to delete file",
+	"ph-print.file-page-label": "{{name}} - page {{page}}",
 	"management.printing-house.edit-product": "Edit",
 	"management.printing-house.delete-product": "Delete",
 	"management.printing-house.delete-product-confirm": "Delete product \"{{name}}\"?",

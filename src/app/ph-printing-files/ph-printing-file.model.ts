@@ -36,6 +36,17 @@ export interface PhPrintingFileImage {
   origImageDPI?: number | null;
   /** Resolved settings for the currently selected product. */
   printSettings?: PhPrintingFilePrintSettings;
+  /** Duplex pair metadata for the currently selected product. */
+  duplexPairing?: PhDuplexPairingMeta;
+}
+
+export interface PhDuplexPairingMeta {
+  pairIndex: number;
+  side: 'front' | 'back';
+  partnerFileId: string | null;
+  partnerImageId: string | null;
+  globalOrderIndex: number;
+  isPlaceholderPartner: boolean;
 }
 
 export interface PhPrintingFile {

@@ -75,10 +75,14 @@ export class PhPrintingFilesService {
     fileId: string,
     imageId: string,
     productId?: string,
+    printingHouseId?: string,
   ): Observable<PhPrintingFileImageDeleteResponse> {
     const params: Record<string, string> = {};
     if (productId?.trim()) {
       params['productId'] = productId.trim();
+    }
+    if (printingHouseId?.trim()) {
+      params['printingHouseId'] = printingHouseId.trim();
     }
     return this.http.delete<PhPrintingFileImageDeleteResponse>(
       `${BACKEND_URL}/${fileId}/images/${imageId}`,

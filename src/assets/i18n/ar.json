@@ -66,6 +66,7 @@
     "ph-print.upload-failed": "فشل رفع الملف",
     "ph-print.delete-all-failed": "فشل حذف الملفات",
     "ph-print.delete-failed": "فشل حذف الملف",
+    "ph-print.file-page-label": "{{name}} - صفحة {{page}}",
     "management.printing-house.edit-product": "تعديل",
     "management.printing-house.delete-product": "حذف",
     "management.printing-house.delete-product-confirm": "حذف المنتج \"{{name}}\"؟",
