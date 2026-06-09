@@ -1139,12 +1139,12 @@
           type="button"
           class="text-white rounded-pill w-100 zx-small-btn"
           (click)="onContinue()">
-          <b class="d-none d-sm-inline">{{ 'ph-print.continue' | translate }}</b>
-          <b class="d-sm-none">{{ 'choose-system.continue' | translate }}</b>
+          <b class="d-none d-md-inline">{{ 'ph-print.continue' | translate }}</b>
+          <span class="d-md-none">
+            <b>{{ 'choose-system.continue' | translate }}</b>
+            <span class="fw-normal"> (-{{ 'printing-table.nis' | translate }})</span>
+          </span>
         </button>
-        <div class="d-md-none text-center text-green mt-2 zx-text-small fw-bold">
-          <span>- {{ 'printing-table.nis' | translate }}</span>
-        </div>
       </div>
     </div>
 
