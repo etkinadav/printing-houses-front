@@ -180,10 +180,12 @@
                       </mat-menu>
 
                       <!-- File tiles -->
-                      <article *ngFor="let file of files; trackBy: trackFileById" class="zx-file-obj">
+                      <article
+                        *ngFor="let entry of getFileListEntries(); trackBy: trackFileListEntry"
+                        class="zx-file-obj">
                         <!-- Processing -->
                         <div
-                          *ngIf="isFileProcessing(file)"
+                          *ngIf="isFileProcessing(entry.file)"
                           class="zx-files-area-item-small zx-img-obj-container rounded-3 pb-2 zx-border-gray-v-v-light shadow-85-light d-flex flex-column justify-content-between align-items-center position-relative"
                           [class.zx-border-gray-25-pr]="isDarkMode"
                           [class.zx-page-obj-container-bg-darkmode]="isDarkMode">
@@ -203,7 +205,7 @@
                                 class="d-flex align-items-center gap-1 px-2"
                                 mat-menu-item
                                 [class.zx-ltr]="!isRTL"
-                                (click)="onDeleteFile(file)">
+                                (click)="onDeleteFile(entry.file)">
                                 <b
                                   class="text-red zx-text-small m-0"
                                   [class.zx-text-white]="isDarkMode">
@@ -220,11 +222,11 @@
                           <div class="w-100 d-flex justify-content-center align-items-center">
                             <span class="opacity-trans" [class.opacity-trans-not-rtl]="!isRTL">
                               <span class="zx-text-tiny fw-bold">
-                                {{ getDisplayFileName(file) | slice: 0 : 16 }}
+                                {{ getDisplayFileName(entry.file) | slice: 0 : 16 }}
                               </span>
                               <span
                                 class="zx-text-tiny"
-                                *ngIf="getDisplayFileName(file).length > 16">
+                                *ngIf="getDisplayFileName(entry.file).length > 16">
                                 ...
                               </span>
                             </span>
@@ -241,37 +243,37 @@
                           </h6>
                         </div>
 
-                        <!-- Ready — one card per page (image) -->
+                        <!-- Ready — grouped multi-page or one tile per page when double-sided is required -->
                         <div
-                          *ngIf="!isFileProcessing(file)"
+                          *ngIf="!isFileProcessing(entry.file)"
                           class="zx-page-obj-container"
-                          [class.zx-bg-choosen]="isSelected(file) && isMultiPageFile(file)"
-                          [class.zx-page-obj-container-bg]="isMultiPageFile(file)"
-                          [class.zx-page-obj-container-bg-darkmode]="isMultiPageFile(file) && isDarkMode">
+                          [class.zx-bg-choosen]="isSelected(entry.file) && isFileListEntryGroupedMultiPage(entry)"
+                          [class.zx-page-obj-container-bg]="isFileListEntryGroupedMultiPage(entry)"
+                          [class.zx-page-obj-container-bg-darkmode]="isFileListEntryGroupedMultiPage(entry) && isDarkMode">
                           <article
-                            *ngFor="let image of getFileImages(file); let j = index; trackBy: trackImageById"
+                            *ngFor="let image of entry.images; let j = index; trackBy: trackImageById"
                             tabindex="0"
                             role="button"
                             class="zx-page-obj"
-                            [class.zx-page-obj-first]="j === 0 && isMultiPageFile(file)"
-                            (click)="selectImage(file, image, j)"
-                            (keyup.enter)="selectImage(file, image, j)">
+                            [class.zx-page-obj-first]="j === 0 && isFileListEntryGroupedMultiPage(entry)"
+                            (click)="selectImage(entry.file, image, getFileListImageIndex(entry, j))"
+                            (keyup.enter)="selectImage(entry.file, image, getFileListImageIndex(entry, j))">
                             <div
                               class="zx-img-obj-container-container c-pointer rounded-3 d-flex flex-column zx-border-gray-v-v-light shadow-85-light w-100 h-100 flex-grow-1"
-                              [class.zx-border-choosen]="isSelectedImage(file, j)"
+                              [class.zx-border-choosen]="isSelectedImage(entry.file, getFileListImageIndex(entry, j))"
                               [class.zx-border-gray-25-pr]="isDarkMode"
                               [class.bg-white]="isDarkMode">
                               <span
                                 class="zx-text-tiny fw-bold w-100 text-center"
-                                [class.text-green]="isSelectedImage(file, j)"
-                                [class.text-black-imp]="isDarkMode && !isSelectedImage(file, j)"
-                                [class.text-green-imp]="isSelectedImage(file, j) && isDarkMode">
-                                <span>{{ getDisplayFileName(file) | slice: 0 : 16 }}</span>
-                                <span class="zx-text-tiny" *ngIf="getDisplayFileName(file).length > 16">
+                                [class.text-green]="isSelectedImage(entry.file, getFileListImageIndex(entry, j))"
+                                [class.text-black-imp]="isDarkMode && !isSelectedImage(entry.file, getFileListImageIndex(entry, j))"
+                                [class.text-green-imp]="isSelectedImage(entry.file, getFileListImageIndex(entry, j)) && isDarkMode">
+                                <span>{{ getDisplayFileName(entry.file) | slice: 0 : 16 }}</span>
+                                <span class="zx-text-tiny" *ngIf="getDisplayFileName(entry.file).length > 16">
                                   ...
                                 </span>
-                                <span class="zx-text-tiny" *ngIf="isMultiPageFile(file)">
-                                  ({{ j + 1 }}/{{ getFileImages(file).length }})
+                                <span class="zx-text-tiny" *ngIf="isFileListEntryGroupedMultiPage(entry)">
+                                  ({{ j + 1 }}/{{ entry.images.length }})
                                 </span>
                               </span>
                               <div class="zx-img-obj-container">
@@ -295,7 +297,7 @@
                                       class="d-flex align-items-center gap-1 px-2"
                                       mat-menu-item
                                       [class.zx-ltr]="!isRTL"
-                                      (click)="onDeleteFile(file)">
+                                      (click)="onDeleteFile(entry.file)">
                                       <b
                                         class="text-red zx-text-small m-0"
                                         [class.zx-text-white]="isDarkMode">

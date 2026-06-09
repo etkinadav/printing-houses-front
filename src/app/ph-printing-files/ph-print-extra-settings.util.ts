@@ -91,6 +91,15 @@ export function isExtraSettingApplicable(ctx: ExtraSettingsContext, key: ExtraSe
   return resolveExtraSettingNode(ctx, key) != null;
 }
 
+/** True when double-sided is configured on the resolved tree node and mode is required. */
+export function isDoubleSidedRequired(ctx: ExtraSettingsContext): boolean {
+  const node = resolveExtraSettingNode(ctx, 'double-sided');
+  if (!node) {
+    return false;
+  }
+  return getExtraSettingMode(node, 'double-sided') === 'required';
+}
+
 export function getExtraSettingMode(
   node: PhTreeExtraSettings,
   key: ExtraSettingKey,

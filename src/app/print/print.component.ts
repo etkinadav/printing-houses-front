@@ -27,6 +27,7 @@ import {
   buildVisibleExtraSettingRows,
   buildPersistedExtraSelections,
   EXTRA_OPTION_NONE_INDEX,
+  isDoubleSidedRequired,
   reconcileExtraUiStateOnTreeChange,
   syncExtraUiStateFromSaved,
   validateExtraSelections,
@@ -67,6 +68,13 @@ const POLL_MS = 4000;
 const FILES_END_CONTROLS_THRESHOLD = 6;
 /** Settings toggle groups wrap when label score exceeds this threshold. */
 const SETTINGS_BUTTONS_WRAP_SCORE_THRESHOLD = 30;
+
+export interface FileListDisplayEntry {
+  file: PhPrintingFile;
+  images: PhPrintingFileImage[];
+  imageIndex: number;
+  splitMode: boolean;
+}
 
 @Component({
   selector: 'app-print',
@@ -453,6 +461,52 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   isMultiPageFile(file: PhPrintingFile): boolean {
     return this.getFileImages(file).length > 1;
+  }
+
+  /** When double-sided is required, multi-page files render as separate single-page tiles. */
+  shouldSplitFilePagesInList(file: PhPrintingFile): boolean {
+    if (!this.isMultiPageFile(file)) {
+      return false;
+    }
+    const firstImage = this.getFileImages(file)[0];
+    if (!firstImage) {
+      return false;
+    }
+    return isDoubleSidedRequired(this.getExtraSettingsContextForImage(firstImage));
+  }
+
+  getFileListEntries(): FileListDisplayEntry[] {
+    const entries: FileListDisplayEntry[] = [];
+    for (const file of this.files) {
+      if (this.isFileProcessing(file)) {
+        entries.push({ file, images: [], imageIndex: 0, splitMode: false });
+        continue;
+      }
+      const images = this.getFileImages(file);
+      if (images.length > 1 && this.shouldSplitFilePagesInList(file)) {
+        images.forEach((image, imageIndex) => {
+          entries.push({ file, images: [image], imageIndex, splitMode: true });
+        });
+      } else {
+        entries.push({ file, images, imageIndex: 0, splitMode: false });
+      }
+    }
+    return entries;
+  }
+
+  trackFileListEntry(_index: number, entry: FileListDisplayEntry): string {
+    if (entry.splitMode && entry.images[0]) {
+      return `${entry.file._id}:${entry.images[0]._id}`;
+    }
+    return entry.file._id;
+  }
+
+  getFileListImageIndex(entry: FileListDisplayEntry, loopIndex: number): number {
+    return entry.splitMode ? entry.imageIndex : loopIndex;
+  }
+
+  isFileListEntryGroupedMultiPage(entry: FileListDisplayEntry): boolean {
+    return !entry.splitMode && entry.images.length > 1;
   }
 
   /** Thumbnail used for sidebar/preview — the first page's thumbnail. */
