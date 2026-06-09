@@ -773,6 +773,27 @@
   opacity: 0;
   transition: opacity 250ms;
   border: 1px solid var(--zx-white-20-pr);
+  padding: 3px 5px;
+  line-height: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: fit-content;
+  align-self: flex-start;
+}
+
+:host ::ng-deep .delete-button .mat-icon {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1;
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .delete-button-fix-mobile {
@@ -852,6 +873,12 @@
 
 .zx-duplex-pair-side .delete-button {
   pointer-events: auto;
+}
+
+.zx-duplex-pair-side .zx-img-obj-container > .position-absolute.d-flex {
+  align-items: center;
+  width: auto;
+  max-width: calc(100% - 4px);
 }
 
 .zx-duplex-pair-side [matMenuTriggerFor] {
