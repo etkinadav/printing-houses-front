@@ -96,9 +96,9 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   /** Fixed: selected index in fixedDimensionOptions. */
   currentFixedOptionIndex: number | null = null;
-  /** Dynamic: selected material index. */
-  currentMaterialIndex = 0;
-  currentColorIndex = 0;
+  /** Dynamic/fixed: selected material index — null when no file is ready. */
+  currentMaterialIndex: number | null = null;
+  currentColorIndex: number | null = null;
   printingLengthCm = 0;
   printingWidthCm = 0;
   extraSettingsUi: ExtraSettingsUiStateMap = {};
@@ -149,6 +149,11 @@ export class PrintComponent implements OnInit, OnDestroy {
     return this.files.length > 0;
   }
 
+  /** Desktop preview: only processing files, no ready page selected yet (mean-corse ph-printing-table). */
+  get showPreviewProcessingState(): boolean {
+    return !this.selectedImage && this.processingFiles.length > 0;
+  }
+
   get showEndDeleteAll(): boolean {
     return this.files.length > FILES_END_CONTROLS_THRESHOLD;
   }
@@ -170,12 +175,46 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   get selectedDynamicMaterial(): PhDynamicMaterial | null {
+    if (this.currentMaterialIndex == null) {
+      return null;
+    }
     const materials = this.dynamicMaterials;
     if (!materials.length) {
       return null;
     }
     const idx = Math.min(Math.max(0, this.currentMaterialIndex), materials.length - 1);
     return materials[idx] ?? null;
+  }
+
+  /** Fixed size context for settings panel rows (single-size products show materials even when unselected). */
+  get settingsPanelFixedSize(): PhSize | null {
+    if (this.selectedFixedSize) {
+      return this.selectedFixedSize;
+    }
+    if (this.settingsControlsDisabled && this.isFixedProduct && this.fixedSizes.length === 1) {
+      return this.fixedSizes[0];
+    }
+    return null;
+  }
+
+  /** Material context for panel row visibility when toggles are disabled. */
+  get settingsPanelMaterial(): PhMaterial | PhDynamicMaterial | null {
+    if (this.selectedMaterial) {
+      return this.selectedMaterial;
+    }
+    if (!this.settingsControlsDisabled) {
+      return null;
+    }
+    if (this.isDynamicProduct) {
+      return this.dynamicMaterials[0] ?? null;
+    }
+    const materials = this.settingsPanelFixedSize?.materials ?? [];
+    return materials[0] ?? null;
+  }
+
+  /** Placeholder defaults for dynamic dimension inputs when no file is selected. */
+  get dynamicMaterialForDimensionsPanel(): PhDynamicMaterial | null {
+    return this.selectedDynamicMaterial ?? this.dynamicMaterials[0] ?? null;
   }
 
   get selectedFixedSize(): PhSize | null {
@@ -187,10 +226,13 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   get fixedMaterialsForSelectedSize(): PhMaterial[] {
-    return this.selectedFixedSize?.materials ?? [];
+    return this.settingsPanelFixedSize?.materials ?? [];
   }
 
   get selectedFixedMaterial(): PhMaterial | null {
+    if (this.currentMaterialIndex == null) {
+      return null;
+    }
     const materials = this.fixedMaterialsForSelectedSize;
     if (!materials.length) {
       return null;
@@ -210,10 +252,13 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   get colorsForSelectedMaterial(): PhColor[] {
-    return this.selectedMaterial?.colors ?? [];
+    return this.settingsPanelMaterial?.colors ?? [];
   }
 
   get selectedColor(): PhColor | null {
+    if (this.currentColorIndex == null) {
+      return null;
+    }
     const colors = this.colorsForSelectedMaterial;
     if (!colors.length) {
       return null;
@@ -230,8 +275,9 @@ export class PrintComponent implements OnInit, OnDestroy {
     return !!this.product;
   }
 
-  get settingsPanelDisabled(): boolean {
-    return !this.hasSettingsReadyFile;
+  /** Per-control disabled — like mean-corse `[disabled]="!currentImage || files.length === 0"`. */
+  get settingsControlsDisabled(): boolean {
+    return this.finishedCount === 0 || !this.selectedImage;
   }
 
   get selectedFileDimensionsLine(): string {
@@ -704,7 +750,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   onExtraSettingEnabledChange(key: ExtraSettingKey, enabled: boolean): void {
-    if (this.suppressSettingsPersist || this.settingsPanelDisabled) {
+    if (this.suppressSettingsPersist || this.settingsControlsDisabled) {
       return;
     }
     const current = this.extraSettingsUi[key] ?? { selectedIndex: 0, enabled: false };
@@ -717,7 +763,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   onExtraSettingIndexChange(key: ExtraSettingKey, index: number): void {
-    if (this.suppressSettingsPersist || this.settingsPanelDisabled || !Number.isInteger(index)) {
+    if (this.suppressSettingsPersist || this.settingsControlsDisabled || !Number.isInteger(index)) {
       return;
     }
     const current = this.extraSettingsUi[key] ?? { selectedIndex: 0, enabled: true };
@@ -729,12 +775,23 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.persistCurrentFileSettings();
   }
 
-  getExtraOptionToggleValue(key: ExtraSettingKey): number {
+  getExtraOptionToggleValue(key: ExtraSettingKey): number | null {
+    if (this.settingsControlsDisabled) {
+      return null;
+    }
     const state = this.extraSettingsUi[key];
     if (!state?.enabled) {
       return EXTRA_OPTION_NONE_INDEX;
     }
     return state.selectedIndex ?? 0;
+  }
+
+  getExtraBooleanToggleValue(key: ExtraSettingKey): boolean | null {
+    if (this.settingsControlsDisabled) {
+      return null;
+    }
+    const enabled = this.extraSettingsUi[key]?.enabled;
+    return enabled == null ? null : enabled;
   }
 
   onExtraOptionToggleChange(key: ExtraSettingKey, value: number): void {
@@ -750,7 +807,7 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   private getSelectedFixedOption(): FixedDimensionOption | null {
     if (this.currentFixedOptionIndex == null) {
-      return this.fixedDimensionOptions[0] ?? null;
+      return null;
     }
     return this.fixedDimensionOptions[this.currentFixedOptionIndex] ?? null;
   }
@@ -832,7 +889,7 @@ export class PrintComponent implements OnInit, OnDestroy {
             this.previewThumbnailUrl = null;
             this.refreshResolvedFileDimensions();
             if (this.product) {
-              this.syncSettingsUiToProductDefaults();
+              this.clearSettingsUiUnselected();
             }
           }
         }
@@ -865,7 +922,7 @@ export class PrintComponent implements OnInit, OnDestroy {
           this.pendingDefaultSettingsFileIds.clear();
           this.refreshResolvedFileDimensions();
           if (this.product) {
-            this.syncSettingsUiToProductDefaults();
+            this.clearSettingsUiUnselected();
           }
         },
         error: () => {
@@ -941,8 +998,8 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   private resetSettingsUiState(): void {
     this.currentFixedOptionIndex = null;
-    this.currentMaterialIndex = 0;
-    this.currentColorIndex = 0;
+    this.currentMaterialIndex = null;
+    this.currentColorIndex = null;
     this.extraSettingsUi = {};
     this.extraSettingRows = [];
     this.printingLengthCm = 0;
@@ -1002,17 +1059,23 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   private getCurrentExtraSettingsContext() {
-    return buildExtraSettingsContext(
-      this.selectedFixedSize,
-      this.selectedMaterial,
-      this.selectedColor,
-    );
+    const size = this.settingsPanelFixedSize;
+    const material = this.settingsPanelMaterial;
+    const color =
+      this.selectedColor ??
+      (this.settingsControlsDisabled
+        ? this.getColorAtIndex(material, 0)
+        : null);
+    return buildExtraSettingsContext(size, material, color);
   }
 
   private getColorAtIndex(
     material: PhMaterial | PhDynamicMaterial | null | undefined,
-    colorIndex: number,
+    colorIndex: number | null,
   ): PhColor | null {
+    if (colorIndex == null) {
+      return null;
+    }
     const colors = material?.colors ?? [];
     if (!colors.length) {
       return null;
@@ -1033,9 +1096,9 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   private getMaterialAtIndex(
     materials: PhMaterial[],
-    materialIndex: number,
+    materialIndex: number | null,
   ): PhMaterial | null {
-    if (!materials.length) {
+    if (materialIndex == null || !materials.length) {
       return null;
     }
     const idx = Math.min(
@@ -1114,7 +1177,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     material: PhMaterial | null | undefined,
   ): PhPrintingFilePrintSettings {
     const colors = material?.colors ?? [];
-    if (!colors.length) {
+    if (!colors.length || this.currentColorIndex == null) {
       return settings;
     }
     return {
@@ -1146,13 +1209,15 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   private applyFilesFromServer(nextFiles: PhPrintingFile[]): void {
-    const merged = this.mergePolledFilesWithExisting(nextFiles);
-    if (isEqual(merged, this.files)) {
+    const prevSelectedFileId = this.selectedFile?._id;
+    const prevSelectedImageId = this.selectedImage?._id;
+
+    // Compare server payload before merge mutates this.files in place (isEqual(merged, this.files) is always true after soft merge).
+    if (this.isSameFileListPollState(nextFiles, this.files)) {
       return;
     }
 
-    const prevSelectedFileId = this.selectedFile?._id;
-    const prevSelectedImageId = this.selectedImage?._id;
+    const merged = this.mergePolledFilesWithExisting(nextFiles);
     this.files = merged;
     this.processingFiles = merged.filter((file) => this.isFileProcessing(file));
 
@@ -1167,12 +1232,12 @@ export class PrintComponent implements OnInit, OnDestroy {
       }
     }
 
-    if (!this.selectedFile) {
+    // Mean-corse ph-printing-table: !isChosen && not all processing → first ready file + preview.
+    if (!this.selectedImage && this.processingFiles.length !== this.files.length) {
       const firstReady = merged.find((f) => !this.isFileProcessing(f));
-      if (firstReady) {
-        this.selectedFile = firstReady;
-        this.resolveSelectedImageWithin(firstReady, undefined);
-        this.previewThumbnailUrl = this.selectedImage?.thumbnailUrl?.trim() || null;
+      const firstImage = firstReady ? this.getFileImages(firstReady)[0] : null;
+      if (firstReady && firstImage) {
+        this.selectImage(firstReady, firstImage, 0);
       }
     }
 
@@ -1186,8 +1251,38 @@ export class PrintComponent implements OnInit, OnDestroy {
     if (this.selectedImage && selectionChanged) {
       this.syncSettingsUiFromImage(this.selectedImage);
     } else if (!this.selectedFile && this.product) {
-      this.syncSettingsUiToProductDefaults();
+      this.clearSettingsUiUnselected();
     }
+  }
+
+  /** True when poll payload matches local list — compare before in-place merge. */
+  private isSameFileListPollState(
+    incoming: PhPrintingFile[],
+    current: PhPrintingFile[],
+  ): boolean {
+    if (incoming.length !== current.length) {
+      return false;
+    }
+    const currentById = new Map(current.map((file) => [file._id, file]));
+    for (const next of incoming) {
+      const prev = currentById.get(next._id);
+      if (!prev || !this.isSameFilePollState(prev, next)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private isSameFilePollState(prev: PhPrintingFile, next: PhPrintingFile): boolean {
+    return (
+      prev.processing === next.processing &&
+      this.imagesStructureEqual(prev.images, next.images) &&
+      this.getFileThumbnailUrl(prev) === this.getFileThumbnailUrl(next) &&
+      isEqual(
+        (prev.images ?? []).map((img) => img.printSettings),
+        (next.images ?? []).map((img) => img.printSettings),
+      )
+    );
   }
 
   private clearSelection(): void {
@@ -1538,50 +1633,24 @@ export class PrintComponent implements OnInit, OnDestroy {
       this.syncSettingsUiFromImage(this.selectedImage);
     } else {
       this.refreshResolvedFileDimensions();
-      this.syncSettingsUiToProductDefaults();
+      this.clearSettingsUiUnselected();
     }
   }
 
-  private syncSettingsUiToProductDefaults(): void {
+  /** Empty / processing-only table: disabled controls with no toggle selected (mean-corse). */
+  private clearSettingsUiUnselected(): void {
     if (!this.product) {
       return;
     }
 
     this.suppressSettingsPersist = true;
     try {
-      if (this.isFixedProduct) {
-        const option = this.fixedDimensionOptions[0];
-        const size = option ? this.fixedSizes[option.sizeIndex] : null;
-        if (!option || !size) {
-          return;
-        }
-        const material = size.materials?.[0] ?? null;
-        const color = material?.colors?.[0] ?? null;
-        this.currentFixedOptionIndex = option.optionIndex;
-        this.currentMaterialIndex = 0;
-        this.currentColorIndex = 0;
-        this.printingLengthCm = Number(size.length);
-        this.printingWidthCm = Number(size.width);
-        this.extraSettingsUi = buildDefaultExtraUiStateMap(
-          buildExtraSettingsContext(size, material, color),
-        );
-        return;
-      }
-
-      if (this.isDynamicProduct) {
-        const material = this.dynamicMaterials[0];
-        if (!material) {
-          return;
-        }
-        const color = material.colors?.[0] ?? null;
-        this.currentMaterialIndex = 0;
-        this.currentColorIndex = 0;
-        this.printingLengthCm = Number(material.defaultLength);
-        this.printingWidthCm = Number(material.defaultHeight);
-        this.extraSettingsUi = buildDefaultExtraUiStateMap(
-          buildExtraSettingsContext(null, material, color),
-        );
-      }
+      this.currentFixedOptionIndex = null;
+      this.currentMaterialIndex = null;
+      this.currentColorIndex = null;
+      this.printingLengthCm = 0;
+      this.printingWidthCm = 0;
+      this.extraSettingsUi = {};
     } finally {
       this.rebuildExtraSettingRows();
       setTimeout(() => {
@@ -1687,7 +1756,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     if (this.isFixedProduct) {
       const option = this.getSelectedFixedOption();
       const size = option ? this.fixedSizes[option.sizeIndex] : null;
-      if (!option || !size) {
+      if (!option || !size || this.currentMaterialIndex == null) {
         return null;
       }
       const materials = size.materials ?? [];
@@ -1711,7 +1780,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
     if (this.isDynamicProduct) {
       const material = this.selectedDynamicMaterial;
-      if (!material) {
+      if (!material || this.currentMaterialIndex == null) {
         return null;
       }
       return this.appendExtrasToSettings(

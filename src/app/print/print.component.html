@@ -333,9 +333,7 @@
                 class="zx-settings-area-inner w-100 h-100 mh-100 zx-mw-100-vw position-absolute d-flex flex-column gap-3"
                 [class.zx-settings-area-inner-rtl]="!isRTL">
                 <div
-                  class="ph-print-settings-panel w-100 flex-grow-1 d-flex flex-column gap-3"
-                  [class.ph-print-settings-panel--disabled]="settingsPanelDisabled"
-                  [attr.aria-disabled]="settingsPanelDisabled || null">
+                  class="ph-print-settings-panel w-100 flex-grow-1 d-flex flex-column gap-3">
                   <!-- Product name (display only) -->
                   <article
                     *ngIf="showPrintSettingsPanel && productName"
@@ -384,6 +382,7 @@
                         *ngIf="!fixedTypeSettingsWrap"
                         name="fixed-size"
                         aria-label="Fixed size"
+                        [disabled]="settingsControlsDisabled"
                         [ngModel]="currentFixedOptionIndex"
                         (ngModelChange)="onFixedOptionChange($event)">
                         <mat-button-toggle
@@ -401,6 +400,7 @@
                           *ngFor="let option of fixedDimensionOptions"
                           [name]="'fixed-size-' + option.optionIndex"
                           aria-label="Fixed size"
+                          [disabled]="settingsControlsDisabled"
                           [ngModel]="currentFixedOptionIndex"
                           (ngModelChange)="onFixedOptionChange($event)">
                           <mat-button-toggle
@@ -416,7 +416,7 @@
 
                   <!-- Dynamic: length × width inputs only -->
                   <article
-                    *ngIf="isDynamicProduct && showPrintSettingsPanel && selectedDynamicMaterial"
+                    *ngIf="isDynamicProduct && showPrintSettingsPanel && dynamicMaterialForDimensionsPanel"
                     class="zx-min-h-50 w-100 d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <span>{{ 'printing-table.dimensions' | translate }}</span>
                     <div class="ph-dim-inputs-wrap">
@@ -425,15 +425,17 @@
                           type="number"
                           class="form-control ph-dim-input ph-dim-input--length"
                           [step]="0.1"
+                          [disabled]="settingsControlsDisabled"
                           [(ngModel)]="printingLengthCm"
                           (blur)="onPrintingLengthBlur()"
-                          [placeholder]="selectedDynamicMaterial.defaultLength"
+                          [placeholder]="dynamicMaterialForDimensionsPanel.defaultLength"
                           [attr.aria-label]="'management.product-create.dimension-length' | translate" />
                         <span class="ph-dim-cross">
                           <span aria-hidden="true">×</span>
                           <button
                             type="button"
                             class="ph-dim-swap-btn"
+                            [disabled]="settingsControlsDisabled"
                             (click)="swapWidthHeight()">
                             <mat-icon class="text-green ph-dim-swap-icon">swap_horiz</mat-icon>
                           </button>
@@ -442,9 +444,10 @@
                           type="number"
                           class="form-control ph-dim-input ph-dim-input--width"
                           [step]="0.1"
+                          [disabled]="settingsControlsDisabled"
                           [(ngModel)]="printingWidthCm"
                           (blur)="onPrintingWidthBlur()"
-                          [placeholder]="selectedDynamicMaterial.defaultHeight"
+                          [placeholder]="dynamicMaterialForDimensionsPanel.defaultHeight"
                           [attr.aria-label]="'management.product-create.dimension-width' | translate" />
                         <span class="ph-dim-unit">{{ 'printing-table.dimensions-cm' | translate }}</span>
                       </div>
@@ -467,6 +470,7 @@
                         *ngIf="!fixedMaterialSettingsWrap"
                         name="fixed-material"
                         aria-label="Fixed material"
+                        [disabled]="settingsControlsDisabled"
                         [ngModel]="currentMaterialIndex"
                         (ngModelChange)="onMaterialChange($event)">
                         <mat-button-toggle
@@ -484,6 +488,7 @@
                           *ngFor="let material of fixedMaterialsForSelectedSize; let materialIndex = index"
                           [name]="'fixed-material-' + materialIndex"
                           aria-label="Fixed material"
+                          [disabled]="settingsControlsDisabled"
                           [ngModel]="currentMaterialIndex"
                           (ngModelChange)="onMaterialChange($event)">
                           <mat-button-toggle
@@ -513,6 +518,7 @@
                         *ngIf="!dynamicMaterialSettingsWrap"
                         name="dynamic-material"
                         aria-label="Dynamic material"
+                        [disabled]="settingsControlsDisabled"
                         [ngModel]="currentMaterialIndex"
                         (ngModelChange)="onMaterialChange($event)">
                         <mat-button-toggle
@@ -530,6 +536,7 @@
                           *ngFor="let material of dynamicMaterials; let materialIndex = index"
                           [name]="'dynamic-material-' + materialIndex"
                           aria-label="Dynamic material"
+                          [disabled]="settingsControlsDisabled"
                           [ngModel]="currentMaterialIndex"
                           (ngModelChange)="onMaterialChange($event)">
                           <mat-button-toggle
@@ -559,6 +566,7 @@
                         *ngIf="!colorSettingsWrap"
                         name="print-color"
                         aria-label="Print color"
+                        [disabled]="settingsControlsDisabled"
                         [ngModel]="currentColorIndex"
                         (ngModelChange)="onColorChange($event)">
                         <mat-button-toggle
@@ -581,6 +589,7 @@
                           *ngFor="let color of colorsForSelectedMaterial; let colorIndex = index"
                           [name]="'print-color-' + colorIndex"
                           aria-label="Print color"
+                          [disabled]="settingsControlsDisabled"
                           [ngModel]="currentColorIndex"
                           (ngModelChange)="onColorChange($event)">
                           <mat-button-toggle
@@ -632,7 +641,8 @@
                       <mat-button-toggle-group
                         [name]="'extra-enabled-' + row.key"
                         [attr.aria-label]="row.settingTitle"
-                        [ngModel]="extraSettingsUi[row.key]?.enabled ?? false"
+                        [disabled]="settingsControlsDisabled"
+                        [ngModel]="getExtraBooleanToggleValue(row.key)"
                         (ngModelChange)="onExtraSettingEnabledChange(row.key, $event)">
                         <mat-button-toggle
                           class="zx-rtl position-relative"
@@ -664,6 +674,7 @@
                           *ngIf="!row.wrap"
                           [name]="'extra-option-' + row.key"
                           [attr.aria-label]="row.settingTitle"
+                          [disabled]="settingsControlsDisabled"
                           [ngModel]="getExtraOptionToggleValue(row.key)"
                           (ngModelChange)="onExtraOptionToggleChange(row.key, $event)">
                           <mat-button-toggle
@@ -681,6 +692,7 @@
                             *ngFor="let option of row.options"
                             [name]="'extra-option-' + row.key + '-' + option.index"
                             [attr.aria-label]="row.settingTitle"
+                            [disabled]="settingsControlsDisabled"
                             [ngModel]="getExtraOptionToggleValue(row.key)"
                             (ngModelChange)="onExtraOptionToggleChange(row.key, $event)">
                             <mat-button-toggle
@@ -833,6 +845,35 @@
           [attr.accept]="expressFileAccept"
           (change)="onFilesSelected($event)" />
 
+        <!-- Files are processing (mean-corse preview spinner UI) -->
+        <article
+          *ngIf="showPreviewProcessingState"
+          class="no-image-selected-container w-100 h-100">
+          <article
+            class="no-image-selected-inner"
+            [class.no-image-selected-inner-not-rtl]="!isRTL">
+            <div class="no-image-selected-upload-file">
+              <h4
+                *ngIf="finishedCount === 0"
+                class="mb-0 fw-bold zx-px-10 text-center opacity-trans">
+                {{ 'printing-table.proccessing-your-files' | translate }}
+              </h4>
+              <div class="upload-file-icon-big p-5">
+                <div class="w-100 h-100">
+                  <mat-spinner class="w-100 h-100"></mat-spinner>
+                </div>
+              </div>
+              <h6
+                class="mb-0 zx-text-small text-center opacity-trans zx-z-index-1"
+                [class.opacity-trans-not-rtl]="!isRTL"
+                [matTooltip]="'printing-table.proccessing.explain' | translate"
+                matTooltipPosition="above">
+                {{ 'printing-table.proccessing' | translate }}
+              </h6>
+            </div>
+          </article>
+        </article>
+
         <div
           *ngIf="hasFiles && previewThumbnailUrl"
           id="preview-paper"
@@ -845,12 +886,6 @@
               alt="" />
           </div>
         </div>
-
-        <p
-          *ngIf="hasFiles && !previewThumbnailUrl"
-          class="zx-text-small opacity-75 mb-0 text-center px-3">
-          {{ 'printing-table.still-proccessing' | translate }}
-        </p>
       </div>
     </article>
   </div>
