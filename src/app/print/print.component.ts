@@ -30,6 +30,14 @@ import {
   syncExtraUiStateFromSaved,
   validateExtraSelections,
 } from '../ph-printing-files/ph-print-extra-settings.util';
+import {
+  formatFileOriginalDimensionsLine,
+  getFileOriginalHeightCm,
+  getFileOriginalWidthCm,
+  isRasterPrintingFile,
+  pixelsToOriginalCmString,
+  resolveFileOriginalDpi,
+} from '../ph-printing-files/ph-file-dimensions.util';
 import { PhPrintingFilesService } from '../ph-printing-files/ph-printing-files.service';
 import { isColorTextureUrl } from '../ph-products/ph-color-texture.util';
 import {
@@ -111,6 +119,8 @@ export class PrintComponent implements OnInit, OnDestroy {
   private settingsSaveInFlightForFileId: string | null = null;
   private pendingDefaultSettingsFileIds = new Set<string>();
   private suppressSettingsPersist = false;
+  private fileDimensionsResolveToken = 0;
+  resolvedFileDimensions: { widthCm: string; heightCm: string } | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -218,6 +228,29 @@ export class PrintComponent implements OnInit, OnDestroy {
     return !this.hasSettingsReadyFile;
   }
 
+  get selectedFileDimensionsLine(): string {
+    if (!this.showPrintSettingsPanel) {
+      return '';
+    }
+    if (!this.hasSettingsReadyFile) {
+      return '—';
+    }
+
+    const fromFile = formatFileOriginalDimensionsLine(
+      this.selectedFile,
+      this.translateService.instant('printing-table.dimensions-cm'),
+    );
+    if (fromFile !== '—') {
+      return fromFile;
+    }
+
+    if (this.resolvedFileDimensions) {
+      return `${this.resolvedFileDimensions.widthCm} × ${this.resolvedFileDimensions.heightCm} ${this.translateService.instant('printing-table.dimensions-cm')}`.trim();
+    }
+
+    return '—';
+  }
+
   get printingHouseLogoUrl(): string {
     const ph = this.printingHouse;
     return (ph?.logo?.url || ph?.logoUrl || '').trim();
@@ -286,6 +319,46 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.directionSub?.unsubscribe();
     this.darkModeSub?.unsubscribe();
     this.pollSub?.unsubscribe();
+    this.fileDimensionsResolveToken += 1;
+  }
+
+  private refreshResolvedFileDimensions(): void {
+    this.resolvedFileDimensions = null;
+    this.fileDimensionsResolveToken += 1;
+
+    const file = this.selectedFile;
+    if (!file || this.isFileProcessing(file)) {
+      return;
+    }
+    if (getFileOriginalWidthCm(file) !== '-' && getFileOriginalHeightCm(file) !== '-') {
+      return;
+    }
+    if (!isRasterPrintingFile(file)) {
+      return;
+    }
+
+    const url = file.originalUrl?.trim();
+    if (!url) {
+      return;
+    }
+
+    const token = this.fileDimensionsResolveToken;
+    const dpi = resolveFileOriginalDpi(file);
+    const img = new Image();
+    img.onload = () => {
+      if (token !== this.fileDimensionsResolveToken) {
+        return;
+      }
+      if (!img.naturalWidth || !img.naturalHeight) {
+        return;
+      }
+      this.resolvedFileDimensions = {
+        widthCm: pixelsToOriginalCmString(img.naturalWidth, dpi),
+        heightCm: pixelsToOriginalCmString(img.naturalHeight, dpi),
+      };
+    };
+    img.onerror = () => {};
+    img.src = url;
   }
 
   isFileProcessing(file: PhPrintingFile): boolean {
@@ -298,6 +371,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
     this.selectedFile = file;
     this.previewThumbnailUrl = file.thumbnailUrl?.trim() || null;
+    this.refreshResolvedFileDimensions();
     this.syncSettingsUiFromFile(file);
   }
 
@@ -711,6 +785,7 @@ export class PrintComponent implements OnInit, OnDestroy {
         if (this.selectedFile?._id === file._id) {
           this.selectedFile = this.files.find((f) => !this.isFileProcessing(f)) ?? null;
           this.previewThumbnailUrl = this.selectedFile?.thumbnailUrl?.trim() || null;
+          this.refreshResolvedFileDimensions();
           if (this.selectedFile) {
             this.syncSettingsUiFromFile(this.selectedFile);
           } else if (this.product) {
@@ -742,6 +817,7 @@ export class PrintComponent implements OnInit, OnDestroy {
           this.selectedFile = null;
           this.previewThumbnailUrl = null;
           this.pendingDefaultSettingsFileIds.clear();
+          this.refreshResolvedFileDimensions();
           if (this.product) {
             this.syncSettingsUiToProductDefaults();
           }
@@ -1053,6 +1129,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
 
     this.ensureAllReadyFilesHaveSettings();
+    this.refreshResolvedFileDimensions();
 
     if (this.selectedFile && this.selectedFile._id !== prevSelectedId) {
       this.syncSettingsUiFromFile(this.selectedFile);
@@ -1326,8 +1403,10 @@ export class PrintComponent implements OnInit, OnDestroy {
       return;
     }
     if (this.hasSettingsReadyFile && this.selectedFile) {
+      this.refreshResolvedFileDimensions();
       this.syncSettingsUiFromFile(this.selectedFile);
     } else {
+      this.refreshResolvedFileDimensions();
       this.syncSettingsUiToProductDefaults();
     }
   }

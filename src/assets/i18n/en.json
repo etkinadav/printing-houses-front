@@ -661,6 +661,7 @@
 	"printing-table.dimensions-mm": "mm",
 	"printing-table.dimensions-cm": "cm",
 	"printing-table.original-dims": "Original Dims",
+	"printing-table.file-dimensions": "File dimensions",
 	"printing-table.explain-title-ph-print-original-size-unavailable": "Original size",
 	"printing-table.explain-ph-print-original-size-unavailable": "This file does not fit this product at its original dimensions.",
 	"printing-table.ph-print-dimensions-proportion-not-in-product": "The file's aspect ratio does not fit within this product's size limits",

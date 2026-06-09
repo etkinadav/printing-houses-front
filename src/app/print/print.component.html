@@ -689,6 +689,16 @@
                       </div>
                     </article>
                   </ng-container>
+                  <hr
+                    *ngIf="showPrintSettingsPanel"
+                    class="ph-print-settings-divider"
+                    aria-hidden="true" />
+                  <article
+                    *ngIf="showPrintSettingsPanel"
+                    class="zx-min-h-50 w-100 d-flex justify-content-between align-items-center ph-print-file-dimensions-row">
+                    <span>{{ 'printing-table.file-dimensions' | translate }}</span>
+                    <span class="ph-print-file-dimensions-value">{{ selectedFileDimensionsLine }}</span>
+                  </article>
                   <span class="ph-print-settings-bottom-spacer" aria-hidden="true"></span>
                 </div>
               </div>

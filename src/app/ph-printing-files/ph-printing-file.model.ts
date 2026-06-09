@@ -30,6 +30,11 @@ export interface PhPrintingFile {
   fileType?: string;
   originalUrl: string;
   thumbnailUrl?: string | null;
+  thumbnailKey?: string | null;
   processing: boolean;
+  /** Original file pixel dimensions (at origImageDPI), same semantics as mean-corse express images. */
+  imageWidth?: number | null;
+  imageHeight?: number | null;
+  origImageDPI?: number | null;
   printSettings?: PhPrintingFilePrintSettings;
 }
