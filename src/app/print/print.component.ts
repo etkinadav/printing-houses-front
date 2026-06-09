@@ -330,6 +330,21 @@ export class PrintComponent implements OnInit, OnDestroy {
     return this.settingsControlsDisabled ? null : this.singleOptionToggleValue;
   }
 
+  get showDuplexFileDimensions(): boolean {
+    return this.isDuplexPairingModeActive() && this.hasSettingsReadyFile;
+  }
+
+  get selectedDuplexPair(): DuplexPairDisplayEntry | null {
+    if (!this.selectedFile || !this.selectedImage) {
+      return null;
+    }
+    return findDuplexPairForSide(
+      this.getDuplexPairEntries(),
+      this.selectedFile._id,
+      this.selectedImage._id,
+    );
+  }
+
   get selectedFileDimensionsLine(): string {
     if (!this.showPrintSettingsPanel) {
       return '';
@@ -337,16 +352,40 @@ export class PrintComponent implements OnInit, OnDestroy {
     if (!this.hasSettingsReadyFile) {
       return '—';
     }
+    return this.formatImageDimensionsLine(this.selectedImage);
+  }
+
+  get selectedDuplexFrontDimensionsLine(): string {
+    if (!this.showPrintSettingsPanel || !this.hasSettingsReadyFile) {
+      return '—';
+    }
+    return this.formatImageDimensionsLine(this.selectedDuplexPair?.front.image ?? null);
+  }
+
+  get selectedDuplexBackDimensionsLine(): string {
+    if (!this.showPrintSettingsPanel || !this.hasSettingsReadyFile) {
+      return '—';
+    }
+    return this.formatImageDimensionsLine(this.selectedDuplexPair?.back?.image ?? null);
+  }
+
+  formatImageDimensionsLine(image: PhPrintingFileImage | null | undefined): string {
+    if (!image) {
+      return '—';
+    }
 
     const fromImage = formatImageOriginalDimensionsLine(
-      this.selectedImage,
+      image,
       this.translateService.instant('printing-table.dimensions-cm'),
     );
     if (fromImage !== '—') {
       return fromImage;
     }
 
-    if (this.resolvedFileDimensions) {
+    if (
+      this.selectedImage?._id === image._id &&
+      this.resolvedFileDimensions
+    ) {
       return `${this.resolvedFileDimensions.widthCm} × ${this.resolvedFileDimensions.heightCm} ${this.translateService.instant('printing-table.dimensions-cm')}`.trim();
     }
 

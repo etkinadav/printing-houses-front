@@ -156,7 +156,7 @@
 }
 
 .zx-settings-area-inner {
-  padding: 0 0 15px;
+  padding-bottom: 15px;
   overflow-x: hidden;
   align-items: stretch;
   width: 100%;
@@ -773,7 +773,7 @@
   opacity: 0;
   transition: opacity 250ms;
   border: 1px solid var(--zx-white-20-pr);
-  padding: 3px 5px;
+  padding: 2px;
   line-height: 0;
   display: inline-flex;
   align-items: center;

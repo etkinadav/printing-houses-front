@@ -559,7 +559,7 @@
             <div class="zx-settings-area mh-100 zx-mw-100-vw position-relative min-h-0">
               <div
                 id="zx-settings-area-inner"
-                class="zx-settings-area-inner w-100 h-100 mh-100 zx-mw-100-vw position-absolute d-flex flex-column gap-3"
+                class="zx-settings-area-inner px-2 px-md-0 w-100 h-100 mh-100 zx-mw-100-vw position-absolute d-flex flex-column gap-3"
                 [class.zx-settings-area-inner-rtl]="!isRTL">
                 <div
                   class="ph-print-settings-panel w-100 flex-grow-1 d-flex flex-column gap-3">
@@ -1066,12 +1066,26 @@
                     *ngIf="showPrintSettingsPanel"
                     class="ph-print-settings-divider"
                     aria-hidden="true" />
-                  <article
-                    *ngIf="showPrintSettingsPanel"
-                    class="zx-min-h-50 w-100 d-flex justify-content-between align-items-center ph-print-file-dimensions-row">
-                    <span>{{ 'printing-table.file-dimensions' | translate }}</span>
-                    <span class="ph-print-file-dimensions-value">{{ selectedFileDimensionsLine }}</span>
-                  </article>
+                  <ng-container *ngIf="showDuplexFileDimensions; else singleFileDimensions">
+                    <article
+                      class="zx-min-h-50 w-100 d-flex justify-content-between align-items-center ph-print-file-dimensions-row">
+                      <span>{{ 'printing-table.file-dimensions-front-side' | translate }}</span>
+                      <span class="ph-print-file-dimensions-value">{{ selectedDuplexFrontDimensionsLine }}</span>
+                    </article>
+                    <article
+                      class="zx-min-h-50 w-100 d-flex justify-content-between align-items-center ph-print-file-dimensions-row">
+                      <span>{{ 'printing-table.file-dimensions-back-side' | translate }}</span>
+                      <span class="ph-print-file-dimensions-value">{{ selectedDuplexBackDimensionsLine }}</span>
+                    </article>
+                  </ng-container>
+                  <ng-template #singleFileDimensions>
+                    <article
+                      *ngIf="showPrintSettingsPanel"
+                      class="zx-min-h-50 w-100 d-flex justify-content-between align-items-center ph-print-file-dimensions-row">
+                      <span>{{ 'printing-table.file-dimensions' | translate }}</span>
+                      <span class="ph-print-file-dimensions-value">{{ selectedFileDimensionsLine }}</span>
+                    </article>
+                  </ng-template>
                   <span class="ph-print-settings-bottom-spacer" aria-hidden="true"></span>
                 </div>
               </div>

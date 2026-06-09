@@ -663,6 +663,8 @@
     "printing-table.dimensions-cm": "سم",
     "printing-table.original-dims": "الأبعاد الأصلية",
     "printing-table.file-dimensions": "أبعاد الملف",
+    "printing-table.file-dimensions-front-side": "أبعاد الملف (الجانب الأمامي)",
+    "printing-table.file-dimensions-back-side": "أبعاد الملف (الجانب الخلفي)",
     "printing-table.explain-title-ph-print-original-size-unavailable": "الحجم الأصلي",
     "printing-table.explain-ph-print-original-size-unavailable": "هذا الملف لا يتسع في هذا المنتج بأبعاده الأصلية.",
     "printing-table.ph-print-dimensions-proportion-not-in-product": "نسبة أبعاد الملف لا تناسب حدود حجم هذا المنتج",

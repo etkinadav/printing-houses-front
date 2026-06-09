@@ -663,6 +663,8 @@
     "printing-table.dimensions-cm": "ס\"מ",
     "printing-table.original-dims": "מידות מקוריות",
     "printing-table.file-dimensions": "מידות הקובץ",
+    "printing-table.file-dimensions-front-side": "מידות הקובץ (צד קידמי)",
+    "printing-table.file-dimensions-back-side": "מידות הקובץ (צד אחורי)",
     "printing-table.explain-title-ph-print-original-size-unavailable": "גודל מקורי",
     "printing-table.explain-ph-print-original-size-unavailable": "קובץ זה לא נכנס במוצר זה במידות המקוריות.",
     "printing-table.ph-print-dimensions-proportion-not-in-product": "הקובץ בעל פרופורציה שאינה נכנסת במידות המוצר",
