@@ -254,8 +254,8 @@
                             [class.shadow-85-light]="true"
                             tabindex="0"
                             role="button"
-                            (click)="!item.pair.isIncomplete && selectDuplexPair(item.pair)"
-                            (keyup.enter)="!item.pair.isIncomplete && selectDuplexPair(item.pair)">
+                            (click)="onDuplexPairContainerClick(item.pair, sidebarFileInput, $event)"
+                            (keyup)="onDuplexPairContainerKeyup(item.pair, sidebarFileInput, $event)">
                             <!-- Back side (top-right, behind) -->
                             <div
                               *ngIf="item.pair.back; else duplexBackPlaceholder"
@@ -273,9 +273,7 @@
                             </div>
                             <ng-template #duplexBackPlaceholder>
                               <div
-                                class="zx-duplex-pair-side zx-duplex-pair-side--back zx-duplex-pair-side--placeholder"
-                                [class.c-pointer]="!uploading"
-                                (click)="!uploading && triggerFilePicker(sidebarFileInput); $event.stopPropagation()">
+                                class="zx-duplex-pair-side zx-duplex-pair-side--back zx-duplex-pair-side--placeholder">
                                 <div
                                   *ngIf="!uploading"
                                   class="zx-duplex-pair-side__inner zx-duplex-upload-placeholder d-flex flex-column align-items-center h-100 w-100 rounded-3 zx-border-gray-v-v-light"

@@ -838,6 +838,11 @@
 
 .zx-duplex-pair-container--incomplete {
   opacity: 0.92;
+  cursor: pointer;
+}
+
+.zx-duplex-pair-container--incomplete .zx-duplex-pair-side--disabled {
+  cursor: pointer;
 }
 
 .zx-duplex-pair-side {

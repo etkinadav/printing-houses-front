@@ -607,6 +607,44 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.selectImage(pair.front.file, pair.front.image, pair.front.imageIndex);
   }
 
+  onDuplexPairContainerClick(
+    pair: DuplexPairDisplayEntry,
+    fileInput: HTMLInputElement,
+    event: MouseEvent,
+  ): void {
+    if (!pair.isIncomplete) {
+      this.selectDuplexPair(pair);
+      return;
+    }
+    if (this.uploading || this.isDuplexDeleteClickTarget(event.target)) {
+      return;
+    }
+    this.triggerFilePicker(fileInput);
+  }
+
+  onDuplexPairContainerKeyup(
+    pair: DuplexPairDisplayEntry,
+    fileInput: HTMLInputElement,
+    event: KeyboardEvent,
+  ): void {
+    if (event.key !== 'Enter') {
+      return;
+    }
+    if (!pair.isIncomplete) {
+      this.selectDuplexPair(pair);
+      return;
+    }
+    if (this.uploading) {
+      return;
+    }
+    this.triggerFilePicker(fileInput);
+  }
+
+  private isDuplexDeleteClickTarget(target: EventTarget | null): boolean {
+    const el = target as HTMLElement | null;
+    return !!el?.closest?.('.delete-button, [matMenuTriggerFor]');
+  }
+
   getFileListEntries(): FileListDisplayEntry[] {
     const entries: FileListDisplayEntry[] = [];
     for (const file of this.files) {
