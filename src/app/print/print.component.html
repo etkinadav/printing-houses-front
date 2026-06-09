@@ -273,20 +273,44 @@
                             </div>
                             <ng-template #duplexBackPlaceholder>
                               <div
-                                class="zx-duplex-pair-side zx-duplex-pair-side--back zx-duplex-pair-side--placeholder c-pointer"
+                                class="zx-duplex-pair-side zx-duplex-pair-side--back zx-duplex-pair-side--placeholder"
+                                [class.c-pointer]="!uploading"
                                 (click)="!uploading && triggerFilePicker(sidebarFileInput); $event.stopPropagation()">
                                 <div
-                                  class="zx-duplex-pair-side__inner zx-duplex-upload-placeholder d-flex flex-column justify-content-center align-items-center h-100 w-100 rounded-3 zx-border-gray-v-v-light"
+                                  *ngIf="!uploading"
+                                  class="zx-duplex-pair-side__inner zx-duplex-upload-placeholder d-flex flex-column align-items-center h-100 w-100 rounded-3 zx-border-gray-v-v-light"
                                   [class.zx-border-gray-25-pr]="isDarkMode">
                                   <img
                                     src="assets/images/upload-file-icon.svg"
                                     class="zx-duplex-upload-placeholder__icon svg"
                                     alt="" />
-                                  <span class="zx-duplex-upload-placeholder__label text-center">
+                                  <span class="zx-text-tiny fw-bold zx-duplex-upload-placeholder__label text-center">
                                     {{
                                       (hasFiles ? 'printing-table.upload-file-next' : 'printing-table.upload-file')
                                         | translate
                                     }}
+                                  </span>
+                                </div>
+                                <div
+                                  *ngIf="uploading"
+                                  class="zx-duplex-pair-side__inner zx-duplex-upload-placeholder zx-duplex-upload-placeholder--uploading d-flex flex-column align-items-center justify-content-center h-100 w-100 rounded-3 zx-border-gray-v-v-light"
+                                  [class.zx-border-gray-25-pr]="isDarkMode">
+                                  <b class="zx-text-tiny text-green mb-1">
+                                    <span>{{ uploadProgress }}</span>
+                                    <span>%</span>
+                                  </b>
+                                  <mat-progress-bar
+                                    class="zx-duplex-upload-placeholder__progress w-100"
+                                    mode="determinate"
+                                    [value]="uploadProgress">
+                                  </mat-progress-bar>
+                                  <span class="zx-text-tiny-tiny fw-bold zx-duplex-upload-placeholder__label text-center mt-1">
+                                    <span *ngIf="uploadingCount === 1">
+                                      {{ 'printing-table.uploading-file-one' | translate }}
+                                    </span>
+                                    <span *ngIf="uploadingCount > 1">
+                                      {{ 'printing-table.uploading-file-multi' | translate }}
+                                    </span>
                                   </span>
                                 </div>
                               </div>

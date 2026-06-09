@@ -863,27 +863,38 @@
 }
 
 .zx-duplex-upload-placeholder {
-  gap: 2px;
-  padding: 4px;
+  justify-content: flex-start;
+  gap: 0;
+  padding: 6px 4px 4px;
   overflow: hidden;
 }
 
 .zx-duplex-upload-placeholder__icon {
-  width: 22px;
-  height: 22px;
-  min-width: 22px;
-  min-height: 22px;
+  width: 33px;
+  height: 33px;
+  min-width: 33px;
+  min-height: 33px;
   flex-shrink: 0;
   opacity: 0.75;
 }
 
 .zx-duplex-upload-placeholder__label {
-  font-size: 9px;
-  line-height: 1.15;
-  font-weight: 600;
+  line-height: 1.2;
   max-width: 100%;
   padding: 0 2px;
   color: var(--zx-gray-dark, #666);
+}
+
+.zx-duplex-upload-placeholder--uploading {
+  justify-content: center;
+  gap: 0;
+  padding: 6px 8px 8px;
+  pointer-events: none;
+}
+
+.zx-duplex-upload-placeholder__progress {
+  height: 4px;
+  border-radius: 2px;
 }
 
 .zx-pb-8 {

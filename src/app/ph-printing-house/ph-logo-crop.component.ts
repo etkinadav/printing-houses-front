@@ -31,15 +31,16 @@ export class PhLogoCropComponent implements AfterViewInit, OnChanges, OnDestroy 
   private logoNaturalW = 0;
   private logoNaturalH = 0;
   private resizeObserver?: ResizeObserver;
+  private transformUpdateScheduled = false;
 
   ngAfterViewInit(): void {
     this.setupLogoViewportObserver();
-    this.updateLogoTransform();
+    this.scheduleLogoTransformUpdate();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['imageUrl'] || changes['logo']) {
-      this.updateLogoTransform();
+      this.scheduleLogoTransformUpdate();
     }
   }
 
@@ -54,7 +55,7 @@ export class PhLogoCropComponent implements AfterViewInit, OnChanges, OnDestroy 
     }
     this.logoNaturalW = img.naturalWidth || 0;
     this.logoNaturalH = img.naturalHeight || 0;
-    this.updateLogoTransform();
+    this.scheduleLogoTransformUpdate();
   }
 
   private setupLogoViewportObserver(): void {
@@ -64,8 +65,20 @@ export class PhLogoCropComponent implements AfterViewInit, OnChanges, OnDestroy 
     }
 
     this.resizeObserver?.disconnect();
-    this.resizeObserver = new ResizeObserver(() => this.updateLogoTransform());
+    this.resizeObserver = new ResizeObserver(() => this.scheduleLogoTransformUpdate());
     this.resizeObserver.observe(el);
+  }
+
+  /** Defer transform updates so ResizeObserver / image load do not trigger NG0100. */
+  private scheduleLogoTransformUpdate(): void {
+    if (this.transformUpdateScheduled) {
+      return;
+    }
+    this.transformUpdateScheduled = true;
+    queueMicrotask(() => {
+      this.transformUpdateScheduled = false;
+      this.updateLogoTransform();
+    });
   }
 
   private updateLogoTransform(): void {
