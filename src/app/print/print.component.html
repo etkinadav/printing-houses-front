@@ -242,12 +242,18 @@
                         </div>
 
                         <!-- Ready — one card per page (image) -->
-                        <ng-container *ngIf="!isFileProcessing(file)">
+                        <div
+                          *ngIf="!isFileProcessing(file)"
+                          class="zx-page-obj-container"
+                          [class.zx-bg-choosen]="isSelected(file) && isMultiPageFile(file)"
+                          [class.zx-page-obj-container-bg]="isMultiPageFile(file)"
+                          [class.zx-page-obj-container-bg-darkmode]="isMultiPageFile(file) && isDarkMode">
                           <article
                             *ngFor="let image of getFileImages(file); let j = index; trackBy: trackImageById"
                             tabindex="0"
                             role="button"
                             class="zx-page-obj"
+                            [class.zx-page-obj-first]="j === 0 && isMultiPageFile(file)"
                             (click)="selectImage(file, image, j)"
                             (keyup.enter)="selectImage(file, image, j)">
                             <div
@@ -306,7 +312,7 @@
                               </div>
                             </div>
                           </article>
-                        </ng-container>
+                        </div>
                       </article>
 
                       <!-- Delete all files [end — when many files] -->
