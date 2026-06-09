@@ -121,6 +121,9 @@ export class PrintComponent implements OnInit, OnDestroy {
   private darkModeSub?: Subscription;
   private pollSub?: Subscription;
   private activeUploads = 0;
+  /** Bumped on stopUploading() so in-flight upload callbacks are ignored. */
+  private uploadGeneration = 0;
+  private activeUploadSubscriptions = new Set<Subscription>();
   private isUpdatingFileSettings = false;
   private settingsSaveInFlightForFileId: string | null = null;
   private settingsSaveInFlightForImageId: string | null = null;
@@ -394,6 +397,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.directionSub?.unsubscribe();
     this.darkModeSub?.unsubscribe();
     this.pollSub?.unsubscribe();
+    this.stopUploading();
     this.fileDimensionsResolveToken += 1;
   }
 
@@ -860,6 +864,23 @@ export class PrintComponent implements OnInit, OnDestroy {
       return;
     }
     input.click();
+  }
+
+  /** Mean-corse ph-printing-table: cancel all in-flight uploads. */
+  stopUploading(): void {
+    this.uploadGeneration += 1;
+    for (const sub of this.activeUploadSubscriptions) {
+      sub.unsubscribe();
+    }
+    this.activeUploadSubscriptions.clear();
+    this.activeUploads = 0;
+    this.uploadingCount = 0;
+    this.uploading = false;
+    this.uploadProgress = 0;
+  }
+
+  stopUploadEvent(event: Event): void {
+    event.stopPropagation();
   }
 
   onFilesSelected(event: Event): void {
@@ -2035,13 +2056,17 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.uploading = true;
     this.uploadProgress = 0;
 
-    this.phFilesService
+    const generation = this.uploadGeneration;
+    const sub = this.phFilesService
       .upload(PH_FILE_TYPE_PRINTING_FILE, file, {
         printingHouseId: this.printingHouseId,
         productId: this.productId,
       })
       .subscribe({
         next: (httpEvent) => {
+          if (generation !== this.uploadGeneration) {
+            return;
+          }
           if (httpEvent.type === HttpEventType.UploadProgress) {
             const total = httpEvent.total ?? 0;
             this.uploadProgress = total ? Math.round((100 * httpEvent.loaded) / total) : 0;
@@ -2052,7 +2077,7 @@ export class PrintComponent implements OnInit, OnDestroy {
             return;
           }
 
-          this.finishOneUpload();
+          this.finishOneUpload(generation);
           this.phPrintingFilesService
             .getMyFiles(this.printingHouseId, this.productId)
             .subscribe({
@@ -2060,7 +2085,10 @@ export class PrintComponent implements OnInit, OnDestroy {
             });
         },
         error: () => {
-          this.finishOneUpload();
+          if (generation !== this.uploadGeneration) {
+            return;
+          }
+          this.finishOneUpload(generation);
           this.snackBar.open(
             this.translateService.instant('ph-print.upload-failed'),
             undefined,
@@ -2068,9 +2096,14 @@ export class PrintComponent implements OnInit, OnDestroy {
           );
         },
       });
+    this.activeUploadSubscriptions.add(sub);
+    sub.add(() => this.activeUploadSubscriptions.delete(sub));
   }
 
-  private finishOneUpload(): void {
+  private finishOneUpload(generation: number): void {
+    if (generation !== this.uploadGeneration) {
+      return;
+    }
     this.activeUploads = Math.max(0, this.activeUploads - 1);
     this.uploadingCount = this.activeUploads;
     this.uploading = this.activeUploads > 0;

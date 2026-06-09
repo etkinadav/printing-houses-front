@@ -45,7 +45,7 @@
                         [class.zx-files-area-item-tiny]="hasFiles && !uploading"
                         [class.zx-border-gray-25-pr]="isDarkMode"
                         [class.zx-page-obj-container-bg-darkmode]="isDarkMode"
-                        (click)="triggerFilePicker(sidebarFileInput)">
+                        (click)="!uploading && triggerFilePicker(sidebarFileInput)">
                         <img
                           *ngIf="hasFiles && !uploading"
                           src="assets/images/upload-file-next-icon.svg"
@@ -69,7 +69,7 @@
                         </div>
                         <div
                           *ngIf="uploading"
-                          class="d-flex flex-column h-100 w-100 justify-content-center align-items-center">
+                          class="position-relative d-flex flex-column h-100 w-100 justify-content-center align-items-center">
                           <div
                             class="w-100 d-flex flex-column flex-grow-1 justify-content-center align-items-center gap-1 gap-lg-2">
                             <b class="zx-text-big text-green">
@@ -95,6 +95,37 @@
                               </span>
                             </h6>
                           </div>
+                          <!-- stop uploading (mean-corse ph sidebar) -->
+                          <div class="position-absolute d-flex px-2 top-0 w-100">
+                            <div
+                              matRipple
+                              [matMenuTriggerFor]="stopUploadingMenuSidebar"
+                              (click)="stopUploadEvent($event)"
+                              class="d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                              <mat-icon class="text-red mx-0 m-0 p-1 zx-text-small c-pointer">
+                                close
+                              </mat-icon>
+                            </div>
+                            <mat-menu #stopUploadingMenuSidebar="matMenu">
+                              <button
+                                class="d-flex align-items-center gap-1 px-2"
+                                mat-menu-item
+                                [class.zx-ltr]="!isRTL"
+                                (click)="stopUploading()">
+                                <b
+                                  class="text-red zx-text-small m-0"
+                                  [class.zx-text-white]="isDarkMode">
+                                  {{ 'printing-table.stop-uploading' | translate }}
+                                </b>
+                                <mat-icon
+                                  class="text-red mx-1 p-0 zx-pt-small"
+                                  [class.zx-text-white]="isDarkMode">
+                                  close
+                                </mat-icon>
+                              </button>
+                            </mat-menu>
+                          </div>
+                          <!-- // stop uploading -->
                         </div>
                       </article>
                       <input
@@ -961,6 +992,33 @@
                   </span>
                 </h6>
               </div>
+              <!-- stop uploading (mean-corse desktop preview) -->
+              <div class="position-absolute d-flex px-3 pt-3 top-0 w-100">
+                <div
+                  matRipple
+                  [matMenuTriggerFor]="stopUploadingMenuPreview"
+                  (click)="stopUploadEvent($event)"
+                  class="d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                  <mat-icon class="text-red mx-0 m-0 p-1 zx-text-small c-pointer">close</mat-icon>
+                </div>
+                <mat-menu #stopUploadingMenuPreview="matMenu">
+                  <button
+                    class="d-flex align-items-center gap-1 px-2"
+                    mat-menu-item
+                    [class.zx-ltr]="!isRTL"
+                    (click)="stopUploading()">
+                    <b class="text-red zx-text-small m-0" [class.zx-text-white]="isDarkMode">
+                      {{ 'printing-table.stop-uploading' | translate }}
+                    </b>
+                    <mat-icon
+                      class="text-red mx-1 p-0 zx-pt-small"
+                      [class.zx-text-white]="isDarkMode">
+                      close
+                    </mat-icon>
+                  </button>
+                </mat-menu>
+              </div>
+              <!-- // stop uploading -->
             </div>
           </article>
         </article>
