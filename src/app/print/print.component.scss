@@ -810,6 +810,10 @@
   opacity: 1;
 }
 
+.zx-duplex-pair-container:hover .delete-button {
+  opacity: 1;
+}
+
 .delete-button:hover {
   border: 1px solid var(--zx-red);
 }
