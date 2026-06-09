@@ -1,4 +1,4 @@
-import { PhPrintingFile } from './ph-printing-file.model';
+import { PhPrintingFile, PhPrintingFileImage } from './ph-printing-file.model';
 
 /** Same formula as mean-corse-01 `getOriginalWidth` / `getOriginalHeight`. */
 export function pixelsToOriginalCmString(pixels: number, dpi: number): string {
@@ -6,34 +6,34 @@ export function pixelsToOriginalCmString(pixels: number, dpi: number): string {
   return (Math.ceil((pixels / safeDpi) * 2.54 * 100) / 100).toFixed(2);
 }
 
-export function resolveFileOriginalDpi(file: PhPrintingFile | null | undefined): number {
-  const dpi = Number(file?.origImageDPI);
+export function resolveImageOriginalDpi(image: PhPrintingFileImage | null | undefined): number {
+  const dpi = Number(image?.origImageDPI);
   return dpi > 0 ? dpi : 300;
 }
 
-export function getFileOriginalWidthCm(file: PhPrintingFile | null | undefined): string {
-  const widthPx = Number(file?.imageWidth);
+export function getImageOriginalWidthCm(image: PhPrintingFileImage | null | undefined): string {
+  const widthPx = Number(image?.imageWidth);
   if (!Number.isFinite(widthPx) || widthPx <= 0) {
     return '-';
   }
-  return pixelsToOriginalCmString(widthPx, resolveFileOriginalDpi(file));
+  return pixelsToOriginalCmString(widthPx, resolveImageOriginalDpi(image));
 }
 
-export function getFileOriginalHeightCm(file: PhPrintingFile | null | undefined): string {
-  const heightPx = Number(file?.imageHeight);
+export function getImageOriginalHeightCm(image: PhPrintingFileImage | null | undefined): string {
+  const heightPx = Number(image?.imageHeight);
   if (!Number.isFinite(heightPx) || heightPx <= 0) {
     return '-';
   }
-  return pixelsToOriginalCmString(heightPx, resolveFileOriginalDpi(file));
+  return pixelsToOriginalCmString(heightPx, resolveImageOriginalDpi(image));
 }
 
-export function formatFileOriginalDimensionsLine(
-  file: PhPrintingFile | null | undefined,
+export function formatImageOriginalDimensionsLine(
+  image: PhPrintingFileImage | null | undefined,
   cmLabel: string,
   fallback = '—',
 ): string {
-  const widthCm = getFileOriginalWidthCm(file);
-  const heightCm = getFileOriginalHeightCm(file);
+  const widthCm = getImageOriginalWidthCm(image);
+  const heightCm = getImageOriginalHeightCm(image);
   if (widthCm === '-' || heightCm === '-') {
     return fallback;
   }

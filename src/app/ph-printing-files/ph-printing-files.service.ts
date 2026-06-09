@@ -49,10 +49,12 @@ export class PhPrintingFilesService {
 
   updateFileSettings(
     fileId: string,
+    imageId: string,
     printSettings: PhPrintingFilePrintSettings,
     productId: string,
   ): Observable<PhPrintingFileSettingsResponse> {
     return this.http.put<PhPrintingFileSettingsResponse>(`${BACKEND_URL}/${fileId}/settings`, {
+      imageId,
       printSettings,
       productId,
     });

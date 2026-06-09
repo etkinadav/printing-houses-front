@@ -210,67 +210,72 @@
                           </h6>
                         </div>
 
-                        <!-- Ready -->
-                        <article
-                          *ngIf="!isFileProcessing(file)"
-                          tabindex="0"
-                          role="button"
-                          class="zx-page-obj"
-                          (click)="selectFile(file)"
-                          (keyup.enter)="selectFile(file)">
-                          <div
-                            class="zx-img-obj-container-container c-pointer rounded-3 d-flex flex-column zx-border-gray-v-v-light shadow-85-light w-100 h-100 flex-grow-1"
-                            [class.zx-border-choosen]="isSelected(file)"
-                            [class.zx-border-gray-25-pr]="isDarkMode"
-                            [class.bg-white]="isDarkMode">
-                            <span
-                              class="zx-text-tiny fw-bold w-100 text-center"
-                              [class.text-green]="isSelected(file)"
-                              [class.text-black-imp]="isDarkMode && !isSelected(file)"
-                              [class.text-green-imp]="isSelected(file) && isDarkMode">
-                              <span>{{ getDisplayFileName(file) | slice: 0 : 16 }}</span>
-                              <span class="zx-text-tiny" *ngIf="getDisplayFileName(file).length > 16">
-                                ...
+                        <!-- Ready — one card per page (image) -->
+                        <ng-container *ngIf="!isFileProcessing(file)">
+                          <article
+                            *ngFor="let image of getFileImages(file); let j = index; trackBy: trackImageById"
+                            tabindex="0"
+                            role="button"
+                            class="zx-page-obj"
+                            (click)="selectImage(file, image, j)"
+                            (keyup.enter)="selectImage(file, image, j)">
+                            <div
+                              class="zx-img-obj-container-container c-pointer rounded-3 d-flex flex-column zx-border-gray-v-v-light shadow-85-light w-100 h-100 flex-grow-1"
+                              [class.zx-border-choosen]="isSelectedImage(file, j)"
+                              [class.zx-border-gray-25-pr]="isDarkMode"
+                              [class.bg-white]="isDarkMode">
+                              <span
+                                class="zx-text-tiny fw-bold w-100 text-center"
+                                [class.text-green]="isSelectedImage(file, j)"
+                                [class.text-black-imp]="isDarkMode && !isSelectedImage(file, j)"
+                                [class.text-green-imp]="isSelectedImage(file, j) && isDarkMode">
+                                <span>{{ getDisplayFileName(file) | slice: 0 : 16 }}</span>
+                                <span class="zx-text-tiny" *ngIf="getDisplayFileName(file).length > 16">
+                                  ...
+                                </span>
+                                <span class="zx-text-tiny" *ngIf="isMultiPageFile(file)">
+                                  ({{ j + 1 }}/{{ getFileImages(file).length }})
+                                </span>
                               </span>
-                            </span>
-                            <div class="zx-img-obj-container">
-                              <img
-                                [src]="file.thumbnailUrl"
-                                class="zx-img-obj"
-                                alt="" />
-                              <div
-                                class="position-absolute d-none d-md-flex px-2 zx-pb-12 rounded-pill bottom-0 zx-z-index-1 w-100">
+                              <div class="zx-img-obj-container">
+                                <img
+                                  [src]="image.thumbnailUrl"
+                                  class="zx-img-obj"
+                                  alt="" />
                                 <div
-                                  matRipple
-                                  [matMenuTriggerFor]="deleteReadyMenu"
-                                  (click)="$event.stopPropagation()"
-                                  class="delete-button d-flex justify-content-center align-items-center zx-bg-light c-pointer">
-                                  <mat-icon class="text-red mx-0 mt-0 mb-1 p-1 zx-text-medium">
-                                    delete_outline
-                                  </mat-icon>
-                                </div>
-                                <mat-menu #deleteReadyMenu="matMenu">
-                                  <button
-                                    class="d-flex align-items-center gap-1 px-2"
-                                    mat-menu-item
-                                    [class.zx-ltr]="!isRTL"
-                                    (click)="onDeleteFile(file)">
-                                    <b
-                                      class="text-red zx-text-small m-0"
-                                      [class.zx-text-white]="isDarkMode">
-                                      {{ 'printing-table.delete-file-for-good' | translate }}
-                                    </b>
-                                    <mat-icon
-                                      class="text-red mx-1 p-0 zx-pt-small"
-                                      [class.zx-text-white]="isDarkMode">
+                                  class="position-absolute d-none d-md-flex px-2 zx-pb-12 rounded-pill bottom-0 zx-z-index-1 w-100">
+                                  <div
+                                    matRipple
+                                    [matMenuTriggerFor]="deleteReadyMenu"
+                                    (click)="$event.stopPropagation()"
+                                    class="delete-button d-flex justify-content-center align-items-center zx-bg-light c-pointer">
+                                    <mat-icon class="text-red mx-0 mt-0 mb-1 p-1 zx-text-medium">
                                       delete_outline
                                     </mat-icon>
-                                  </button>
-                                </mat-menu>
+                                  </div>
+                                  <mat-menu #deleteReadyMenu="matMenu">
+                                    <button
+                                      class="d-flex align-items-center gap-1 px-2"
+                                      mat-menu-item
+                                      [class.zx-ltr]="!isRTL"
+                                      (click)="onDeleteFile(file)">
+                                      <b
+                                        class="text-red zx-text-small m-0"
+                                        [class.zx-text-white]="isDarkMode">
+                                        {{ 'printing-table.delete-file-for-good' | translate }}
+                                      </b>
+                                      <mat-icon
+                                        class="text-red mx-1 p-0 zx-pt-small"
+                                        [class.zx-text-white]="isDarkMode">
+                                        delete_outline
+                                      </mat-icon>
+                                    </button>
+                                  </mat-menu>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </article>
+                          </article>
+                        </ng-container>
                       </article>
 
                       <!-- Delete all files [end — when many files] -->

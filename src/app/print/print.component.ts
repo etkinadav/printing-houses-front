@@ -15,6 +15,7 @@ import {
 } from '../ph-files/ph-files.service';
 import {
   PhPrintingFile,
+  PhPrintingFileImage,
   PhPrintingFilePrintSettings,
 } from '../ph-printing-files/ph-printing-file.model';
 import {
@@ -31,12 +32,12 @@ import {
   validateExtraSelections,
 } from '../ph-printing-files/ph-print-extra-settings.util';
 import {
-  formatFileOriginalDimensionsLine,
-  getFileOriginalHeightCm,
-  getFileOriginalWidthCm,
+  formatImageOriginalDimensionsLine,
+  getImageOriginalHeightCm,
+  getImageOriginalWidthCm,
   isRasterPrintingFile,
   pixelsToOriginalCmString,
-  resolveFileOriginalDpi,
+  resolveImageOriginalDpi,
 } from '../ph-printing-files/ph-file-dimensions.util';
 import { PhPrintingFilesService } from '../ph-printing-files/ph-printing-files.service';
 import { isColorTextureUrl } from '../ph-products/ph-color-texture.util';
@@ -86,7 +87,11 @@ export class PrintComponent implements OnInit, OnDestroy {
   files: PhPrintingFile[] = [];
   processingFiles: PhPrintingFile[] = [];
   selectedFile: PhPrintingFile | null = null;
-  /** Stable preview URL — only changes when the selected file or its thumbnail changes. */
+  /** Selected page (image) within the selected file. Settings are per page. */
+  selectedImage: PhPrintingFileImage | null = null;
+  /** 0-based index of the selected page within selectedFile.images. */
+  currentImageIndex = 0;
+  /** Stable preview URL — only changes when the selected page or its thumbnail changes. */
   previewThumbnailUrl: string | null = null;
 
   /** Fixed: selected index in fixedDimensionOptions. */
@@ -117,6 +122,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   private activeUploads = 0;
   private isUpdatingFileSettings = false;
   private settingsSaveInFlightForFileId: string | null = null;
+  private settingsSaveInFlightForImageId: string | null = null;
   private pendingDefaultSettingsFileIds = new Set<string>();
   private suppressSettingsPersist = false;
   private fileDimensionsResolveToken = 0;
@@ -236,12 +242,12 @@ export class PrintComponent implements OnInit, OnDestroy {
       return '—';
     }
 
-    const fromFile = formatFileOriginalDimensionsLine(
-      this.selectedFile,
+    const fromImage = formatImageOriginalDimensionsLine(
+      this.selectedImage,
       this.translateService.instant('printing-table.dimensions-cm'),
     );
-    if (fromFile !== '—') {
-      return fromFile;
+    if (fromImage !== '—') {
+      return fromImage;
     }
 
     if (this.resolvedFileDimensions) {
@@ -327,13 +333,15 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.fileDimensionsResolveToken += 1;
 
     const file = this.selectedFile;
-    if (!file || this.isFileProcessing(file)) {
+    const image = this.selectedImage;
+    if (!file || !image || this.isFileProcessing(file)) {
       return;
     }
-    if (getFileOriginalWidthCm(file) !== '-' && getFileOriginalHeightCm(file) !== '-') {
+    if (getImageOriginalWidthCm(image) !== '-' && getImageOriginalHeightCm(image) !== '-') {
       return;
     }
-    if (!isRasterPrintingFile(file)) {
+    // Browser fallback only makes sense for single-page raster files.
+    if (!isRasterPrintingFile(file) || (file.images?.length ?? 0) > 1) {
       return;
     }
 
@@ -343,7 +351,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
 
     const token = this.fileDimensionsResolveToken;
-    const dpi = resolveFileOriginalDpi(file);
+    const dpi = resolveImageOriginalDpi(image);
     const img = new Image();
     img.onload = () => {
       if (token !== this.fileDimensionsResolveToken) {
@@ -362,21 +370,52 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   isFileProcessing(file: PhPrintingFile): boolean {
-    return file.processing || !file.thumbnailUrl?.trim();
+    return file.processing || !(file.images && file.images.length > 0);
+  }
+
+  /** Pages of a file (always an array). */
+  getFileImages(file: PhPrintingFile | null | undefined): PhPrintingFileImage[] {
+    return file?.images ?? [];
+  }
+
+  isMultiPageFile(file: PhPrintingFile): boolean {
+    return this.getFileImages(file).length > 1;
+  }
+
+  /** Thumbnail used for sidebar/preview — the first page's thumbnail. */
+  getFileThumbnailUrl(file: PhPrintingFile | null | undefined): string | null {
+    return this.getFileImages(file)[0]?.thumbnailUrl?.trim() || null;
   }
 
   selectFile(file: PhPrintingFile): void {
     if (this.isFileProcessing(file)) {
       return;
     }
+    this.selectImage(file, this.getFileImages(file)[0] ?? null, 0);
+  }
+
+  selectImage(file: PhPrintingFile, image: PhPrintingFileImage | null, index: number): void {
+    if (this.isFileProcessing(file) || !image) {
+      return;
+    }
     this.selectedFile = file;
-    this.previewThumbnailUrl = file.thumbnailUrl?.trim() || null;
+    this.selectedImage = image;
+    this.currentImageIndex = index;
+    this.previewThumbnailUrl = image.thumbnailUrl?.trim() || null;
     this.refreshResolvedFileDimensions();
-    this.syncSettingsUiFromFile(file);
+    this.syncSettingsUiFromImage(image);
   }
 
   trackFileById(_index: number, file: PhPrintingFile): string {
     return file._id;
+  }
+
+  trackImageById(_index: number, image: PhPrintingFileImage): string {
+    return image._id;
+  }
+
+  isSelectedImage(file: PhPrintingFile, index: number): boolean {
+    return this.selectedFile?._id === file._id && this.currentImageIndex === index;
   }
 
   trackExtraSettingRow(_index: number, row: PrintExtraSettingRow): string {
@@ -783,13 +822,18 @@ export class PrintComponent implements OnInit, OnDestroy {
         this.processingFiles = this.processingFiles.filter((f) => f._id !== file._id);
         this.pendingDefaultSettingsFileIds.delete(file._id);
         if (this.selectedFile?._id === file._id) {
-          this.selectedFile = this.files.find((f) => !this.isFileProcessing(f)) ?? null;
-          this.previewThumbnailUrl = this.selectedFile?.thumbnailUrl?.trim() || null;
-          this.refreshResolvedFileDimensions();
-          if (this.selectedFile) {
-            this.syncSettingsUiFromFile(this.selectedFile);
-          } else if (this.product) {
-            this.syncSettingsUiToProductDefaults();
+          const nextFile = this.files.find((f) => !this.isFileProcessing(f)) ?? null;
+          if (nextFile) {
+            this.selectImage(nextFile, this.getFileImages(nextFile)[0] ?? null, 0);
+          } else {
+            this.selectedFile = null;
+            this.selectedImage = null;
+            this.currentImageIndex = 0;
+            this.previewThumbnailUrl = null;
+            this.refreshResolvedFileDimensions();
+            if (this.product) {
+              this.syncSettingsUiToProductDefaults();
+            }
           }
         }
       },
@@ -815,6 +859,8 @@ export class PrintComponent implements OnInit, OnDestroy {
           this.files = [];
           this.processingFiles = [];
           this.selectedFile = null;
+          this.selectedImage = null;
+          this.currentImageIndex = 0;
           this.previewThumbnailUrl = null;
           this.pendingDefaultSettingsFileIds.clear();
           this.refreshResolvedFileDimensions();
@@ -915,8 +961,8 @@ export class PrintComponent implements OnInit, OnDestroy {
     );
   }
 
-  private getExtraSettingsContextForFile(file: PhPrintingFile) {
-    const ps = file.printSettings;
+  private getExtraSettingsContextForImage(image: PhPrintingFileImage | null) {
+    const ps = image?.printSettings;
     if (this.isFixedProduct) {
       const sizeIndex = Number(ps?.sizeIndex ?? 0);
       const size = this.fixedSizes[sizeIndex] ?? null;
@@ -943,12 +989,12 @@ export class PrintComponent implements OnInit, OnDestroy {
     return buildExtraSettingsContext(null, null, null);
   }
 
-  private fileExtraSettingsAreValid(file: PhPrintingFile): boolean {
-    const ps = file.printSettings;
+  private imageExtraSettingsAreValid(image: PhPrintingFileImage | null): boolean {
+    const ps = image?.printSettings;
     if (!ps) {
       return false;
     }
-    const ctx = this.getExtraSettingsContextForFile(file);
+    const ctx = this.getExtraSettingsContextForImage(image);
     return validateExtraSelections(ctx, {
       ...buildPersistedExtraSelections(ctx, buildDefaultExtraUiStateMap(ctx)),
       ...ps,
@@ -1105,18 +1151,19 @@ export class PrintComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const prevSelectedId = this.selectedFile?._id;
+    const prevSelectedFileId = this.selectedFile?._id;
+    const prevSelectedImageId = this.selectedImage?._id;
     this.files = merged;
     this.processingFiles = merged.filter((file) => this.isFileProcessing(file));
 
     if (this.selectedFile) {
       const still = merged.find((f) => f._id === this.selectedFile!._id);
       if (!still || this.isFileProcessing(still)) {
-        this.selectedFile = null;
-        this.previewThumbnailUrl = null;
+        this.clearSelection();
       } else {
         this.selectedFile = still;
-        this.updatePreviewThumbnailIfChanged(still);
+        this.resolveSelectedImageWithin(still, prevSelectedImageId);
+        this.updatePreviewThumbnailIfChanged();
       }
     }
 
@@ -1124,18 +1171,46 @@ export class PrintComponent implements OnInit, OnDestroy {
       const firstReady = merged.find((f) => !this.isFileProcessing(f));
       if (firstReady) {
         this.selectedFile = firstReady;
-        this.previewThumbnailUrl = firstReady.thumbnailUrl?.trim() || null;
+        this.resolveSelectedImageWithin(firstReady, undefined);
+        this.previewThumbnailUrl = this.selectedImage?.thumbnailUrl?.trim() || null;
       }
     }
 
     this.ensureAllReadyFilesHaveSettings();
     this.refreshResolvedFileDimensions();
 
-    if (this.selectedFile && this.selectedFile._id !== prevSelectedId) {
-      this.syncSettingsUiFromFile(this.selectedFile);
+    const selectionChanged =
+      this.selectedFile?._id !== prevSelectedFileId ||
+      this.selectedImage?._id !== prevSelectedImageId;
+
+    if (this.selectedImage && selectionChanged) {
+      this.syncSettingsUiFromImage(this.selectedImage);
     } else if (!this.selectedFile && this.product) {
       this.syncSettingsUiToProductDefaults();
     }
+  }
+
+  private clearSelection(): void {
+    this.selectedFile = null;
+    this.selectedImage = null;
+    this.currentImageIndex = 0;
+    this.previewThumbnailUrl = null;
+  }
+
+  /** Keep the selected page stable across polls by matching its id, else fall back to page 0. */
+  private resolveSelectedImageWithin(
+    file: PhPrintingFile,
+    preferImageId: string | undefined,
+  ): void {
+    const images = this.getFileImages(file);
+    let index = preferImageId
+      ? images.findIndex((img) => img._id === preferImageId)
+      : -1;
+    if (index < 0) {
+      index = 0;
+    }
+    this.selectedImage = images[index] ?? null;
+    this.currentImageIndex = this.selectedImage ? index : 0;
   }
 
   /**
@@ -1152,22 +1227,22 @@ export class PrintComponent implements OnInit, OnDestroy {
       }
 
       let incoming = next;
-      if (
-        this.settingsSaveInFlightForFileId === next._id &&
-        prev.printSettings
-      ) {
-        incoming = { ...next, printSettings: prev.printSettings };
+      // Preserve the optimistic per-page settings while a save is in flight.
+      if (this.settingsSaveInFlightForFileId === next._id) {
+        incoming = {
+          ...next,
+          images: this.overlayInFlightImageSettings(prev, next),
+        };
       }
 
-      const thumbnailUnchanged = prev.thumbnailUrl === incoming.thumbnailUrl;
+      const thumbnailUnchanged =
+        this.getFileThumbnailUrl(prev) === this.getFileThumbnailUrl(incoming);
       const processingUnchanged = prev.processing === incoming.processing;
+      const structureUnchanged = this.imagesStructureEqual(prev.images, incoming.images);
 
-      if (thumbnailUnchanged && processingUnchanged) {
-        if (!isEqual(prev.printSettings, incoming.printSettings)) {
-          prev.printSettings = incoming.printSettings
-            ? { ...incoming.printSettings }
-            : undefined;
-        }
+      if (thumbnailUnchanged && processingUnchanged && structureUnchanged) {
+        // Only per-page settings may have changed — patch in place, keep object identity.
+        this.applyIncomingImageSettings(prev.images, incoming.images);
         return prev;
       }
 
@@ -1176,8 +1251,59 @@ export class PrintComponent implements OnInit, OnDestroy {
     });
   }
 
-  private updatePreviewThumbnailIfChanged(file: PhPrintingFile): void {
-    const nextUrl = file.thumbnailUrl?.trim() || null;
+  /** Overlay prev's in-flight page settings onto the incoming images by id. */
+  private overlayInFlightImageSettings(
+    prev: PhPrintingFile,
+    next: PhPrintingFile,
+  ): PhPrintingFileImage[] {
+    const prevById = new Map((prev.images ?? []).map((img) => [img._id, img]));
+    return (next.images ?? []).map((img) => {
+      if (
+        img._id === this.settingsSaveInFlightForImageId &&
+        prevById.get(img._id)?.printSettings
+      ) {
+        return { ...img, printSettings: prevById.get(img._id)!.printSettings };
+      }
+      return img;
+    });
+  }
+
+  /** True when both image arrays describe the same pages (same ids in order). */
+  private imagesStructureEqual(
+    a: PhPrintingFileImage[] | undefined,
+    b: PhPrintingFileImage[] | undefined,
+  ): boolean {
+    const aa = a ?? [];
+    const bb = b ?? [];
+    if (aa.length !== bb.length) {
+      return false;
+    }
+    for (let i = 0; i < aa.length; i += 1) {
+      if (aa[i]._id !== bb[i]._id) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Copy per-page settings from incoming into existing image objects (by index, ids match). */
+  private applyIncomingImageSettings(
+    target: PhPrintingFileImage[] | undefined,
+    source: PhPrintingFileImage[] | undefined,
+  ): void {
+    const tt = target ?? [];
+    const ss = source ?? [];
+    for (let i = 0; i < tt.length; i += 1) {
+      if (!isEqual(tt[i].printSettings, ss[i]?.printSettings)) {
+        tt[i].printSettings = ss[i]?.printSettings
+          ? { ...ss[i].printSettings }
+          : undefined;
+      }
+    }
+  }
+
+  private updatePreviewThumbnailIfChanged(): void {
+    const nextUrl = this.selectedImage?.thumbnailUrl?.trim() || null;
     if (nextUrl !== this.previewThumbnailUrl) {
       this.previewThumbnailUrl = nextUrl;
     }
@@ -1191,28 +1317,31 @@ export class PrintComponent implements OnInit, OnDestroy {
       if (this.isFileProcessing(file)) {
         continue;
       }
-      if (this.fileHasValidPrintSettings(file)) {
-        continue;
-      }
-      if (this.pendingDefaultSettingsFileIds.has(file._id)) {
-        continue;
-      }
-      const defaults = this.buildDefaultPrintSettingsForFile(file);
-      if (!defaults) {
-        continue;
-      }
-      this.pendingDefaultSettingsFileIds.add(file._id);
-      this.saveFileSettings(file._id, defaults, () => {
-        this.pendingDefaultSettingsFileIds.delete(file._id);
-        if (this.selectedFile?._id === file._id) {
-          this.syncSettingsUiFromFile(this.selectedFile);
+      for (const image of this.getFileImages(file)) {
+        if (this.imageHasValidPrintSettings(image)) {
+          continue;
         }
-      });
+        const pendingKey = `${file._id}:${image._id}`;
+        if (this.pendingDefaultSettingsFileIds.has(pendingKey)) {
+          continue;
+        }
+        const defaults = this.buildDefaultPrintSettingsForImage(image);
+        if (!defaults) {
+          continue;
+        }
+        this.pendingDefaultSettingsFileIds.add(pendingKey);
+        this.saveFileSettings(file._id, image._id, defaults, () => {
+          this.pendingDefaultSettingsFileIds.delete(pendingKey);
+          if (this.selectedImage?._id === image._id) {
+            this.syncSettingsUiFromImage(this.selectedImage);
+          }
+        });
+      }
     }
   }
 
-  private fileHasValidPrintSettings(file: PhPrintingFile): boolean {
-    const ps = file.printSettings;
+  private imageHasValidPrintSettings(image: PhPrintingFileImage | null): boolean {
+    const ps = image?.printSettings;
     if (!ps || !this.product) {
       return false;
     }
@@ -1236,7 +1365,7 @@ export class PrintComponent implements OnInit, OnDestroy {
       return this.isColorIndexValidForMaterial(
         materials[materialIndex],
         Number(ps.colorIndex ?? 0),
-      ) && this.fileExtraSettingsAreValid(file);
+      ) && this.imageExtraSettingsAreValid(image);
     }
     if (this.isDynamicProduct) {
       const materialIndex = Number(ps.materialIndex ?? 0);
@@ -1265,7 +1394,7 @@ export class PrintComponent implements OnInit, OnDestroy {
       return this.isColorIndexValidForMaterial(
         this.dynamicMaterials[materialIndex],
         Number(ps.colorIndex ?? 0),
-      ) && this.fileExtraSettingsAreValid(file);
+      ) && this.imageExtraSettingsAreValid(image);
     }
     return false;
   }
@@ -1322,11 +1451,13 @@ export class PrintComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  private buildDefaultPrintSettingsForFile(file: PhPrintingFile): PhPrintingFilePrintSettings | null {
+  private buildDefaultPrintSettingsForImage(
+    image: PhPrintingFileImage | null,
+  ): PhPrintingFilePrintSettings | null {
     if (!this.product) {
       return null;
     }
-    const ps = file.printSettings;
+    const ps = image?.printSettings;
     if (this.isFixedProduct) {
       const sizeIndex = Number.isInteger(Number(ps?.sizeIndex)) && Number(ps?.sizeIndex) >= 0
         ? Number(ps?.sizeIndex)
@@ -1402,9 +1533,9 @@ export class PrintComponent implements OnInit, OnDestroy {
     if (!this.product) {
       return;
     }
-    if (this.hasSettingsReadyFile && this.selectedFile) {
+    if (this.hasSettingsReadyFile && this.selectedImage) {
       this.refreshResolvedFileDimensions();
-      this.syncSettingsUiFromFile(this.selectedFile);
+      this.syncSettingsUiFromImage(this.selectedImage);
     } else {
       this.refreshResolvedFileDimensions();
       this.syncSettingsUiToProductDefaults();
@@ -1459,14 +1590,14 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
   }
 
-  private syncSettingsUiFromFile(file: PhPrintingFile): void {
-    if (!this.product || this.isFileProcessing(file)) {
+  private syncSettingsUiFromImage(image: PhPrintingFileImage | null): void {
+    if (!this.product || !image) {
       return;
     }
 
     this.suppressSettingsPersist = true;
     try {
-      const ps = file.printSettings;
+      const ps = image.printSettings;
       if (this.isFixedProduct) {
         const sizeIndex =
           ps?.sizeIndex != null && Number.isFinite(Number(ps.sizeIndex))
@@ -1599,18 +1730,19 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   private persistCurrentFileSettings(): void {
-    if (!this.selectedFile?._id) {
+    if (!this.selectedFile?._id || !this.selectedImage?._id) {
       return;
     }
     const settings = this.buildSettingsFromUi();
     if (!settings) {
       return;
     }
-    this.saveFileSettings(this.selectedFile._id, settings);
+    this.saveFileSettings(this.selectedFile._id, this.selectedImage._id, settings);
   }
 
   private saveFileSettings(
     fileId: string,
+    imageId: string,
     printSettings: PhPrintingFilePrintSettings,
     onDone?: () => void,
   ): void {
@@ -1621,43 +1753,54 @@ export class PrintComponent implements OnInit, OnDestroy {
 
     this.isUpdatingFileSettings = true;
     this.settingsSaveInFlightForFileId = fileId;
-    this.patchFilePrintSettings(fileId, printSettings);
+    this.settingsSaveInFlightForImageId = imageId;
+    this.patchImagePrintSettings(fileId, imageId, printSettings);
 
     this.phPrintingFilesService
-      .updateFileSettings(fileId, printSettings, this.productId)
+      .updateFileSettings(fileId, imageId, printSettings, this.productId)
       .subscribe({
         next: (res) => {
           this.isUpdatingFileSettings = false;
           this.settingsSaveInFlightForFileId = null;
-          if (res.file?.printSettings) {
-            this.patchFilePrintSettings(fileId, res.file.printSettings);
+          this.settingsSaveInFlightForImageId = null;
+          const savedImage = (res.file?.images ?? []).find((img) => img._id === imageId);
+          if (savedImage?.printSettings) {
+            this.patchImagePrintSettings(fileId, imageId, savedImage.printSettings);
           }
-          if (this.selectedFile?._id === fileId) {
-            this.syncSettingsUiFromFile(this.selectedFile);
+          if (this.selectedImage?._id === imageId) {
+            this.syncSettingsUiFromImage(this.selectedImage);
           }
           onDone?.();
         },
         error: () => {
           this.isUpdatingFileSettings = false;
           this.settingsSaveInFlightForFileId = null;
+          this.settingsSaveInFlightForImageId = null;
           onDone?.();
         },
       });
   }
 
-  private patchFilePrintSettings(
+  private patchImagePrintSettings(
     fileId: string,
+    imageId: string,
     printSettings: PhPrintingFilePrintSettings,
   ): void {
     const nextSettings = { ...printSettings };
-    for (const file of this.files) {
-      if (file._id === fileId) {
-        file.printSettings = nextSettings;
-        break;
+    const patch = (file: PhPrintingFile | null) => {
+      if (!file || file._id !== fileId) {
+        return;
       }
+      const image = this.getFileImages(file).find((img) => img._id === imageId);
+      if (image) {
+        image.printSettings = nextSettings;
+      }
+    };
+    for (const file of this.files) {
+      patch(file);
     }
-    if (this.selectedFile?._id === fileId) {
-      this.selectedFile.printSettings = nextSettings;
+    if (this.selectedImage?._id === imageId) {
+      this.selectedImage.printSettings = nextSettings;
     }
   }
 
@@ -1679,8 +1822,8 @@ export class PrintComponent implements OnInit, OnDestroy {
     const minH = Number(material.minLength);
     const maxH = Number(material.maxLength);
 
-    const originalWidth = Number(this.selectedFile.printSettings?.widthCm ?? width);
-    const originalHeight = Number(this.selectedFile.printSettings?.lengthCm ?? height);
+    const originalWidth = Number(this.selectedImage?.printSettings?.widthCm ?? width);
+    const originalHeight = Number(this.selectedImage?.printSettings?.lengthCm ?? height);
 
     const bigMax = Math.max(maxW, maxH);
     const smallMax = Math.min(maxW, maxH);

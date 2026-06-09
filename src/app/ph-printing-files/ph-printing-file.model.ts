@@ -19,6 +19,25 @@ export interface PhPrintingFilePrintSettings extends PhPrintingFileExtraSelectio
   widthCm?: number;
 }
 
+/**
+ * A single page of a printing file. Multi-page files (PDF and other formats) are
+ * split into one image per page; thumbnail, dimensions, DPI and (per-product,
+ * resolved) print settings live here. Mirrors the mean-corse-01 plotter model.
+ */
+export interface PhPrintingFileImage {
+  _id: string;
+  /** 1-based page number within the source file. */
+  page: number;
+  thumbnailUrl?: string | null;
+  thumbnailKey?: string | null;
+  /** Original page pixel dimensions (at origImageDPI). */
+  imageWidth?: number | null;
+  imageHeight?: number | null;
+  origImageDPI?: number | null;
+  /** Resolved settings for the currently selected product. */
+  printSettings?: PhPrintingFilePrintSettings;
+}
+
 export interface PhPrintingFile {
   _id: string;
   created: string;
@@ -29,12 +48,8 @@ export interface PhPrintingFile {
   fileSize?: number;
   fileType?: string;
   originalUrl: string;
-  thumbnailUrl?: string | null;
-  thumbnailKey?: string | null;
   processing: boolean;
-  /** Original file pixel dimensions (at origImageDPI), same semantics as mean-corse express images. */
-  imageWidth?: number | null;
-  imageHeight?: number | null;
-  origImageDPI?: number | null;
-  printSettings?: PhPrintingFilePrintSettings;
+  processingError?: boolean;
+  /** Per-page data: thumbnail, dimensions, DPI and resolved print settings. */
+  images: PhPrintingFileImage[];
 }
