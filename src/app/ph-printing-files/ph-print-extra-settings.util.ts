@@ -100,6 +100,14 @@ export function isDoubleSidedRequired(ctx: ExtraSettingsContext): boolean {
   return getExtraSettingMode(node, 'double-sided') === 'required';
 }
 
+/** True when the resolved tree context crosses into or out of required double-sided mode. */
+export function didDoubleSidedRequiredChange(
+  previousCtx: ExtraSettingsContext,
+  nextCtx: ExtraSettingsContext,
+): boolean {
+  return isDoubleSidedRequired(previousCtx) !== isDoubleSidedRequired(nextCtx);
+}
+
 export function getExtraSettingMode(
   node: PhTreeExtraSettings,
   key: ExtraSettingKey,

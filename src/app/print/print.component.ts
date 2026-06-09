@@ -26,6 +26,8 @@ import {
   buildExtraSettingsContext,
   buildVisibleExtraSettingRows,
   buildPersistedExtraSelections,
+  didDoubleSidedRequiredChange,
+  ExtraSettingsContext,
   EXTRA_OPTION_NONE_INDEX,
   isDoubleSidedRequired,
   reconcileExtraUiStateOnTreeChange,
@@ -148,6 +150,9 @@ export class PrintComponent implements OnInit, OnDestroy {
   private settingsSaveInFlightForImageId: string | null = null;
   private pendingDefaultSettingsFileIds = new Set<string>();
   private suppressSettingsPersist = false;
+  /** Stable duplex-pair sidebar mode for the whole order (not per selected page). */
+  private orderDoubleSidedRequired: boolean | null = null;
+  private isNormalizingDoubleSidedSettings = false;
   private fileDimensionsResolveToken = 0;
   resolvedFileDimensions: { widthCm: string; heightCm: string } | null = null;
 
@@ -474,10 +479,13 @@ export class PrintComponent implements OnInit, OnDestroy {
     return this.getFileImages(file).length > 1;
   }
 
-  /** True when double-sided is required for the current product settings context. */
+  /** True when double-sided is required for the current order (stable while browsing files). */
   isDuplexPairingModeActive(): boolean {
     if (!this.product) {
       return false;
+    }
+    if (this.orderDoubleSidedRequired !== null) {
+      return this.orderDoubleSidedRequired;
     }
     return isDoubleSidedRequired(this.getCurrentExtraSettingsContext());
   }
@@ -601,18 +609,45 @@ export class PrintComponent implements OnInit, OnDestroy {
     if (this.isFileProcessing(file) || !image) {
       return;
     }
-    if (this.isDuplexPairingModeActive()) {
+
+    const previousCtx = this.selectedImage
+      ? this.getExtraSettingsContextForImage(this.selectedImage)
+      : null;
+    const nextCtx = this.getExtraSettingsContextForImage(image);
+    const previousRequired =
+      previousCtx != null
+        ? isDoubleSidedRequired(previousCtx)
+        : this.orderDoubleSidedRequired;
+    const nextRequired = isDoubleSidedRequired(nextCtx);
+
+    if (this.isDuplexPairingModeActive() || nextRequired) {
       const pair = findDuplexPairForSide(this.getDuplexPairEntries(), file._id, image._id);
       if (pair?.isIncomplete) {
         return;
       }
     }
+
     this.selectedFile = file;
     this.selectedImage = image;
     this.currentImageIndex = index;
     this.previewThumbnailUrl = image.thumbnailUrl?.trim() || null;
     this.refreshResolvedFileDimensions();
     this.syncSettingsUiFromImage(image);
+
+    const modeChanged =
+      previousRequired !== null && previousRequired !== nextRequired;
+
+    if (modeChanged) {
+      this.syncOrderDoubleSidedRequired(nextCtx);
+      this.propagateCurrentSettingsToAllFiles();
+      return;
+    }
+
+    if (this.orderDoubleSidedRequired === null) {
+      this.syncOrderDoubleSidedRequired(nextCtx);
+    }
+
+    this.ensureConsistentDoubleSidedSettings();
   }
 
   trackFileById(_index: number, file: PhPrintingFile): string {
@@ -790,7 +825,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.rebuildExtraSettingRows();
     this.printingLengthCm = Number(size.length);
     this.printingWidthCm = Number(size.width);
-    this.persistCurrentFileSettings();
+    this.persistSettingsAfterContextChange(previousExtraCtx);
   }
 
   onMaterialChange(materialIndex: number): void {
@@ -841,7 +876,7 @@ export class PrintComponent implements OnInit, OnDestroy {
         this.printingLengthCm = Number(material.defaultLength);
         this.printingWidthCm = Number(material.defaultHeight);
       }
-      this.persistCurrentFileSettings();
+      this.persistSettingsAfterContextChange(previousExtraCtx);
       return;
     }
 
@@ -883,7 +918,7 @@ export class PrintComponent implements OnInit, OnDestroy {
         previousExtraUi,
       );
       this.rebuildExtraSettingRows();
-      this.persistCurrentFileSettings();
+      this.persistSettingsAfterContextChange(previousExtraCtx);
     }
   }
 
@@ -909,7 +944,7 @@ export class PrintComponent implements OnInit, OnDestroy {
       previousExtraUi,
     );
     this.rebuildExtraSettingRows();
-    this.persistCurrentFileSettings();
+    this.persistSettingsAfterContextChange(previousExtraCtx);
   }
 
   onExtraSettingEnabledChange(key: ExtraSettingKey, enabled: boolean): void {
@@ -1312,6 +1347,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.extraSettingRows = [];
     this.printingLengthCm = 0;
     this.printingWidthCm = 0;
+    this.orderDoubleSidedRequired = null;
   }
 
   private rebuildExtraSettingRows(): void {
@@ -1521,6 +1557,9 @@ export class PrintComponent implements OnInit, OnDestroy {
     prevSelectedFileId = this.selectedFile?._id ?? null,
     prevSelectedImageId = this.selectedImage?._id ?? null,
   ): void {
+    if (this.isNormalizingDoubleSidedSettings) {
+      return;
+    }
 
     // Compare server payload before merge mutates this.files in place (isEqual(merged, this.files) is always true after soft merge).
     if (this.isSameFileListPollState(nextFiles, this.files)) {
@@ -1574,6 +1613,8 @@ export class PrintComponent implements OnInit, OnDestroy {
     } else if (!this.selectedFile && this.product) {
       this.clearSettingsUiUnselected();
     }
+
+    this.ensureConsistentDoubleSidedSettings();
   }
 
   /** True when poll payload matches local list — compare before in-place merge. */
@@ -2143,6 +2184,130 @@ export class PrintComponent implements OnInit, OnDestroy {
       return;
     }
     this.saveFileSettings(this.selectedFile._id, this.selectedImage._id, settings);
+  }
+
+  /**
+   * When required double-sided mode toggles (size/material/color tree change),
+   * reset every ready file page to the current panel settings.
+   */
+  private persistSettingsAfterContextChange(previousExtraCtx: ExtraSettingsContext): void {
+    if (
+      didDoubleSidedRequiredChange(previousExtraCtx, this.getCurrentExtraSettingsContext())
+    ) {
+      this.syncOrderDoubleSidedRequired();
+      this.propagateCurrentSettingsToAllFiles();
+      return;
+    }
+    this.persistCurrentFileSettings();
+  }
+
+  private syncOrderDoubleSidedRequired(ctx?: ExtraSettingsContext): void {
+    this.orderDoubleSidedRequired = isDoubleSidedRequired(
+      ctx ?? this.getCurrentExtraSettingsContext(),
+    );
+  }
+
+  /** Align all ready pages when saved settings disagree on required double-sided mode. */
+  private ensureConsistentDoubleSidedSettings(): void {
+    if (
+      !this.product ||
+      this.isNormalizingDoubleSidedSettings ||
+      this.isUpdatingFileSettings
+    ) {
+      return;
+    }
+
+    const readyImages: PhPrintingFileImage[] = [];
+    for (const file of this.files) {
+      if (this.isFileProcessing(file)) {
+        continue;
+      }
+      for (const image of this.getFileImages(file)) {
+        if (this.imageHasValidPrintSettings(image)) {
+          readyImages.push(image);
+        }
+      }
+    }
+
+    if (!readyImages.length) {
+      this.orderDoubleSidedRequired = null;
+      return;
+    }
+
+    const canonicalImage =
+      this.selectedImage && this.imageHasValidPrintSettings(this.selectedImage)
+        ? this.selectedImage
+        : readyImages[0];
+    const canonicalCtx = this.getExtraSettingsContextForImage(canonicalImage);
+    const canonicalRequired = isDoubleSidedRequired(canonicalCtx);
+
+    if (this.orderDoubleSidedRequired === null) {
+      this.syncOrderDoubleSidedRequired(canonicalCtx);
+    }
+
+    const modeMismatch = readyImages.some(
+      (image) =>
+        isDoubleSidedRequired(this.getExtraSettingsContextForImage(image)) !==
+        canonicalRequired,
+    );
+
+    if (!modeMismatch) {
+      return;
+    }
+
+    this.syncOrderDoubleSidedRequired(canonicalCtx);
+    this.syncSettingsUiFromImage(canonicalImage);
+    this.propagateCurrentSettingsToAllFiles();
+  }
+
+  private propagateCurrentSettingsToAllFiles(): void {
+    const settings = this.buildSettingsFromUi();
+    if (!settings || !this.productId) {
+      return;
+    }
+
+    const targets: { fileId: string; imageId: string }[] = [];
+    for (const file of this.files) {
+      if (this.isFileProcessing(file)) {
+        continue;
+      }
+      for (const image of this.getFileImages(file)) {
+        if (image._id) {
+          targets.push({ fileId: file._id, imageId: image._id });
+        }
+      }
+    }
+    if (!targets.length) {
+      return;
+    }
+
+    for (const target of targets) {
+      this.patchImagePrintSettings(target.fileId, target.imageId, settings);
+    }
+
+    const prevSelectedFileId = this.selectedFile?._id ?? null;
+    const prevSelectedImageId = this.selectedImage?._id ?? null;
+
+    this.isNormalizingDoubleSidedSettings = true;
+    this.isUpdatingFileSettings = true;
+    this.phPrintingFilesService
+      .updateAllFileSettings(settings, this.productId, this.printingHouseId)
+      .subscribe({
+        next: (res) => {
+          this.isUpdatingFileSettings = false;
+          this.isNormalizingDoubleSidedSettings = false;
+          this.syncOrderDoubleSidedRequired();
+          this.applyFilesFromServer(
+            res.files ?? [],
+            prevSelectedFileId,
+            prevSelectedImageId,
+          );
+        },
+        error: () => {
+          this.isUpdatingFileSettings = false;
+          this.isNormalizingDoubleSidedSettings = false;
+        },
+      });
   }
 
   private saveFileSettings(

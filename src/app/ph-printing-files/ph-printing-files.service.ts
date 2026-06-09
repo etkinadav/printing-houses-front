@@ -35,6 +35,13 @@ export interface PhPrintingFileSettingsResponse {
   fileId: string;
 }
 
+export interface PhPrintingFilesBulkSettingsResponse {
+  message: string;
+  files: PhPrintingFile[];
+  updatedFileCount: number;
+  updatedImageCount: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PhPrintingFilesService {
   constructor(private http: HttpClient) {}
@@ -65,6 +72,21 @@ export class PhPrintingFilesService {
       printSettings,
       productId,
     });
+  }
+
+  updateAllFileSettings(
+    printSettings: PhPrintingFilePrintSettings,
+    productId: string,
+    printingHouseId?: string,
+  ): Observable<PhPrintingFilesBulkSettingsResponse> {
+    return this.http.put<PhPrintingFilesBulkSettingsResponse>(
+      `${BACKEND_URL}/mine/settings-all`,
+      {
+        printSettings,
+        productId,
+        printingHouseId: printingHouseId?.trim() || undefined,
+      },
+    );
   }
 
   deleteFile(fileId: string): Observable<PhPrintingFileDeleteResponse> {
