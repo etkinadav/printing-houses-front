@@ -1,0 +1,506 @@
+// mean-corse ph-printing-table — keep in sync with ph-print-preview-layout.util.ts
+$ph-preview-dim-band-px: 16px;
+$ph-preview-dim-top-label-px: 29px;
+$ph-preview-dim-side-gutter-px: 60px;
+$ph-preview-dim-top-gutter-px: $ph-preview-dim-band-px + $ph-preview-dim-top-label-px;
+$ph-preview-dim-side-label-offset-px: 15px;
+
+.ph-print-preview-host {
+
+  min-width: 0;
+
+  min-height: 0;
+
+  overflow: hidden;
+
+  box-sizing: border-box;
+
+}
+
+
+
+.ph-print-preview-bundle {
+
+  position: relative;
+
+  flex-shrink: 0;
+
+  box-sizing: content-box;
+
+  overflow: visible;
+
+  // Symmetric gutters: sheet centered; RTL side dims sit in the left gutter
+
+  padding: $ph-preview-dim-top-gutter-px $ph-preview-dim-side-gutter-px;
+
+}
+
+
+
+.ph-print-preview-stage {
+
+  flex-shrink: 0;
+
+}
+
+
+
+// Dimension lines — mean-corse .dimm-container-*
+
+.ph-print-preview-dim-top {
+
+  position: absolute;
+
+  width: 100%;
+
+  height: $ph-preview-dim-band-px;
+
+  top: -$ph-preview-dim-band-px;
+
+  left: 0;
+
+  display: flex;
+
+  flex-direction: row;
+
+  pointer-events: none;
+
+  box-sizing: border-box;
+
+}
+
+
+
+.ph-print-preview-dim-top-segment {
+
+  min-width: 0;
+
+  box-sizing: border-box;
+
+}
+
+
+
+.ph-print-preview-dim-top-inner {
+
+  position: relative;
+
+  width: 100%;
+
+  height: 100%;
+
+  display: flex;
+
+  flex-direction: column;
+
+  box-sizing: border-box;
+
+}
+
+
+
+.ph-print-preview-dim-up-lines {
+
+  width: 100%;
+
+  height: 60%;
+
+  border-left: 1px solid var(--zx-gray-mid, #999);
+
+  border-right: 1px solid var(--zx-gray-mid, #999);
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: center;
+
+  box-sizing: border-box;
+
+}
+
+
+
+.ph-print-preview-dim-up-line {
+
+  width: 100%;
+
+  border-bottom: 1px solid var(--zx-gray-mid, #999);
+
+  box-sizing: border-box;
+
+}
+
+
+
+.ph-print-preview-dim-label--top {
+
+  position: absolute;
+
+  top: -$ph-preview-dim-top-label-px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  transform: translateX(50%);
+
+  white-space: nowrap;
+
+  line-height: 1;
+
+}
+
+
+
+.ph-print-preview-dim-label--top-not-rtl {
+
+  transform: translateX(-50%);
+
+}
+
+
+
+.ph-print-preview-dim-side {
+
+  position: absolute;
+
+  height: 100%;
+
+  width: $ph-preview-dim-band-px;
+
+  left: -$ph-preview-dim-band-px;
+
+  top: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  pointer-events: none;
+
+  overflow: visible;
+
+  box-sizing: border-box;
+
+}
+
+
+
+.ph-print-preview-bundle--not-rtl .ph-print-preview-dim-side {
+
+  left: unset;
+
+  right: -$ph-preview-dim-band-px;
+
+}
+
+
+
+.ph-print-preview-dim-side-segment {
+
+  width: 100%;
+
+  min-height: 0;
+
+  overflow: visible;
+
+  box-sizing: border-box;
+
+}
+
+
+
+.ph-print-preview-dim-side-segment > .h-100 {
+
+  flex: 0 0 0;
+
+  width: 0;
+
+  overflow: visible;
+
+}
+
+
+
+.ph-print-preview-dim-side-inner {
+
+  position: relative;
+
+  flex: 1 1 auto;
+
+  width: 100%;
+
+  height: 100%;
+
+  min-width: 0;
+
+  display: flex;
+
+  flex-direction: row-reverse;
+
+  box-sizing: border-box;
+
+}
+
+
+
+.ph-print-preview-dim-side-lines {
+
+  height: 100%;
+
+  width: 60%;
+
+  border-top: 1px solid var(--zx-gray-mid, #999);
+
+  border-bottom: 1px solid var(--zx-gray-mid, #999);
+
+  display: flex;
+
+  justify-content: center;
+
+  box-sizing: border-box;
+
+}
+
+
+
+.ph-print-preview-dim-side-line {
+
+  height: 100%;
+
+  border-left: 1px solid var(--zx-gray-mid, #999);
+
+  box-sizing: border-box;
+
+}
+
+
+
+.ph-print-preview-dim-label--side {
+
+  position: absolute;
+
+  top: 0;
+
+  left: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  transform: translate(calc(-50% - #{$ph-preview-dim-side-label-offset-px}), -50%);
+
+  white-space: nowrap;
+
+  line-height: 1;
+
+}
+
+
+
+.ph-print-preview-bundle--not-rtl .ph-print-preview-dim-label--side {
+
+  left: unset;
+
+  right: 0;
+
+  transform: translate(50%, -50%);
+
+}
+
+
+
+.ph-print-preview-sheet {
+
+  position: relative;
+
+  display: grid;
+
+  overflow: hidden;
+
+  box-sizing: border-box;
+
+
+
+  *,
+
+  *::before,
+
+  *::after {
+
+    box-sizing: border-box;
+
+  }
+
+}
+
+
+
+.ph-print-preview-image-layer {
+
+  position: relative;
+
+  overflow: hidden;
+
+  min-width: 0;
+
+  min-height: 0;
+
+}
+
+
+
+.ph-print-preview-image-layer--bleed {
+
+  z-index: 0;
+
+}
+
+
+
+.ph-print-preview-image {
+
+  position: absolute;
+
+  inset: 0;
+
+  width: 100%;
+
+  height: 100%;
+
+  object-fit: cover;
+
+}
+
+
+
+.ph-print-preview-bleed-corner {
+
+  z-index: 2;
+
+  pointer-events: none;
+
+  background: #fff;
+
+}
+
+
+
+.ph-print-preview-bleed-corner--tl {
+
+  grid-area: 1 / 1 / 2 / 2;
+
+}
+
+
+
+.ph-print-preview-bleed-corner--tr {
+
+  grid-area: 1 / 3 / 2 / 4;
+
+}
+
+
+
+.ph-print-preview-bleed-corner--bl {
+
+  grid-area: 3 / 1 / 4 / 2;
+
+}
+
+
+
+.ph-print-preview-bleed-corner--br {
+
+  grid-area: 3 / 3 / 4 / 4;
+
+}
+
+
+
+.ph-print-preview-bleed-strip {
+
+  pointer-events: none;
+
+  background: rgba(255, 255, 255, 0.08);
+
+  border: none;
+
+  outline: 1px dashed rgba(0, 0, 0, 0.08);
+
+  outline-offset: -1px;
+
+  z-index: 1;
+
+}
+
+
+
+.ph-print-preview-bleed-strip--top {
+
+  grid-area: 1 / 2 / 2 / 3;
+
+}
+
+
+
+.ph-print-preview-bleed-strip--bottom {
+
+  grid-area: 3 / 2 / 4 / 3;
+
+}
+
+
+
+.ph-print-preview-bleed-strip--left {
+
+  grid-area: 2 / 1 / 3 / 2;
+
+}
+
+
+
+.ph-print-preview-bleed-strip--right {
+
+  grid-area: 2 / 3 / 3 / 4;
+
+}
+
+
+
+.ph-print-preview-bleed-outline {
+
+  grid-area: 1 / 1 / 4 / 4;
+
+  width: 100%;
+
+  height: 100%;
+
+  pointer-events: none;
+
+  z-index: 4;
+
+}
+
+
+
+.ph-print-preview-base-frame {
+
+  pointer-events: none;
+
+  z-index: 3;
+
+  border: none;
+
+  box-shadow: inset 0 0 0 2px var(--zx-green);
+
+  background: transparent;
+
+}
+
+

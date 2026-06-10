@@ -31,6 +31,8 @@ import {
   EXTRA_OPTION_NONE_INDEX,
   isDoubleSidedRequired,
   reconcileExtraUiStateOnTreeChange,
+  resolveSelectedBleed,
+  resolveSelectedCorner,
   syncExtraUiStateFromSaved,
   validateExtraSelections,
 } from '../ph-printing-files/ph-print-extra-settings.util';
@@ -57,6 +59,7 @@ import {
   PhMaterial,
   PhProduct,
   PhSize,
+  CornerType,
 } from '../ph-products/ph-product.model';
 import { PhProductsService } from '../ph-products/ph-products.service';
 import { PhPrintingHouse } from '../ph-printing-house/ph-printing-house.model';
@@ -390,6 +393,44 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
 
     return '—';
+  }
+
+  get previewBaseWidthCm(): number {
+    if (this.isFixedProduct) {
+      const size = this.selectedFixedSize ?? this.settingsPanelFixedSize;
+      return Number(size?.width ?? 0);
+    }
+    if (this.isDynamicProduct) {
+      return Number(this.printingWidthCm ?? 0);
+    }
+    return 0;
+  }
+
+  get previewBaseHeightCm(): number {
+    if (this.isFixedProduct) {
+      const size = this.selectedFixedSize ?? this.settingsPanelFixedSize;
+      return Number(size?.length ?? 0);
+    }
+    if (this.isDynamicProduct) {
+      return Number(this.printingLengthCm ?? 0);
+    }
+    return 0;
+  }
+
+  get previewBleedCm(): number {
+    return resolveSelectedBleed(this.getCurrentExtraSettingsContext(), this.extraSettingsUi)?.size ?? 0;
+  }
+
+  get previewCornerType(): CornerType | 'none' {
+    return resolveSelectedCorner(this.getCurrentExtraSettingsContext(), this.extraSettingsUi)?.type ?? 'none';
+  }
+
+  get previewCornerRadiusCm(): number {
+    const radius = resolveSelectedCorner(
+      this.getCurrentExtraSettingsContext(),
+      this.extraSettingsUi,
+    )?.radius;
+    return Number.isFinite(Number(radius)) ? Number(radius) : 0;
   }
 
   get printingHouseLogoUrl(): string {

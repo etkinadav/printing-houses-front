@@ -1150,7 +1150,7 @@
 
     <!-- Preview pane [desktop] -->
     <article
-      class="d-none d-md-flex flex-grow-1 h-100 zx-p-preview-container overflow-hidden position-relative"
+      class="d-none d-md-flex flex-grow-1 h-100 zx-p-preview-container position-relative"
       [class.bg-white]="!isDarkMode">
       <div
         id="preview-container"
@@ -1269,18 +1269,18 @@
           </article>
         </article>
 
-        <div
+        <app-ph-print-preview
           *ngIf="hasFiles && previewThumbnailUrl"
-          id="preview-paper"
-          class="bg-white shadow-85-strong d-flex flex-column justify-content-center align-items-center position-relative"
-          [class.zx-canvas-dark]="isDarkMode">
-          <div id="preview-image-container" class="position-absolute ph-print-preview-image-wrap">
-            <img
-              [src]="previewThumbnailUrl!"
-              class="zx-preview-img ph-print-preview-img"
-              alt="" />
-          </div>
-        </div>
+          class="w-100 h-100"
+          [imageUrl]="previewThumbnailUrl"
+          [baseWidthCm]="previewBaseWidthCm"
+          [baseHeightCm]="previewBaseHeightCm"
+          [bleedCm]="previewBleedCm"
+          [cornerType]="previewCornerType"
+          [cornerRadiusCm]="previewCornerRadiusCm"
+          [isRTL]="isRTL"
+          [isDarkMode]="isDarkMode">
+        </app-ph-print-preview>
       </div>
     </article>
   </div>

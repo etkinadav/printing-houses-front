@@ -398,6 +398,53 @@ function readIndex(saved: PhPrintingFileExtraSelections | undefined, key: ExtraS
   return Number.isInteger(raw) && (raw as number) >= 0 ? (raw as number) : 0;
 }
 
+export function resolveSelectedBleed(
+  ctx: ExtraSettingsContext,
+  uiState: ExtraSettingsUiStateMap,
+): { size: number } | null {
+  const node = resolveExtraSettingNode(ctx, 'bleed');
+  if (!node) {
+    return null;
+  }
+  const mode = getExtraSettingMode(node, 'bleed');
+  const optionCount = getExtraSettingOptionCount(node, 'bleed');
+  if (optionCount === 0) {
+    return null;
+  }
+  const state = uiState['bleed'] ?? buildDefaultExtraUiState(ctx, 'bleed');
+  if (mode === 'optional' && !state.enabled) {
+    return null;
+  }
+  const index = Math.min(Math.max(0, state.selectedIndex), optionCount - 1);
+  const bleed = node.bleeds?.[index];
+  const size = Number(bleed?.size);
+  if (!Number.isFinite(size) || size <= 0) {
+    return null;
+  }
+  return { size };
+}
+
+export function resolveSelectedCorner(
+  ctx: ExtraSettingsContext,
+  uiState: ExtraSettingsUiStateMap,
+): PhCorner | null {
+  const node = resolveExtraSettingNode(ctx, 'corners');
+  if (!node) {
+    return null;
+  }
+  const mode = getExtraSettingMode(node, 'corners');
+  const optionCount = getExtraSettingOptionCount(node, 'corners');
+  if (optionCount === 0) {
+    return null;
+  }
+  const state = uiState['corners'] ?? buildDefaultExtraUiState(ctx, 'corners');
+  if (mode === 'optional' && !state.enabled) {
+    return null;
+  }
+  const index = Math.min(Math.max(0, state.selectedIndex), optionCount - 1);
+  return node.corners?.[index] ?? null;
+}
+
 export function buildDefaultExtraUiState(
   ctx: ExtraSettingsContext,
   key: ExtraSettingKey,
