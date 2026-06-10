@@ -8,8 +8,8 @@
     [class.ph-print-preview-bundle--not-rtl]="!isRTL">
     <div
       class="ph-print-preview-stage position-relative"
-      [class.bg-white]="!layout.hasBleed"
-      [class.shadow-85-strong]="!layout.hasBleed"
+      [class.bg-white]="!layout.hasBleed && !layout.hasCornerShape"
+      [class.shadow-85-strong]="!layout.hasBleed && !layout.hasCornerShape"
       [class.ph-print-preview-stage--bleed]="layout.hasBleed"
       [style.width.px]="layout.sheetWidthPx"
       [style.height.px]="layout.sheetHeightPx">
@@ -109,30 +109,21 @@
     <!-- Print sheet -->
 
     <div
-
       class="ph-print-preview-sheet w-100 h-100"
-
       [class.ph-print-preview-sheet--bleed]="layout.hasBleed"
-
+      [class.ph-print-preview-sheet--corner-shape]="layout.hasCornerShape"
       [style.grid-template-columns]="
-
         layout.hasBleed
-
           ? layout.bleedPx + 'px ' + layout.baseWidthPx + 'px ' + layout.bleedPx + 'px'
-
           : layout.baseWidthPx + 'px'
-
       "
-
       [style.grid-template-rows]="
-
         layout.hasBleed
-
           ? layout.bleedPx + 'px ' + layout.baseHeightPx + 'px ' + layout.bleedPx + 'px'
-
           : layout.baseHeightPx + 'px'
-
-      ">
+      "
+      [style.clip-path]="layout.sheetClipPath"
+      [style.border-radius.px]="layout.sheetBorderRadiusPx">
 
       <!-- Image: base only, or cross-shaped bleed area (corners excluded) -->
 
@@ -150,47 +141,57 @@
       <!-- Bleed: corner squares stay paper-only (no image between arms) -->
 
       <ng-container *ngIf="layout.hasBleed">
-
-        <div class="ph-print-preview-bleed-corner ph-print-preview-bleed-corner--tl"></div>
-
-        <div class="ph-print-preview-bleed-corner ph-print-preview-bleed-corner--tr"></div>
-
-        <div class="ph-print-preview-bleed-corner ph-print-preview-bleed-corner--bl"></div>
-
-        <div class="ph-print-preview-bleed-corner ph-print-preview-bleed-corner--br"></div>
+        <div
+          *ngIf="!layout.hasCornerShape"
+          class="ph-print-preview-bleed-corner ph-print-preview-bleed-corner--tl"></div>
+        <div
+          *ngIf="!layout.hasCornerShape"
+          class="ph-print-preview-bleed-corner ph-print-preview-bleed-corner--tr"></div>
+        <div
+          *ngIf="!layout.hasCornerShape"
+          class="ph-print-preview-bleed-corner ph-print-preview-bleed-corner--bl"></div>
+        <div
+          *ngIf="!layout.hasCornerShape"
+          class="ph-print-preview-bleed-corner ph-print-preview-bleed-corner--br"></div>
 
         <div class="ph-print-preview-bleed-strip ph-print-preview-bleed-strip--top"></div>
-
         <div class="ph-print-preview-bleed-strip ph-print-preview-bleed-strip--bottom"></div>
-
         <div class="ph-print-preview-bleed-strip ph-print-preview-bleed-strip--left"></div>
-
         <div class="ph-print-preview-bleed-strip ph-print-preview-bleed-strip--right"></div>
 
         <svg
-
           *ngIf="layout.bleedOutlinePolygonPoints"
-
           class="ph-print-preview-bleed-outline"
-
           [attr.viewBox]="'0 0 ' + layout.sheetWidthPx + ' ' + layout.sheetHeightPx"
-
           preserveAspectRatio="none">
-
           <polygon
-
             [attr.points]="layout.bleedOutlinePolygonPoints"
-
             fill="none"
-
             stroke="var(--zx-green)"
-
             stroke-width="2"
-
             vector-effect="non-scaling-stroke" />
-
         </svg>
 
+        <svg
+          *ngIf="layout.hasCornerShape && (layout.sheetOutlinePolygonPoints || layout.sheetOutlinePath)"
+          class="ph-print-preview-sheet-outline"
+          [attr.viewBox]="'0 0 ' + layout.sheetWidthPx + ' ' + layout.sheetHeightPx"
+          preserveAspectRatio="none">
+          <polygon
+            *ngIf="layout.sheetOutlinePolygonPoints"
+            [attr.points]="layout.sheetOutlinePolygonPoints"
+            fill="none"
+            stroke="var(--zx-green)"
+            stroke-width="2"
+            vector-effect="non-scaling-stroke" />
+          <path
+            *ngIf="layout.sheetOutlinePath"
+            [attr.d]="layout.sheetOutlinePath"
+            fill="none"
+            stroke="var(--zx-green)"
+            stroke-width="2"
+            vector-effect="non-scaling-stroke" />
+        </svg>
       </ng-container>
 
 
@@ -200,10 +201,11 @@
         class="ph-print-preview-base-frame"
         [class.ph-print-preview-base-frame--rounded]="cornerType === 'rounded'"
         [class.ph-print-preview-base-frame--chamfer]="cornerType === 'chamfer'"
+        [class.ph-print-preview-base-frame--outline-hidden]="layout.hasBleed && layout.hasCornerShape"
         [style.grid-area]="layout.hasBleed ? '2 / 2 / 3 / 3' : '1 / 1 / 2 / 2'"
         [style.border-radius.px]="cornerType === 'rounded' ? layout.cornerRadiusPx : 0">
         <svg
-          *ngIf="cornerType === 'chamfer' && layout.chamferOutlinePolygonPoints"
+          *ngIf="cornerType === 'chamfer' && layout.chamferOutlinePolygonPoints && !(layout.hasBleed && layout.hasCornerShape)"
           class="ph-print-preview-base-frame-outline"
           [attr.viewBox]="'0 0 ' + layout.baseWidthPx + ' ' + layout.baseHeightPx"
           preserveAspectRatio="none">
@@ -216,6 +218,7 @@
         </svg>
       </div>
 
+    </div>
     </div>
   </div>
 </div>

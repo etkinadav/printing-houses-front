@@ -23,7 +23,8 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   @Input() imageUrl: string | null = null;
   @Input() baseWidthCm = 0;
   @Input() baseHeightCm = 0;
-  @Input() bleedCm = 0;
+  /** Margin addition (duplex / תוספת שוליים) — not professional bleed. */
+  @Input() marginCm = 0;
   @Input() cornerType: CornerType | 'none' = 'none';
   @Input() cornerRadiusCm = 0;
   @Input() isRTL = false;
@@ -103,7 +104,7 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
       containerHeightPx,
       baseWidthCm: this.baseWidthCm,
       baseHeightCm: this.baseHeightCm,
-      bleedCm: this.bleedCm,
+      marginCm: this.marginCm,
       cornerType: this.cornerType,
       cornerRadiusCm: this.cornerRadiusCm,
     });

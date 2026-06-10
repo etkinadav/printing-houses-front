@@ -402,22 +402,39 @@ export function resolveSelectedBleed(
   ctx: ExtraSettingsContext,
   uiState: ExtraSettingsUiStateMap,
 ): { size: number } | null {
-  const node = resolveExtraSettingNode(ctx, 'bleed');
+  return resolveSelectedSizedExtra(ctx, uiState, 'bleed', 'bleeds');
+}
+
+/** Margin addition strips in print preview — product key `duplex` (הדפסת דופן / תוספת שוליים). */
+export function resolveSelectedDuplex(
+  ctx: ExtraSettingsContext,
+  uiState: ExtraSettingsUiStateMap,
+): { size: number } | null {
+  return resolveSelectedSizedExtra(ctx, uiState, 'duplex', 'duplexes');
+}
+
+function resolveSelectedSizedExtra(
+  ctx: ExtraSettingsContext,
+  uiState: ExtraSettingsUiStateMap,
+  key: 'bleed' | 'duplex',
+  listKey: 'bleeds' | 'duplexes',
+): { size: number } | null {
+  const node = resolveExtraSettingNode(ctx, key);
   if (!node) {
     return null;
   }
-  const mode = getExtraSettingMode(node, 'bleed');
-  const optionCount = getExtraSettingOptionCount(node, 'bleed');
+  const mode = getExtraSettingMode(node, key);
+  const optionCount = getExtraSettingOptionCount(node, key);
   if (optionCount === 0) {
     return null;
   }
-  const state = uiState['bleed'] ?? buildDefaultExtraUiState(ctx, 'bleed');
+  const state = uiState[key] ?? buildDefaultExtraUiState(ctx, key);
   if (mode === 'optional' && !state.enabled) {
     return null;
   }
   const index = Math.min(Math.max(0, state.selectedIndex), optionCount - 1);
-  const bleed = node.bleeds?.[index];
-  const size = Number(bleed?.size);
+  const entry = node[listKey]?.[index];
+  const size = Number(entry?.size);
   if (!Number.isFinite(size) || size <= 0) {
     return null;
   }

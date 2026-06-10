@@ -31,7 +31,7 @@ import {
   EXTRA_OPTION_NONE_INDEX,
   isDoubleSidedRequired,
   reconcileExtraUiStateOnTreeChange,
-  resolveSelectedBleed,
+  resolveSelectedDuplex,
   resolveSelectedCorner,
   syncExtraUiStateFromSaved,
   validateExtraSelections,
@@ -417,8 +417,9 @@ export class PrintComponent implements OnInit, OnDestroy {
     return 0;
   }
 
-  get previewBleedCm(): number {
-    return resolveSelectedBleed(this.getCurrentExtraSettingsContext(), this.extraSettingsUi)?.size ?? 0;
+  /** Extra margin strips in preview — duplex (תוספת שוליים), not bleed. */
+  get previewMarginCm(): number {
+    return resolveSelectedDuplex(this.getCurrentExtraSettingsContext(), this.extraSettingsUi)?.size ?? 0;
   }
 
   get previewCornerType(): CornerType | 'none' {
