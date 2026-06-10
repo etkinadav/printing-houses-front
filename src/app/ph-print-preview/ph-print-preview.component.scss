@@ -1,8 +1,10 @@
 // mean-corse ph-printing-table — keep in sync with ph-print-preview-layout.util.ts
 $ph-preview-dim-band-px: 16px;
 $ph-preview-dim-top-label-px: 29px;
-$ph-preview-dim-side-gutter-px: 60px;
+$ph-preview-dim-side-gutter-px: 45px;
 $ph-preview-dim-top-gutter-px: $ph-preview-dim-band-px + $ph-preview-dim-top-label-px;
+$ph-preview-bundle-pad-bottom-px: 24px;
+$ph-preview-bundle-pad-opposite-x-px: 12px;
 $ph-preview-dim-side-label-offset-px: 15px;
 
 .ph-print-preview-host {
@@ -29,13 +31,15 @@ $ph-preview-dim-side-label-offset-px: 15px;
 
   overflow: visible;
 
-  // Symmetric gutters: sheet centered; RTL side dims sit in the left gutter
-
-  padding: $ph-preview-dim-top-gutter-px $ph-preview-dim-side-gutter-px;
-
+  // RTL: wide left gutter for height dims; minimal right gutter
+  padding: $ph-preview-dim-top-gutter-px $ph-preview-bundle-pad-opposite-x-px
+    $ph-preview-bundle-pad-bottom-px $ph-preview-dim-side-gutter-px;
 }
 
-
+.ph-print-preview-bundle--not-rtl {
+  padding: $ph-preview-dim-top-gutter-px $ph-preview-dim-side-gutter-px
+    $ph-preview-bundle-pad-bottom-px $ph-preview-bundle-pad-opposite-x-px;
+}
 
 .ph-print-preview-stage {
 

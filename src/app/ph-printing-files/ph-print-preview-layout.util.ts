@@ -37,12 +37,17 @@ export interface PhPrintPreviewLayout {
 /** Bundle gutters — keep in sync with ph-print-preview.component.scss */
 export const PH_PREVIEW_DIM_BAND_PX = 16;
 export const PH_PREVIEW_DIM_TOP_LABEL_PX = 29;
-export const PH_PREVIEW_DIM_SIDE_GUTTER_PX = 60;
+export const PH_PREVIEW_DIM_SIDE_GUTTER_PX = 45;
 export const PH_PREVIEW_DIM_TOP_GUTTER_PX =
   PH_PREVIEW_DIM_BAND_PX + PH_PREVIEW_DIM_TOP_LABEL_PX;
-/** Horizontal padding on both sides so the sheet stays visually centered (RTL dims use the left gutter). */
-export const PH_PREVIEW_BUNDLE_PAD_X_PX = PH_PREVIEW_DIM_SIDE_GUTTER_PX * 2;
-export const PH_PREVIEW_BUNDLE_PAD_Y_PX = PH_PREVIEW_DIM_TOP_GUTTER_PX * 2;
+/** Bottom balance — smaller than top; top must fit dim labels (45px). */
+export const PH_PREVIEW_BUNDLE_PAD_BOTTOM_PX = 24;
+/** Side without vertical dim labels — minimal balance only. */
+export const PH_PREVIEW_BUNDLE_PAD_OPPOSITE_X_PX = 12;
+export const PH_PREVIEW_BUNDLE_PAD_X_PX =
+  PH_PREVIEW_DIM_SIDE_GUTTER_PX + PH_PREVIEW_BUNDLE_PAD_OPPOSITE_X_PX;
+export const PH_PREVIEW_BUNDLE_PAD_Y_PX =
+  PH_PREVIEW_DIM_TOP_GUTTER_PX + PH_PREVIEW_BUNDLE_PAD_BOTTOM_PX;
 
 const MIN_CONTAINER_PX = 40;
 
