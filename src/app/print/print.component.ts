@@ -475,6 +475,14 @@ export class PrintComponent implements OnInit, OnDestroy {
     return Number.isFinite(Number(offset)) ? Number(offset) : 0;
   }
 
+  get previewSheetBackgroundStyles(): Record<string, string> {
+    const color = this.selectedColor;
+    if (!color) {
+      return { backgroundColor: '#ffffff' };
+    }
+    return this.getColorSwatchStyles(color);
+  }
+
   get printingHouseLogoUrl(): string {
     const ph = this.printingHouse;
     return (ph?.logo?.url || ph?.logoUrl || '').trim();

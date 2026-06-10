@@ -34,6 +34,8 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   @Input() cornerRadiusCm = 0;
   @Input() foldingCount = 0;
   @Input() foldingOffsetCm = 0;
+  /** Product color / texture — visible through transparent image areas. */
+  @Input() sheetBackgroundStyles: Record<string, string> = { backgroundColor: '#ffffff' };
   @Input() isRTL = false;
   @Input() isDarkMode = false;
 

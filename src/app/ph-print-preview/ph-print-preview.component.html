@@ -149,6 +149,7 @@
         <div
           class="ph-print-preview-image-layer"
           [class.ph-print-preview-image-layer--bleed]="layout.hasBleed"
+          [ngStyle]="sheetBackgroundStyles"
           [style.grid-area]="layout.hasBleed ? '1 / 1 / 4 / 4' : '1 / 1 / 2 / 2'"
           [style.clip-path]="layout.imageClipPath"
           [style.border-radius.px]="layout.imageBorderRadiusPx">
