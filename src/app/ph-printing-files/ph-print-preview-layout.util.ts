@@ -63,6 +63,8 @@ export const PH_PREVIEW_BUNDLE_PAD_X_PX =
   PH_PREVIEW_DIM_SIDE_GUTTER_PX + PH_PREVIEW_BUNDLE_PAD_OPPOSITE_X_PX;
 export const PH_PREVIEW_BUNDLE_PAD_Y_PX =
   PH_PREVIEW_DIM_TOP_GUTTER_PX + PH_PREVIEW_BUNDLE_PAD_BOTTOM_PX;
+/** Vertical gap between stacked duplex previews — keep in sync with ph-print-preview.component.scss */
+export const PH_PREVIEW_DUPLEX_STACK_GAP_PX = 0;
 
 const MIN_CONTAINER_PX = 40;
 

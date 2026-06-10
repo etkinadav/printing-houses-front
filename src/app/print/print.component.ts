@@ -417,6 +417,30 @@ export class PrintComponent implements OnInit, OnDestroy {
     return 0;
   }
 
+  get previewDuplexStack(): boolean {
+    const pair = this.selectedDuplexPair;
+    return (
+      this.isDuplexPairingModeActive() &&
+      !!pair &&
+      !pair.isIncomplete &&
+      !!pair.back
+    );
+  }
+
+  get previewFrontThumbnailUrl(): string | null {
+    if (this.previewDuplexStack && this.selectedDuplexPair) {
+      return this.selectedDuplexPair.front.image.thumbnailUrl?.trim() || null;
+    }
+    return this.previewThumbnailUrl;
+  }
+
+  get previewBackThumbnailUrl(): string | null {
+    if (!this.previewDuplexStack || !this.selectedDuplexPair?.back) {
+      return null;
+    }
+    return this.selectedDuplexPair.back.image.thumbnailUrl?.trim() || null;
+  }
+
   /** Extra margin strips in preview — duplex (תוספת שוליים), not bleed. */
   get previewMarginCm(): number {
     return resolveSelectedDuplex(this.getCurrentExtraSettingsContext(), this.extraSettingsUi)?.size ?? 0;

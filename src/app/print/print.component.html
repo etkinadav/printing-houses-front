@@ -1269,9 +1269,10 @@
         </article>
 
         <app-ph-print-preview
-          *ngIf="hasFiles && previewThumbnailUrl"
+          *ngIf="hasFiles && previewFrontThumbnailUrl"
           class="w-100 h-100"
-          [imageUrl]="previewThumbnailUrl"
+          [imageUrl]="previewFrontThumbnailUrl"
+          [secondImageUrl]="previewBackThumbnailUrl"
           [baseWidthCm]="previewBaseWidthCm"
           [baseHeightCm]="previewBaseHeightCm"
           [marginCm]="previewMarginCm"

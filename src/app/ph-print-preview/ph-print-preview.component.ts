@@ -5,12 +5,15 @@ import {
   Input,
   OnChanges,
   OnDestroy,
+  QueryList,
   SimpleChanges,
   ViewChild,
+  ViewChildren,
 } from '@angular/core';
 import { CornerType } from '../ph-products/ph-product.model';
 import {
   computePhPrintPreviewLayout,
+  PH_PREVIEW_DUPLEX_STACK_GAP_PX,
   PhPrintPreviewLayout,
 } from '../ph-printing-files/ph-print-preview-layout.util';
 
@@ -21,6 +24,8 @@ import {
 })
 export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() imageUrl: string | null = null;
+  /** Second page thumbnail when double-sided pairing preview is active. */
+  @Input() secondImageUrl: string | null = null;
   @Input() baseWidthCm = 0;
   @Input() baseHeightCm = 0;
   /** Margin addition (duplex / תוספת שוליים) — not professional bleed. */
@@ -31,15 +36,22 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   @Input() isDarkMode = false;
 
   @ViewChild('measureHost') measureHost?: ElementRef<HTMLElement>;
-  @ViewChild('preloadImage') preloadImage?: ElementRef<HTMLImageElement>;
+  @ViewChildren('preloadImage') preloadImages?: QueryList<ElementRef<HTMLImageElement>>;
 
   layout: PhPrintPreviewLayout | null = null;
   imageLoading = false;
+  activeImageUrls: string[] = [];
 
   private resizeObserver?: ResizeObserver;
   private measureRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private measureRetryCount = 0;
   private imageLoadRetryTimer: ReturnType<typeof setTimeout> | null = null;
+  private loadedImageUrls = new Set<string>();
+  private trackedImageUrlsKey = '';
+
+  get isDuplexStack(): boolean {
+    return this.activeImageUrls.length > 1;
+  }
 
   ngAfterViewInit(): void {
     const host = this.measureHost?.nativeElement;
@@ -57,8 +69,8 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['imageUrl']) {
-      this.beginImageLoad(changes['imageUrl'].previousValue, changes['imageUrl'].currentValue);
+    if (changes['imageUrl'] || changes['secondImageUrl']) {
+      this.beginImagesLoad();
     }
     this.scheduleLayoutRefresh();
   }
@@ -73,27 +85,49 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
     }
   }
 
-  onPreviewImageLoad(): void {
-    this.imageLoading = false;
+  trackImageUrl(_index: number, url: string): string {
+    return url;
   }
 
-  onPreviewImageError(): void {
-    this.imageLoading = false;
+  trackDimSegment(_index: number, seg: { labelCm: number; sizePx: number }): string {
+    return `${seg.labelCm}:${seg.sizePx}`;
   }
 
-  private beginImageLoad(previousUrl: string | null | undefined, nextUrl: string | null): void {
+  onPreviewImageLoaded(url: string): void {
+    this.loadedImageUrls.add(url);
+    this.syncImageLoadingState();
+  }
+
+  private buildActiveImageUrls(): string[] {
+    const front = this.imageUrl?.trim() || '';
+    const back = this.secondImageUrl?.trim() || '';
+    if (front && back) {
+      return [front, back];
+    }
+    return front ? [front] : [];
+  }
+
+  private beginImagesLoad(): void {
     if (this.imageLoadRetryTimer) {
       clearTimeout(this.imageLoadRetryTimer);
       this.imageLoadRetryTimer = null;
     }
 
-    if (!nextUrl) {
+    const nextUrls = this.buildActiveImageUrls();
+    const nextKey = nextUrls.join('\0');
+    this.activeImageUrls = nextUrls;
+
+    if (!nextUrls.length) {
       this.imageLoading = false;
+      this.loadedImageUrls.clear();
+      this.trackedImageUrlsKey = '';
       return;
     }
 
-    if (nextUrl !== previousUrl) {
+    if (nextKey !== this.trackedImageUrlsKey) {
+      this.trackedImageUrlsKey = nextKey;
       this.imageLoading = true;
+      this.loadedImageUrls.clear();
     }
 
     this.imageLoadRetryTimer = setTimeout(() => {
@@ -103,17 +137,29 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   }
 
   private finishImageLoadIfCached(): void {
-    const img = this.preloadImage?.nativeElement;
-    if (!this.imageUrl || !img) {
+    const expected = this.activeImageUrls;
+    if (!expected.length) {
       return;
     }
-    if (img.complete && img.naturalWidth > 0) {
-      this.imageLoading = false;
+
+    const refs = this.preloadImages?.toArray() ?? [];
+    for (let index = 0; index < refs.length && index < expected.length; index += 1) {
+      const img = refs[index].nativeElement;
+      if (img.complete && img.naturalWidth > 0) {
+        this.loadedImageUrls.add(expected[index]);
+      }
     }
+
+    this.syncImageLoadingState();
   }
 
-  trackDimSegment(_index: number, seg: { labelCm: number; sizePx: number }): string {
-    return `${seg.labelCm}:${seg.sizePx}`;
+  private syncImageLoadingState(): void {
+    const expected = this.activeImageUrls;
+    if (!expected.length) {
+      this.imageLoading = false;
+      return;
+    }
+    this.imageLoading = !expected.every((url) => this.loadedImageUrls.has(url));
   }
 
   private scheduleLayoutRefresh(): void {
@@ -148,9 +194,15 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
     }
 
     this.measureRetryCount = 0;
+
+    const isDuplex = this.buildActiveImageUrls().length > 1;
+    const layoutHeightPx = isDuplex
+      ? Math.max(40, (containerHeightPx - PH_PREVIEW_DUPLEX_STACK_GAP_PX) / 2)
+      : containerHeightPx;
+
     this.layout = computePhPrintPreviewLayout({
       containerWidthPx,
-      containerHeightPx,
+      containerHeightPx: layoutHeightPx,
       baseWidthCm: this.baseWidthCm,
       baseHeightCm: this.baseHeightCm,
       marginCm: this.marginCm,
