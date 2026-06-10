@@ -47,7 +47,8 @@
 <ng-template #previewBundle let-sheetImageUrl="sheetImageUrl" let-isDuplexFront="isDuplexFront">
   <div
     class="ph-print-preview-bundle"
-    [class.ph-print-preview-bundle--not-rtl]="!isRTL">
+    [class.ph-print-preview-bundle--not-rtl]="!isRTL"
+    [class.ph-print-preview-bundle--fold-dims]="layout.hasFoldDims">
     <div
       class="ph-print-preview-stage position-relative"
       [class.bg-white]="!layout.hasBleed && !layout.hasCornerShape"
@@ -72,6 +73,33 @@
             </div>
           </div>
           <div class="ph-print-preview-dim-top-inner">
+            <div class="ph-print-preview-dim-up-lines">
+              <div class="ph-print-preview-dim-up-line"></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article
+        *ngIf="layout.hasFoldDims"
+        class="ph-print-preview-dim-top-fold"
+        [style.left.px]="layout.hasBleed ? layout.bleedPx : 0"
+        [style.width.px]="layout.baseWidthPx">
+        <div
+          *ngFor="let seg of layout.baseFoldDimSegments; trackBy: trackDimSegment"
+          class="ph-print-preview-dim-top-fold-segment h-100 d-flex flex-column"
+          [style.width.px]="seg.sizePx">
+          <div class="w-100 d-flex flex-column align-items-center">
+            <div class="position-relative">
+              <div
+                class="ph-print-preview-dim-label ph-print-preview-dim-label--top-fold"
+                [class.ph-print-preview-dim-label--top-not-rtl]="!isRTL">
+                <span class="zx-text-tiny-tiny">{{ seg.labelCm }}</span>
+                <span class="zx-text-tiny-tiny">{{ 'printing-table.dimensions-cm' | translate }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="ph-print-preview-dim-top-fold-inner">
             <div class="ph-print-preview-dim-up-lines">
               <div class="ph-print-preview-dim-up-line"></div>
             </div>

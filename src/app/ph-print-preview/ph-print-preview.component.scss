@@ -3,6 +3,9 @@ $ph-preview-dim-band-px: 16px;
 $ph-preview-dim-top-label-px: 29px;
 /** Text-only offset above the dim band — smaller than gutter so the number sits closer to the line. */
 $ph-preview-dim-top-label-offset-px: 24px;
+$ph-preview-dim-top-fold-band-px: 16px;
+$ph-preview-dim-top-fold-label-offset-px: 14px;
+$ph-preview-top-gutter-fold-extra-px: $ph-preview-dim-top-fold-band-px + $ph-preview-dim-top-fold-label-offset-px;
 $ph-preview-dim-side-gutter-px: 45px;
 $ph-preview-dim-top-gutter-px: $ph-preview-dim-band-px + $ph-preview-dim-top-label-px;
 $ph-preview-bundle-pad-bottom-px: 24px;
@@ -114,6 +117,22 @@ $ph-preview-duplex-stack-gap-px: 0;
 .ph-print-preview-bundle--not-rtl {
   padding: $ph-preview-dim-top-gutter-px $ph-preview-dim-side-gutter-px
     $ph-preview-bundle-pad-bottom-px $ph-preview-bundle-pad-opposite-x-px;
+}
+
+.ph-print-preview-bundle--fold-dims {
+  padding-top: $ph-preview-dim-top-gutter-px + $ph-preview-top-gutter-fold-extra-px;
+}
+
+.ph-print-preview-bundle--fold-dims.ph-print-preview-bundle--not-rtl {
+  padding-top: $ph-preview-dim-top-gutter-px + $ph-preview-top-gutter-fold-extra-px;
+}
+
+.ph-print-preview-bundle--fold-dims .ph-print-preview-dim-top {
+  top: -($ph-preview-dim-band-px + $ph-preview-dim-top-fold-band-px);
+}
+
+.ph-print-preview-bundle--fold-dims .ph-print-preview-dim-top-fold {
+  top: -$ph-preview-dim-band-px;
 }
 
 .ph-print-preview-stage {
@@ -243,6 +262,46 @@ $ph-preview-duplex-stack-gap-px: 0;
 
   transform: translateX(-50%);
 
+}
+
+
+
+.ph-print-preview-dim-top-fold {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: row;
+  height: $ph-preview-dim-top-fold-band-px;
+  pointer-events: none;
+  z-index: 6;
+  box-sizing: border-box;
+}
+
+.ph-print-preview-dim-top-fold-segment {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.ph-print-preview-dim-top-fold-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.ph-print-preview-dim-label--top-fold {
+  position: absolute;
+  top: -$ph-preview-dim-top-fold-label-offset-px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  transform: translateX(50%);
+  white-space: nowrap;
+  line-height: 1;
 }
 
 

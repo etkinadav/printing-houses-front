@@ -58,6 +58,9 @@ export interface PhPrintPreviewLayout {
   bleedOutlinePolygonPoints: string | null;
   /** Vertical dashed fold guides within the main image area. */
   foldingLines: PhPrintPreviewFoldLine[];
+  /** Per-panel width dims below the main top line (base area only). */
+  baseFoldDimSegments: PhPrintPreviewDimSegment[];
+  hasFoldDims: boolean;
 }
 
 /** Bundle gutters — keep in sync with ph-print-preview.component.scss */
@@ -66,6 +69,12 @@ export const PH_PREVIEW_DIM_TOP_LABEL_PX = 29;
 export const PH_PREVIEW_DIM_SIDE_GUTTER_PX = 45;
 export const PH_PREVIEW_DIM_TOP_GUTTER_PX =
   PH_PREVIEW_DIM_BAND_PX + PH_PREVIEW_DIM_TOP_LABEL_PX;
+/** Fold row label space above its band — keep in sync with ph-print-preview.component.scss */
+export const PH_PREVIEW_DIM_TOP_FOLD_LABEL_PX = 14;
+/** Second top dim row height — keep in sync with ph-print-preview.component.scss */
+export const PH_PREVIEW_DIM_TOP_FOLD_BAND_PX = 16;
+export const PH_PREVIEW_TOP_GUTTER_FOLD_EXTRA_PX =
+  PH_PREVIEW_DIM_TOP_FOLD_BAND_PX + PH_PREVIEW_DIM_TOP_FOLD_LABEL_PX;
 /** Bottom balance — smaller than top; top must fit dim labels (45px). */
 export const PH_PREVIEW_BUNDLE_PAD_BOTTOM_PX = 24;
 /** Side without vertical dim labels — minimal balance only. */
@@ -74,6 +83,14 @@ export const PH_PREVIEW_BUNDLE_PAD_X_PX =
   PH_PREVIEW_DIM_SIDE_GUTTER_PX + PH_PREVIEW_BUNDLE_PAD_OPPOSITE_X_PX;
 export const PH_PREVIEW_BUNDLE_PAD_Y_PX =
   PH_PREVIEW_DIM_TOP_GUTTER_PX + PH_PREVIEW_BUNDLE_PAD_BOTTOM_PX;
+
+export function computePhPrintPreviewTopGutterPx(hasFoldDims: boolean): number {
+  return (
+    PH_PREVIEW_DIM_TOP_GUTTER_PX +
+    (hasFoldDims ? PH_PREVIEW_TOP_GUTTER_FOLD_EXTRA_PX : 0)
+  );
+}
+
 /** Vertical gap between stacked duplex previews — keep in sync with ph-print-preview.component.scss */
 export const PH_PREVIEW_DUPLEX_STACK_GAP_PX = 0;
 
@@ -107,13 +124,21 @@ export function computePhPrintPreviewLayout(
   const totalWidthCm = baseWidthCm + (hasBleed ? bleedCm * 2 : 0);
   const totalHeightCm = baseHeightCm + (hasBleed ? bleedCm * 2 : 0);
 
+  const hasFoldDims = willHaveFoldDims(
+    input.foldingCount,
+    input.foldingOffsetCm,
+    baseWidthCm,
+  );
+  const topGutterPx = computePhPrintPreviewTopGutterPx(hasFoldDims);
+  const bundlePadYPx = topGutterPx + PH_PREVIEW_BUNDLE_PAD_BOTTOM_PX;
+
   const availWidthPx = Math.max(
     1,
     input.containerWidthPx - PH_PREVIEW_BUNDLE_PAD_X_PX,
   );
   const availHeightPx = Math.max(
     1,
-    input.containerHeightPx - PH_PREVIEW_BUNDLE_PAD_Y_PX,
+    input.containerHeightPx - bundlePadYPx,
   );
 
   let factor: number;
@@ -216,37 +241,136 @@ export function computePhPrintPreviewLayout(
       baseWidthPx,
       baseWidthCm,
     ),
+    ...buildBaseFoldDimLayout(
+      input.foldingCount,
+      input.foldingOffsetCm,
+      baseWidthPx,
+      baseWidthCm,
+    ),
   };
 }
 
-/** Fold guides: count N → lines at k/(N+1) of main width; offset splits each into ±half. */
+function buildBaseFoldDimLayout(
+  foldCount: number | undefined,
+  offsetCm: number | undefined,
+  baseWidthPx: number,
+  baseWidthCm: number,
+): Pick<PhPrintPreviewLayout, 'baseFoldDimSegments' | 'hasFoldDims'> {
+  const baseFoldDimSegments = computePreviewFoldDimSegments(
+    foldCount,
+    offsetCm,
+    baseWidthPx,
+    baseWidthCm,
+  );
+  return {
+    baseFoldDimSegments,
+    hasFoldDims: baseFoldDimSegments.length > 0,
+  };
+}
+
+function willHaveFoldDims(
+  foldCount: number | undefined,
+  _offsetCm: number | undefined,
+  baseWidthCm: number,
+): boolean {
+  const count = Math.floor(Number(foldCount));
+  return Number.isFinite(count) && count > 0 && baseWidthCm > 0;
+}
+
+/** Fold guides: count N → lines at k/(N+1); with offset, equal panels + fixed offset gaps. */
 export function computePreviewFoldingLines(
   foldCount: number | undefined,
   offsetCm: number | undefined,
   baseWidthPx: number,
   baseWidthCm: number,
 ): PhPrintPreviewFoldLine[] {
+  const boundariesPx = computePreviewFoldBoundariesPx(
+    foldCount,
+    offsetCm,
+    baseWidthPx,
+    baseWidthCm,
+  );
+  if (boundariesPx.length < 2) {
+    return [];
+  }
+  return boundariesPx.slice(1, -1).map((leftPx) => ({ leftPx }));
+}
+
+/** Panel / offset boundaries left-to-right across the main image width. */
+export function computePreviewFoldBoundariesPx(
+  foldCount: number | undefined,
+  offsetCm: number | undefined,
+  baseWidthPx: number,
+  baseWidthCm: number,
+): number[] {
   const count = Math.floor(Number(foldCount));
   if (!Number.isFinite(count) || count <= 0 || baseWidthPx <= 0 || baseWidthCm <= 0) {
     return [];
   }
 
   const widthFactor = baseWidthPx / baseWidthCm;
-  const offsetPx = Math.max(0, Number(offsetCm) || 0) * widthFactor;
-  const halfOffsetPx = offsetPx / 2;
-  const lines: PhPrintPreviewFoldLine[] = [];
+  const offsetCmVal = Math.max(0, Number(offsetCm) || 0);
+  const offsetPx = offsetCmVal * widthFactor;
 
-  for (let k = 1; k <= count; k += 1) {
-    const centerPx = (baseWidthPx * k) / (count + 1);
-    if (offsetPx <= 0) {
-      lines.push({ leftPx: centerPx });
-    } else {
-      lines.push({ leftPx: centerPx - halfOffsetPx });
-      lines.push({ leftPx: centerPx + halfOffsetPx });
+  if (offsetPx <= 0) {
+    const boundaries = [0];
+    for (let k = 1; k <= count; k += 1) {
+      boundaries.push((baseWidthPx * k) / (count + 1));
     }
+    boundaries.push(baseWidthPx);
+    return boundaries;
   }
 
-  return lines;
+  const totalOffsetCm = count * offsetCmVal;
+  const panelCm = (baseWidthCm - totalOffsetCm) / (count + 1);
+  if (!Number.isFinite(panelCm) || panelCm <= 0) {
+    return [];
+  }
+
+  const panelPx = panelCm * widthFactor;
+  const boundaries = [0];
+
+  for (let k = 1; k <= count; k += 1) {
+    boundaries.push(k * panelPx + (k - 1) * offsetPx);
+    boundaries.push(k * panelPx + k * offsetPx);
+  }
+  boundaries.push(baseWidthPx);
+
+  return boundaries;
+}
+
+/** Regions between consecutive fold boundaries (includes offset gaps as own segments). */
+export function computePreviewFoldDimSegments(
+  foldCount: number | undefined,
+  offsetCm: number | undefined,
+  baseWidthPx: number,
+  baseWidthCm: number,
+): PhPrintPreviewDimSegment[] {
+  const boundariesPx = computePreviewFoldBoundariesPx(
+    foldCount,
+    offsetCm,
+    baseWidthPx,
+    baseWidthCm,
+  );
+  if (boundariesPx.length < 2 || baseWidthPx <= 0 || baseWidthCm <= 0) {
+    return [];
+  }
+
+  const segments: PhPrintPreviewDimSegment[] = [];
+
+  for (let index = 0; index < boundariesPx.length - 1; index += 1) {
+    const sizePx = boundariesPx[index + 1] - boundariesPx[index];
+    if (sizePx <= 0.5) {
+      continue;
+    }
+    const widthCm = (sizePx / baseWidthPx) * baseWidthCm;
+    segments.push({
+      sizePx,
+      labelCm: formatPreviewDimCm(widthCm),
+    });
+  }
+
+  return segments;
 }
 
 /** SVG points for the outer edge of the bleed cross (same path as image clip). */
