@@ -1,6 +1,8 @@
 // mean-corse ph-printing-table — keep in sync with ph-print-preview-layout.util.ts
 $ph-preview-dim-band-px: 16px;
 $ph-preview-dim-top-label-px: 29px;
+/** Text-only offset above the dim band — smaller than gutter so the number sits closer to the line. */
+$ph-preview-dim-top-label-offset-px: 24px;
 $ph-preview-dim-side-gutter-px: 45px;
 $ph-preview-dim-top-gutter-px: $ph-preview-dim-band-px + $ph-preview-dim-top-label-px;
 $ph-preview-bundle-pad-bottom-px: 24px;
@@ -217,13 +219,15 @@ $ph-preview-duplex-stack-gap-px: 0;
 
   position: absolute;
 
-  top: -$ph-preview-dim-top-label-px;
+  top: -$ph-preview-dim-top-label-offset-px;
 
   display: flex;
 
   flex-direction: column;
 
   align-items: center;
+
+  gap: 0;
 
   transform: translateX(50%);
 
@@ -615,8 +619,15 @@ $ph-preview-duplex-stack-gap-px: 0;
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 0;
-  border-left: 1px dashed rgba(0, 0, 0, 0.45);
+  width: 1px;
+  border: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--zx-green) 0,
+    var(--zx-green) 8px,
+    transparent 8px,
+    transparent 14px
+  );
   transform: translateX(-50%);
   box-sizing: border-box;
 }
