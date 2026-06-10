@@ -70,11 +70,15 @@ export const PH_PREVIEW_DIM_SIDE_GUTTER_PX = 45;
 export const PH_PREVIEW_DIM_TOP_GUTTER_PX =
   PH_PREVIEW_DIM_BAND_PX + PH_PREVIEW_DIM_TOP_LABEL_PX;
 /** Fold row label space above its band — keep in sync with ph-print-preview.component.scss */
-export const PH_PREVIEW_DIM_TOP_FOLD_LABEL_PX = 14;
+export const PH_PREVIEW_DIM_TOP_FOLD_LABEL_PX = 18;
 /** Second top dim row height — keep in sync with ph-print-preview.component.scss */
 export const PH_PREVIEW_DIM_TOP_FOLD_BAND_PX = 16;
+/** Extra lift for the full-width top dim row only (fold row stays put). */
+export const PH_PREVIEW_DIM_TOP_MAIN_FOLD_EXTRA_RAISE_PX = 12;
 export const PH_PREVIEW_TOP_GUTTER_FOLD_EXTRA_PX =
-  PH_PREVIEW_DIM_TOP_FOLD_BAND_PX + PH_PREVIEW_DIM_TOP_FOLD_LABEL_PX;
+  PH_PREVIEW_DIM_TOP_FOLD_BAND_PX +
+  PH_PREVIEW_DIM_TOP_FOLD_LABEL_PX +
+  PH_PREVIEW_DIM_TOP_MAIN_FOLD_EXTRA_RAISE_PX;
 /** Bottom balance — smaller than top; top must fit dim labels (45px). */
 export const PH_PREVIEW_BUNDLE_PAD_BOTTOM_PX = 24;
 /** Side without vertical dim labels — minimal balance only. */

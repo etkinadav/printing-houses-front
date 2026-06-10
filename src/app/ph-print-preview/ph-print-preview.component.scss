@@ -4,8 +4,9 @@ $ph-preview-dim-top-label-px: 29px;
 /** Text-only offset above the dim band — smaller than gutter so the number sits closer to the line. */
 $ph-preview-dim-top-label-offset-px: 24px;
 $ph-preview-dim-top-fold-band-px: 16px;
-$ph-preview-dim-top-fold-label-offset-px: 14px;
-$ph-preview-top-gutter-fold-extra-px: $ph-preview-dim-top-fold-band-px + $ph-preview-dim-top-fold-label-offset-px;
+$ph-preview-dim-top-fold-label-offset-px: 18px;
+$ph-preview-dim-top-main-fold-extra-raise-px: 12px;
+$ph-preview-top-gutter-fold-extra-px: $ph-preview-dim-top-fold-band-px + $ph-preview-dim-top-fold-label-offset-px + $ph-preview-dim-top-main-fold-extra-raise-px;
 $ph-preview-dim-side-gutter-px: 45px;
 $ph-preview-dim-top-gutter-px: $ph-preview-dim-band-px + $ph-preview-dim-top-label-px;
 $ph-preview-bundle-pad-bottom-px: 24px;
@@ -128,7 +129,10 @@ $ph-preview-duplex-stack-gap-px: 0;
 }
 
 .ph-print-preview-bundle--fold-dims .ph-print-preview-dim-top {
-  top: -($ph-preview-dim-band-px + $ph-preview-dim-top-fold-band-px);
+  top: -(
+    $ph-preview-dim-band-px + $ph-preview-dim-top-fold-band-px +
+      $ph-preview-dim-top-main-fold-extra-raise-px
+  );
 }
 
 .ph-print-preview-bundle--fold-dims .ph-print-preview-dim-top-fold {
