@@ -58,6 +58,12 @@ $ph-preview-duplex-stack-gap-px: 0;
 
 
 
+.ph-print-preview-sheet--duplex-front:not(.ph-print-preview-sheet--corner-shape) {
+  border-top-right-radius: 0.5rem;
+}
+
+
+
 .ph-print-preview-preload {
   position: absolute;
   width: 0;

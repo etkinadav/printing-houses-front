@@ -25,26 +25,26 @@
   <div
     *ngIf="isDuplexStack && layout && !imageLoading"
     class="ph-print-preview-duplex-stack w-100 h-100">
-    <div class="ph-print-preview-duplex-item">
+    <div class="ph-print-preview-duplex-item ph-print-preview-duplex-item--front">
       <ng-container
-        *ngTemplateOutlet="previewBundle; context: { sheetImageUrl: activeImageUrls[0] }">
+        *ngTemplateOutlet="previewBundle; context: { sheetImageUrl: activeImageUrls[0], isDuplexFront: true }">
       </ng-container>
     </div>
-    <div class="ph-print-preview-duplex-item">
+    <div class="ph-print-preview-duplex-item ph-print-preview-duplex-item--back">
       <ng-container
-        *ngTemplateOutlet="previewBundle; context: { sheetImageUrl: activeImageUrls[1] }">
+        *ngTemplateOutlet="previewBundle; context: { sheetImageUrl: activeImageUrls[1], isDuplexFront: false }">
       </ng-container>
     </div>
   </div>
 
   <ng-container *ngIf="!isDuplexStack && layout && activeImageUrls.length && !imageLoading">
     <ng-container
-      *ngTemplateOutlet="previewBundle; context: { sheetImageUrl: activeImageUrls[0] }">
+      *ngTemplateOutlet="previewBundle; context: { sheetImageUrl: activeImageUrls[0], isDuplexFront: false }">
     </ng-container>
   </ng-container>
 </div>
 
-<ng-template #previewBundle let-sheetImageUrl="sheetImageUrl">
+<ng-template #previewBundle let-sheetImageUrl="sheetImageUrl" let-isDuplexFront="isDuplexFront">
   <div
     class="ph-print-preview-bundle"
     [class.ph-print-preview-bundle--not-rtl]="!isRTL">
@@ -101,9 +101,10 @@
       </article>
 
       <div
-        class="ph-print-preview-sheet w-100 h-100"
-        [class.ph-print-preview-sheet--bleed]="layout.hasBleed"
-        [class.ph-print-preview-sheet--corner-shape]="layout.hasCornerShape"
+      class="ph-print-preview-sheet w-100 h-100"
+      [class.ph-print-preview-sheet--bleed]="layout.hasBleed"
+      [class.ph-print-preview-sheet--corner-shape]="layout.hasCornerShape"
+      [class.ph-print-preview-sheet--duplex-front]="isDuplexFront"
         [style.grid-template-columns]="
           layout.hasBleed
             ? layout.bleedPx + 'px ' + layout.baseWidthPx + 'px ' + layout.bleedPx + 'px'
