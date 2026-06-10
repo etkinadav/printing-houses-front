@@ -573,10 +573,11 @@
                       [class.justify-content-center]="productSettingsWrap"
                       [class.justify-content-end]="!productSettingsWrap">
                       <mat-button-toggle-group
-                        class="ph-settings-display-toggle ph-settings-display-toggle-product"
+                        class="ph-settings-single-option-toggle ph-settings-display-toggle"
                         [style.width]="'auto'"
                         [style.max-width]="productSettingsWrap ? '100%' : 'none'"
                         name="product-name"
+                        [disabled]="true"
                         [ngModel]="productNameToggle">
                         <mat-button-toggle
                           class="zx-rtl position-relative"

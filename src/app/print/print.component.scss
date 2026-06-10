@@ -209,11 +209,13 @@
   pointer-events: none;
 }
 
-.ph-settings-display-toggle:not(.ph-settings-display-toggle-product)
-  ::ng-deep
-  mat-button-toggle.mat-button-toggle-checked {
-  font-weight: normal !important;
+.ph-settings-display-toggle ::ng-deep mat-button-toggle.mat-button-toggle-checked,
+.ph-settings-display-toggle ::ng-deep mat-button-toggle.mat-button-toggle-checked .mat-button-toggle-button {
   background-color: transparent !important;
+}
+
+.ph-settings-display-toggle ::ng-deep mat-button-toggle.mat-button-toggle-checked {
+  font-weight: normal !important;
 }
 
 /* Single-option rows when empty: same look as multi-option disabled (no checked gray). */
@@ -253,6 +255,14 @@
   mat-button-toggle.mat-button-toggle-checked.mat-button-toggle-disabled {
   background-color: transparent !important;
   font-weight: normal !important;
+}
+
+.ph-print-settings-panel .ph-print-settings-product ::ng-deep
+  mat-button-toggle.mat-button-toggle-checked.mat-button-toggle-disabled,
+.ph-print-settings-panel .ph-print-settings-product ::ng-deep
+  mat-button-toggle.mat-button-toggle-checked.mat-button-toggle-disabled .mat-button-toggle-button {
+  background-color: transparent !important;
+  font-weight: 600 !important;
 }
 
 .ph-settings-color-toggle {
