@@ -17,6 +17,38 @@ $ph-preview-dim-side-label-offset-px: 15px;
 
   box-sizing: border-box;
 
+  position: relative;
+
+}
+
+
+
+.ph-print-preview-preload {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+
+
+.ph-print-preview-page-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+
+
+.ph-print-preview-page-loading__spinner {
+  width: 24px;
+  height: 24px;
 }
 
 

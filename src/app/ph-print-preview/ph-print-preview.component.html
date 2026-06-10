@@ -2,8 +2,27 @@
   #measureHost
   class="ph-print-preview-host w-100 h-100 d-flex justify-content-center align-items-center">
 
+  <img
+    *ngIf="imageUrl"
+    #preloadImage
+    class="ph-print-preview-preload"
+    [src]="imageUrl"
+    alt=""
+    (load)="onPreviewImageLoad()"
+    (error)="onPreviewImageError()" />
+
   <div
-    *ngIf="layout && imageUrl"
+    *ngIf="imageLoading"
+    class="ph-print-preview-page-loading"
+    aria-busy="true"
+    aria-live="polite">
+    <mat-spinner
+      class="ph-print-preview-page-loading__spinner"
+      [diameter]="24"></mat-spinner>
+  </div>
+
+  <div
+    *ngIf="layout && imageUrl && !imageLoading"
     class="ph-print-preview-bundle"
     [class.ph-print-preview-bundle--not-rtl]="!isRTL">
     <div
@@ -135,10 +154,6 @@
         [style.border-radius.px]="layout.imageBorderRadiusPx">
         <img [src]="imageUrl!" class="ph-print-preview-image" alt="" />
       </div>
-
-
-
-      <!-- Bleed: corner squares stay paper-only (no image between arms) -->
 
       <ng-container *ngIf="layout.hasBleed">
         <div

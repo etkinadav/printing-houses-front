@@ -31,12 +31,15 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   @Input() isDarkMode = false;
 
   @ViewChild('measureHost') measureHost?: ElementRef<HTMLElement>;
+  @ViewChild('preloadImage') preloadImage?: ElementRef<HTMLImageElement>;
 
   layout: PhPrintPreviewLayout | null = null;
+  imageLoading = false;
 
   private resizeObserver?: ResizeObserver;
   private measureRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private measureRetryCount = 0;
+  private imageLoadRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngAfterViewInit(): void {
     const host = this.measureHost?.nativeElement;
@@ -50,9 +53,13 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
     });
     this.resizeObserver.observe(host);
     this.refreshLayout();
+    this.finishImageLoadIfCached();
   }
 
-  ngOnChanges(_changes: SimpleChanges): void {
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['imageUrl']) {
+      this.beginImageLoad(changes['imageUrl'].previousValue, changes['imageUrl'].currentValue);
+    }
     this.scheduleLayoutRefresh();
   }
 
@@ -60,6 +67,48 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
     this.resizeObserver?.disconnect();
     if (this.measureRetryTimer) {
       clearTimeout(this.measureRetryTimer);
+    }
+    if (this.imageLoadRetryTimer) {
+      clearTimeout(this.imageLoadRetryTimer);
+    }
+  }
+
+  onPreviewImageLoad(): void {
+    this.imageLoading = false;
+  }
+
+  onPreviewImageError(): void {
+    this.imageLoading = false;
+  }
+
+  private beginImageLoad(previousUrl: string | null | undefined, nextUrl: string | null): void {
+    if (this.imageLoadRetryTimer) {
+      clearTimeout(this.imageLoadRetryTimer);
+      this.imageLoadRetryTimer = null;
+    }
+
+    if (!nextUrl) {
+      this.imageLoading = false;
+      return;
+    }
+
+    if (nextUrl !== previousUrl) {
+      this.imageLoading = true;
+    }
+
+    this.imageLoadRetryTimer = setTimeout(() => {
+      this.imageLoadRetryTimer = null;
+      this.finishImageLoadIfCached();
+    }, 0);
+  }
+
+  private finishImageLoadIfCached(): void {
+    const img = this.preloadImage?.nativeElement;
+    if (!this.imageUrl || !img) {
+      return;
+    }
+    if (img.complete && img.naturalWidth > 0) {
+      this.imageLoading = false;
     }
   }
 
