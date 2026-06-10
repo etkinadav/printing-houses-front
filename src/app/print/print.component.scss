@@ -806,6 +806,18 @@
   background: #ebebeb;
   border: 1px solid transparent;
   cursor: pointer;
+  box-shadow: none;
+}
+
+.zx-duplex-pair-side--back .zx-duplex-pair-side__inner,
+.zx-duplex-pair-side--back.zx-duplex-pair-side--placeholder .zx-duplex-pair-side__inner {
+  border-radius: 0 0.5rem 0 0;
+  box-shadow: none;
+}
+
+.zx-duplex-pair-side--front .zx-duplex-pair-side__inner {
+  border-radius: 0 0 0 0.5rem;
+  box-shadow: none;
 }
 
 .zx-duplex-pair-container.zx-bg-choosen {

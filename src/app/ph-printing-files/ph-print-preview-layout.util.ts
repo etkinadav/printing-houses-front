@@ -28,6 +28,12 @@ export interface PhPrintPreviewLayout {
   sideDimSegments: PhPrintPreviewDimSegment[];
   cornerRadiusPx: number;
   cornerClipPath: string | null;
+  /** SVG polygon points for chamfer base-frame outline (includes diagonal edges). */
+  chamferOutlinePolygonPoints: string | null;
+  /** Final clip-path for the preview image (bleed + corner shape). */
+  imageClipPath: string | null;
+  /** Border-radius for rounded corners when clip-path is not used (no bleed). */
+  imageBorderRadiusPx: number;
   /** Cross-shaped clip excluding corner squares when bleed is active. */
   bleedImageClipPath: string | null;
   /** SVG polygon points for the outer bleed-area outline. */
@@ -122,6 +128,21 @@ export function computePhPrintPreviewLayout(
       ? 0
       : Math.max(0, Number(input.cornerRadiusCm) * factor);
 
+  const bleedImageClipPath = hasBleed
+    ? buildBleedImageClipPath(sheetWidthPx, sheetHeightPx, bleedPx)
+    : null;
+
+  const imageShape = buildImageShapeClip(
+    hasBleed,
+    sheetWidthPx,
+    sheetHeightPx,
+    bleedPx,
+    baseWidthPx,
+    baseHeightPx,
+    input.cornerType,
+    cornerRadiusPx,
+  );
+
   return {
     stageWidthPx: sheetWidthPx,
     stageHeightPx: sheetHeightPx,
@@ -135,9 +156,13 @@ export function computePhPrintPreviewLayout(
     sideDimSegments,
     cornerRadiusPx,
     cornerClipPath: buildCornerClipPath(input.cornerType, cornerRadiusPx),
-    bleedImageClipPath: hasBleed
-      ? buildBleedImageClipPath(sheetWidthPx, sheetHeightPx, bleedPx)
-      : null,
+    chamferOutlinePolygonPoints:
+      input.cornerType === 'chamfer' && cornerRadiusPx > 0
+        ? buildChamferOutlinePolygonPoints(baseWidthPx, baseHeightPx, cornerRadiusPx)
+        : null,
+    imageClipPath: imageShape.clipPath,
+    imageBorderRadiusPx: imageShape.borderRadiusPx,
+    bleedImageClipPath,
     bleedOutlinePolygonPoints: hasBleed
       ? buildBleedOutlinePolygonPoints(sheetWidthPx, sheetHeightPx, bleedPx)
       : null,
@@ -183,6 +208,143 @@ function buildBleedImageClipPath(
   const w = sheetWidthPx;
   const h = sheetHeightPx;
   return `polygon(${b}px 0px, ${w - b}px 0px, ${w - b}px ${b}px, ${w}px ${b}px, ${w}px ${h - b}px, ${w - b}px ${h - b}px, ${w - b}px ${h}px, ${b}px ${h}px, ${b}px ${h - b}px, 0px ${h - b}px, 0px ${b}px, ${b}px ${b}px)`;
+}
+
+function buildImageShapeClip(
+  hasBleed: boolean,
+  sheetWidthPx: number,
+  sheetHeightPx: number,
+  bleedPx: number,
+  baseWidthPx: number,
+  baseHeightPx: number,
+  cornerType: CornerType | 'none',
+  cornerRadiusPx: number,
+): { clipPath: string | null; borderRadiusPx: number } {
+  const hasCorner = cornerType !== 'none' && cornerRadiusPx > 0;
+
+  if (!hasCorner) {
+    return {
+      clipPath: hasBleed
+        ? buildBleedImageClipPath(sheetWidthPx, sheetHeightPx, bleedPx)
+        : null,
+      borderRadiusPx: 0,
+    };
+  }
+
+  if (cornerType === 'rounded') {
+    if (hasBleed) {
+      return {
+        clipPath: buildBleedRoundedImageClipPath(
+          sheetWidthPx,
+          sheetHeightPx,
+          bleedPx,
+          cornerRadiusPx,
+        ),
+        borderRadiusPx: 0,
+      };
+    }
+    return { clipPath: null, borderRadiusPx: cornerRadiusPx };
+  }
+
+  // chamfer
+  if (hasBleed) {
+    return {
+      clipPath: buildBleedChamferImageClipPath(
+        sheetWidthPx,
+        sheetHeightPx,
+        bleedPx,
+        cornerRadiusPx,
+      ),
+      borderRadiusPx: 0,
+    };
+  }
+  return {
+    clipPath: buildChamferClipPathPx(baseWidthPx, baseHeightPx, cornerRadiusPx),
+    borderRadiusPx: 0,
+  };
+}
+
+function buildChamferClipPathPx(
+  widthPx: number,
+  heightPx: number,
+  radiusPx: number,
+): string {
+  const r = radiusPx;
+  const w = widthPx;
+  const h = heightPx;
+  return `polygon(${r}px 0px, ${w - r}px 0px, ${w}px ${r}px, ${w}px ${h - r}px, ${w - r}px ${h}px, ${r}px ${h}px, 0px ${h - r}px, 0px ${r}px)`;
+}
+
+/** Bleed cross with chamfer applied to the inner base-area corners. */
+function buildBleedChamferImageClipPath(
+  sheetWidthPx: number,
+  sheetHeightPx: number,
+  bleedPx: number,
+  radiusPx: number,
+): string {
+  const b = bleedPx;
+  const w = sheetWidthPx;
+  const h = sheetHeightPx;
+  const r = radiusPx;
+  return `polygon(${b}px 0px, ${w - b}px 0px, ${w - b - r}px ${b}px, ${w - b}px ${b + r}px, ${w}px ${b}px, ${w}px ${h - b}px, ${w - b}px ${h - b - r}px, ${w - b - r}px ${h - b}px, ${w - b}px ${h}px, ${b}px ${h}px, ${b + r}px ${h - b}px, ${b}px ${h - b - r}px, 0px ${h - b}px, 0px ${b}px, ${b}px ${b + r}px, ${b + r}px ${b}px)`;
+}
+
+/** Bleed cross with rounded inner base-area corners (SVG path for clip-path). */
+function buildBleedRoundedImageClipPath(
+  sheetWidthPx: number,
+  sheetHeightPx: number,
+  bleedPx: number,
+  radiusPx: number,
+): string {
+  const b = bleedPx;
+  const w = sheetWidthPx;
+  const h = sheetHeightPx;
+  const r = radiusPx;
+  const d = [
+    `M ${b} 0`,
+    `L ${w - b} 0`,
+    `L ${w - b} ${b - r}`,
+    `A ${r} ${r} 0 0 1 ${w - b - r} ${b}`,
+    `L ${w} ${b}`,
+    `L ${w} ${h - b}`,
+    `L ${w - b + r} ${h - b}`,
+    `A ${r} ${r} 0 0 1 ${w - b} ${h - b + r}`,
+    `L ${w - b} ${h}`,
+    `L ${b} ${h}`,
+    `L ${b} ${h - b + r}`,
+    `A ${r} ${r} 0 0 1 ${b + r} ${h - b}`,
+    `L 0 ${h - b}`,
+    `L 0 ${b}`,
+    `L ${b - r} ${b}`,
+    `A ${r} ${r} 0 0 1 ${b} ${b - r}`,
+    'Z',
+  ].join(' ');
+  return `path('${d}')`;
+}
+
+/** SVG points for chamfer base frame — inset so 2px stroke stays inside bounds. */
+const BASE_FRAME_STROKE_PX = 2;
+const BASE_FRAME_STROKE_INSET_PX = BASE_FRAME_STROKE_PX / 2;
+
+function buildChamferOutlinePolygonPoints(
+  widthPx: number,
+  heightPx: number,
+  radiusPx: number,
+): string {
+  const r = radiusPx;
+  const w = widthPx;
+  const h = heightPx;
+  const i = BASE_FRAME_STROKE_INSET_PX;
+  return [
+    `${r + i},${i}`,
+    `${w - r - i},${i}`,
+    `${w - i},${r + i}`,
+    `${w - i},${h - r - i}`,
+    `${w - r - i},${h - i}`,
+    `${r + i},${h - i}`,
+    `${i},${h - r - i}`,
+    `${i},${r + i}`,
+  ].join(' ');
 }
 
 function buildCornerClipPath(

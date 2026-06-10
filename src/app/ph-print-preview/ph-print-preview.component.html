@@ -7,7 +7,10 @@
     class="ph-print-preview-bundle"
     [class.ph-print-preview-bundle--not-rtl]="!isRTL">
     <div
-      class="ph-print-preview-stage position-relative bg-white shadow-85-strong"
+      class="ph-print-preview-stage position-relative"
+      [class.bg-white]="!layout.hasBleed"
+      [class.shadow-85-strong]="!layout.hasBleed"
+      [class.ph-print-preview-stage--bleed]="layout.hasBleed"
       [style.width.px]="layout.sheetWidthPx"
       [style.height.px]="layout.sheetHeightPx">
 
@@ -134,17 +137,12 @@
       <!-- Image: base only, or cross-shaped bleed area (corners excluded) -->
 
       <div
-
         class="ph-print-preview-image-layer"
-
         [class.ph-print-preview-image-layer--bleed]="layout.hasBleed"
-
         [style.grid-area]="layout.hasBleed ? '1 / 1 / 4 / 4' : '1 / 1 / 2 / 2'"
-
-        [style.clip-path]="layout.bleedImageClipPath">
-
+        [style.clip-path]="layout.imageClipPath"
+        [style.border-radius.px]="layout.imageBorderRadiusPx">
         <img [src]="imageUrl!" class="ph-print-preview-image" alt="" />
-
       </div>
 
 
@@ -198,20 +196,25 @@
 
 
       <!-- Base frame (green border) -->
-
       <div
-
         class="ph-print-preview-base-frame"
-
         [class.ph-print-preview-base-frame--rounded]="cornerType === 'rounded'"
-
         [class.ph-print-preview-base-frame--chamfer]="cornerType === 'chamfer'"
-
         [style.grid-area]="layout.hasBleed ? '2 / 2 / 3 / 3' : '1 / 1 / 2 / 2'"
-
-        [style.border-radius.px]="cornerType === 'rounded' ? layout.cornerRadiusPx : 0"
-
-        [style.clip-path]="layout.cornerClipPath"></div>
+        [style.border-radius.px]="cornerType === 'rounded' ? layout.cornerRadiusPx : 0">
+        <svg
+          *ngIf="cornerType === 'chamfer' && layout.chamferOutlinePolygonPoints"
+          class="ph-print-preview-base-frame-outline"
+          [attr.viewBox]="'0 0 ' + layout.baseWidthPx + ' ' + layout.baseHeightPx"
+          preserveAspectRatio="none">
+          <polygon
+            [attr.points]="layout.chamferOutlinePolygonPoints"
+            fill="none"
+            stroke="var(--zx-green)"
+            stroke-width="2"
+            vector-effect="non-scaling-stroke" />
+        </svg>
+      </div>
 
     </div>
   </div>

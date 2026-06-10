@@ -42,9 +42,12 @@ $ph-preview-dim-side-label-offset-px: 15px;
 }
 
 .ph-print-preview-stage {
-
   flex-shrink: 0;
+}
 
+.ph-print-preview-stage--bleed {
+  background: transparent;
+  box-shadow: none;
 }
 
 
@@ -494,17 +497,22 @@ $ph-preview-dim-side-label-offset-px: 15px;
 
 
 .ph-print-preview-base-frame {
-
   pointer-events: none;
-
   z-index: 3;
-
   border: none;
-
   box-shadow: inset 0 0 0 2px var(--zx-green);
-
   background: transparent;
+}
 
+.ph-print-preview-base-frame--chamfer {
+  box-shadow: none;
+}
+
+.ph-print-preview-base-frame-outline {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 

@@ -251,7 +251,6 @@
                             [class.zx-bg-choosen]="isDuplexPairSelected(item.pair) && !item.pair.isIncomplete"
                             [class.zx-border-gray-v-v-light]="true"
                             [class.zx-border-gray-25-pr]="isDarkMode"
-                            [class.shadow-85-light]="true"
                             tabindex="0"
                             role="button"
                             (click)="onDuplexPairContainerClick(item.pair, sidebarFileInput, $event)"
@@ -276,7 +275,7 @@
                                 class="zx-duplex-pair-side zx-duplex-pair-side--back zx-duplex-pair-side--placeholder">
                                 <div
                                   *ngIf="!uploading"
-                                  class="zx-duplex-pair-side__inner zx-duplex-upload-placeholder d-flex flex-column align-items-center h-100 w-100 rounded-3 zx-border-gray-v-v-light"
+                                  class="zx-duplex-pair-side__inner zx-duplex-upload-placeholder d-flex flex-column align-items-center h-100 w-100 zx-border-gray-v-v-light"
                                   [class.zx-border-gray-25-pr]="isDarkMode">
                                   <img
                                     src="assets/images/upload-file-icon.svg"
@@ -291,7 +290,7 @@
                                 </div>
                                 <div
                                   *ngIf="uploading"
-                                  class="zx-duplex-pair-side__inner zx-duplex-upload-placeholder zx-duplex-upload-placeholder--uploading d-flex flex-column align-items-center justify-content-center h-100 w-100 rounded-3 zx-border-gray-v-v-light"
+                                  class="zx-duplex-pair-side__inner zx-duplex-upload-placeholder zx-duplex-upload-placeholder--uploading d-flex flex-column align-items-center justify-content-center h-100 w-100 zx-border-gray-v-v-light"
                                   [class.zx-border-gray-25-pr]="isDarkMode">
                                   <b class="zx-text-tiny text-green mb-1">
                                     <span>{{ uploadProgress }}</span>
@@ -435,7 +434,7 @@
                         let-pair="pair"
                         let-showDeletePage="showDeletePage">
                         <div
-                          class="zx-duplex-pair-side__inner zx-img-obj-container-container d-flex flex-column shadow-85-light w-100 h-100 rounded-3 zx-border-gray-v-v-light"
+                          class="zx-duplex-pair-side__inner zx-img-obj-container-container d-flex flex-column w-100 h-100 zx-border-gray-v-v-light"
                           [class.zx-border-gray-25-pr]="isDarkMode"
                           [class.bg-white]="isDarkMode">
                           <span
