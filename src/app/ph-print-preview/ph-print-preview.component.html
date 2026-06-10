@@ -229,15 +229,23 @@
               vector-effect="non-scaling-stroke" />
           </svg>
 
-          <div
+          <svg
             *ngIf="layout.foldingLines.length"
             class="ph-print-preview-folding-overlay"
+            [attr.viewBox]="'0 0 ' + layout.baseWidthPx + ' ' + layout.baseHeightPx"
+            preserveAspectRatio="none"
             aria-hidden="true">
-            <div
+            <line
               *ngFor="let line of layout.foldingLines; trackBy: trackFoldLine"
-              class="ph-print-preview-fold-line"
-              [style.left.px]="line.leftPx"></div>
-          </div>
+              [attr.x1]="line.leftPx"
+              [attr.y1]="0"
+              [attr.x2]="line.leftPx"
+              [attr.y2]="layout.baseHeightPx"
+              stroke="var(--zx-green)"
+              stroke-width="1"
+              stroke-dasharray="8 6"
+              vector-effect="non-scaling-stroke" />
+          </svg>
         </div>
       </div>
     </div>

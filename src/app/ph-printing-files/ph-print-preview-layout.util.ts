@@ -297,7 +297,9 @@ export function computePreviewFoldingLines(
   if (boundariesPx.length < 2) {
     return [];
   }
-  return boundariesPx.slice(1, -1).map((leftPx) => ({ leftPx }));
+  return boundariesPx
+    .slice(1, -1)
+    .map((leftPx) => ({ leftPx: snapPreviewFoldLinePx(leftPx) }));
 }
 
 /** Panel / offset boundaries left-to-right across the main image width. */
@@ -341,6 +343,11 @@ export function computePreviewFoldBoundariesPx(
   boundaries.push(baseWidthPx);
 
   return boundaries;
+}
+
+/** Snap fold guide x to half-pixels for consistent 1px stroke rendering. */
+function snapPreviewFoldLinePx(value: number): number {
+  return Math.round(value * 2) / 2;
 }
 
 /** Regions between consecutive fold boundaries (includes offset gaps as own segments). */
