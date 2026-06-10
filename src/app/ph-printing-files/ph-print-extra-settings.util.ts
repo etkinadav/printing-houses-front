@@ -441,6 +441,27 @@ function resolveSelectedSizedExtra(
   return { size };
 }
 
+export function resolveSelectedFolding(
+  ctx: ExtraSettingsContext,
+  uiState: ExtraSettingsUiStateMap,
+): PhFolding | null {
+  const node = resolveExtraSettingNode(ctx, 'folding');
+  if (!node) {
+    return null;
+  }
+  const mode = getExtraSettingMode(node, 'folding');
+  const optionCount = getExtraSettingOptionCount(node, 'folding');
+  if (optionCount === 0) {
+    return null;
+  }
+  const state = uiState['folding'] ?? buildDefaultExtraUiState(ctx, 'folding');
+  if (mode === 'optional' && !state.enabled) {
+    return null;
+  }
+  const index = Math.min(Math.max(0, state.selectedIndex), optionCount - 1);
+  return node.foldings?.[index] ?? null;
+}
+
 export function resolveSelectedCorner(
   ctx: ExtraSettingsContext,
   uiState: ExtraSettingsUiStateMap,

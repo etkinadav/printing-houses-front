@@ -200,6 +200,16 @@
               stroke-width="2"
               vector-effect="non-scaling-stroke" />
           </svg>
+
+          <div
+            *ngIf="layout.foldingLines.length"
+            class="ph-print-preview-folding-overlay"
+            aria-hidden="true">
+            <div
+              *ngFor="let line of layout.foldingLines; trackBy: trackFoldLine"
+              class="ph-print-preview-fold-line"
+              [style.left.px]="line.leftPx"></div>
+          </div>
         </div>
       </div>
     </div>

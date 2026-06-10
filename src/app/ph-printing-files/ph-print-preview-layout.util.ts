@@ -5,6 +5,11 @@ export interface PhPrintPreviewDimSegment {
   labelCm: number;
 }
 
+export interface PhPrintPreviewFoldLine {
+  /** Horizontal position within the main image area (base frame), px from left. */
+  leftPx: number;
+}
+
 export interface PhPrintPreviewLayoutInput {
   containerWidthPx: number;
   containerHeightPx: number;
@@ -14,6 +19,10 @@ export interface PhPrintPreviewLayoutInput {
   marginCm: number;
   cornerType: CornerType | 'none';
   cornerRadiusCm: number;
+  /** Number of folds — 0 hides fold lines. */
+  foldingCount?: number;
+  /** Fold offset cm — splits each fold line into two when > 0. */
+  foldingOffsetCm?: number;
 }
 
 export interface PhPrintPreviewLayout {
@@ -47,6 +56,8 @@ export interface PhPrintPreviewLayout {
   bleedImageClipPath: string | null;
   /** SVG polygon points for the outer bleed-area outline. */
   bleedOutlinePolygonPoints: string | null;
+  /** Vertical dashed fold guides within the main image area. */
+  foldingLines: PhPrintPreviewFoldLine[];
 }
 
 /** Bundle gutters — keep in sync with ph-print-preview.component.scss */
@@ -199,7 +210,43 @@ export function computePhPrintPreviewLayout(
       hasBleed && !hasCornerShape
         ? buildBleedOutlinePolygonPoints(sheetWidthPx, sheetHeightPx, bleedPx)
         : null,
+    foldingLines: computePreviewFoldingLines(
+      input.foldingCount,
+      input.foldingOffsetCm,
+      baseWidthPx,
+      baseWidthCm,
+    ),
   };
+}
+
+/** Fold guides: count N → lines at k/(N+1) of main width; offset splits each into ±half. */
+export function computePreviewFoldingLines(
+  foldCount: number | undefined,
+  offsetCm: number | undefined,
+  baseWidthPx: number,
+  baseWidthCm: number,
+): PhPrintPreviewFoldLine[] {
+  const count = Math.floor(Number(foldCount));
+  if (!Number.isFinite(count) || count <= 0 || baseWidthPx <= 0 || baseWidthCm <= 0) {
+    return [];
+  }
+
+  const widthFactor = baseWidthPx / baseWidthCm;
+  const offsetPx = Math.max(0, Number(offsetCm) || 0) * widthFactor;
+  const halfOffsetPx = offsetPx / 2;
+  const lines: PhPrintPreviewFoldLine[] = [];
+
+  for (let k = 1; k <= count; k += 1) {
+    const centerPx = (baseWidthPx * k) / (count + 1);
+    if (offsetPx <= 0) {
+      lines.push({ leftPx: centerPx });
+    } else {
+      lines.push({ leftPx: centerPx - halfOffsetPx });
+      lines.push({ leftPx: centerPx + halfOffsetPx });
+    }
+  }
+
+  return lines;
 }
 
 /** SVG points for the outer edge of the bleed cross (same path as image clip). */

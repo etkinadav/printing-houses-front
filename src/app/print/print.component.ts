@@ -33,6 +33,7 @@ import {
   reconcileExtraUiStateOnTreeChange,
   resolveSelectedDuplex,
   resolveSelectedCorner,
+  resolveSelectedFolding,
   syncExtraUiStateFromSaved,
   validateExtraSelections,
 } from '../ph-printing-files/ph-print-extra-settings.util';
@@ -456,6 +457,22 @@ export class PrintComponent implements OnInit, OnDestroy {
       this.extraSettingsUi,
     )?.radius;
     return Number.isFinite(Number(radius)) ? Number(radius) : 0;
+  }
+
+  get previewFoldingCount(): number {
+    const count = resolveSelectedFolding(
+      this.getCurrentExtraSettingsContext(),
+      this.extraSettingsUi,
+    )?.count;
+    return Number.isFinite(Number(count)) ? Math.floor(Number(count)) : 0;
+  }
+
+  get previewFoldingOffsetCm(): number {
+    const offset = resolveSelectedFolding(
+      this.getCurrentExtraSettingsContext(),
+      this.extraSettingsUi,
+    )?.offset;
+    return Number.isFinite(Number(offset)) ? Number(offset) : 0;
   }
 
   get printingHouseLogoUrl(): string {

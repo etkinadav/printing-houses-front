@@ -32,6 +32,8 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   @Input() marginCm = 0;
   @Input() cornerType: CornerType | 'none' = 'none';
   @Input() cornerRadiusCm = 0;
+  @Input() foldingCount = 0;
+  @Input() foldingOffsetCm = 0;
   @Input() isRTL = false;
   @Input() isDarkMode = false;
 
@@ -91,6 +93,10 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
 
   trackDimSegment(_index: number, seg: { labelCm: number; sizePx: number }): string {
     return `${seg.labelCm}:${seg.sizePx}`;
+  }
+
+  trackFoldLine(_index: number, line: { leftPx: number }): string {
+    return String(line.leftPx);
   }
 
   onPreviewImageLoaded(url: string): void {
@@ -208,6 +214,8 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
       marginCm: this.marginCm,
       cornerType: this.cornerType,
       cornerRadiusCm: this.cornerRadiusCm,
+      foldingCount: this.foldingCount,
+      foldingOffsetCm: this.foldingOffsetCm,
     });
   }
 }
