@@ -25,6 +25,87 @@ export interface PhPrint3dPanelMeshes {
   frontMesh: THREE.Mesh | null;
 }
 
+function assignPlanarUVs(
+  geometry: THREE.BufferGeometry,
+  widthCm: number,
+  heightCm: number,
+): void {
+  const position = geometry.getAttribute('position');
+  if (!position) {
+    return;
+  }
+  const halfW = widthCm / 2;
+  const halfH = heightCm / 2;
+  const uvs = new Float32Array(position.count * 2);
+  for (let i = 0; i < position.count; i += 1) {
+    uvs[i * 2] = (position.getX(i) + halfW) / widthCm;
+    uvs[i * 2 + 1] = (position.getY(i) + halfH) / heightCm;
+  }
+  geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+}
+
+function createShapeFaceMesh(
+  shape: THREE.Shape,
+  widthCm: number,
+  heightCm: number,
+  zCm: number,
+  material: THREE.MeshStandardMaterial,
+  flipY = false,
+): THREE.Mesh {
+  const geometry = new THREE.ShapeGeometry(shape);
+  assignPlanarUVs(geometry, widthCm, heightCm);
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.z = zCm;
+  if (flipY) {
+    mesh.rotation.y = Math.PI;
+  }
+  return mesh;
+}
+
+function createTexturedShapeFaceMesh(
+  shape: THREE.Shape,
+  widthCm: number,
+  heightCm: number,
+  zCm: number,
+  texture: THREE.Texture,
+  options: {
+    transparent?: boolean;
+    alphaTest?: number;
+    roughness?: number;
+    metalness?: number;
+    flipY?: boolean;
+  } = {},
+): THREE.Mesh {
+  const material = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    map: texture,
+    transparent: options.transparent ?? false,
+    alphaTest: options.alphaTest ?? 0,
+    roughness: options.roughness ?? 0.72,
+    metalness: options.metalness ?? 0.04,
+    depthWrite: !(options.transparent ?? false),
+    side: THREE.FrontSide,
+  });
+  return createShapeFaceMesh(shape, widthCm, heightCm, zCm, material, options.flipY ?? false);
+}
+
+function createSolidShapeFaceMesh(
+  shape: THREE.Shape,
+  widthCm: number,
+  heightCm: number,
+  zCm: number,
+  hexColor: string,
+  flipY = false,
+): THREE.Mesh {
+  const material = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(hexColor),
+    roughness: 0.72,
+    metalness: 0.04,
+  });
+  return createShapeFaceMesh(shape, widthCm, heightCm, zCm, material, flipY);
+}
+
 export function buildPanelShape(
   widthCm: number,
   heightCm: number,
@@ -94,9 +175,9 @@ export function createPrintPanelMeshes(input: PhPrint3dPreviewBuildInput): PhPri
   bodyGeometry.translate(0, 0, -depthCm / 2);
   bodyGeometry.computeVertexNormals();
 
+  // ExtrudeGeometry UVs distort texture maps — solid color on edges/sides only.
   const bodyMaterial = new THREE.MeshStandardMaterial({
     color: new THREE.Color(input.colorFallback),
-    map: input.colorTexture,
     roughness: 0.72,
     metalness: 0.04,
   });
@@ -108,22 +189,60 @@ export function createPrintPanelMeshes(input: PhPrint3dPreviewBuildInput): PhPri
   const group = new THREE.Group();
   group.add(bodyMesh);
 
+  if (input.colorTexture) {
+    const backColorMesh = createTexturedShapeFaceMesh(
+      shape,
+      widthCm,
+      heightCm,
+      -depthCm / 2 - 0.001,
+      input.colorTexture,
+      { flipY: true },
+    );
+    backColorMesh.castShadow = true;
+    backColorMesh.receiveShadow = true;
+    group.add(backColorMesh);
+
+    const frontColorMesh = createTexturedShapeFaceMesh(
+      shape,
+      widthCm,
+      heightCm,
+      depthCm / 2 + 0.001,
+      input.colorTexture,
+    );
+    frontColorMesh.renderOrder = 1;
+    frontColorMesh.castShadow = false;
+    frontColorMesh.receiveShadow = false;
+    group.add(frontColorMesh);
+  } else if (input.imageTexture) {
+    const frontColorMesh = createSolidShapeFaceMesh(
+      shape,
+      widthCm,
+      heightCm,
+      depthCm / 2 + 0.001,
+      input.colorFallback,
+    );
+    frontColorMesh.renderOrder = 1;
+    frontColorMesh.castShadow = false;
+    frontColorMesh.receiveShadow = false;
+    group.add(frontColorMesh);
+  }
+
   let frontMesh: THREE.Mesh | null = null;
   if (input.imageTexture) {
-    // PlaneGeometry — uniform UVs (ShapeGeometry distorts cover textures on rounded shapes).
-    const frontGeometry = new THREE.PlaneGeometry(widthCm, heightCm);
-    const frontMaterial = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      map: input.imageTexture,
-      transparent: true,
-      alphaTest: 0.02,
-      roughness: 0.38,
-      metalness: 0.02,
-      depthWrite: true,
-      side: THREE.FrontSide,
-    });
-    frontMesh = new THREE.Mesh(frontGeometry, frontMaterial);
-    frontMesh.position.z = depthCm / 2 + 0.002;
+    frontMesh = createTexturedShapeFaceMesh(
+      shape,
+      widthCm,
+      heightCm,
+      depthCm / 2 + 0.002,
+      input.imageTexture,
+      {
+        transparent: true,
+        alphaTest: 0.001,
+        roughness: 0.38,
+        metalness: 0.02,
+      },
+    );
+    frontMesh.renderOrder = 2;
     frontMesh.castShadow = false;
     frontMesh.receiveShadow = false;
     group.add(frontMesh);
@@ -151,6 +270,7 @@ export function createCoverCanvasTexture(
   faceHeightCm: number,
   cornerType: CornerType | 'none' = 'none',
   cornerRadiusCm = 0,
+  clipCorners = false,
 ): THREE.CanvasTexture {
   const safeFaceW = Math.max(0.1, faceWidthCm);
   const safeFaceH = Math.max(0.1, faceHeightCm);
@@ -180,12 +300,29 @@ export function createCoverCanvasTexture(
   canvas.height = canvasH;
   const ctx = canvas.getContext('2d');
   if (ctx) {
-    applyFaceCornerClip(ctx, canvasW, canvasH, cornerType, cornerRadiusCm, safeFaceW, safeFaceH);
+    ctx.clearRect(0, 0, canvasW, canvasH);
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvasW, canvasH);
+
+    const shouldMask =
+      clipCorners &&
+      cornerType !== 'none' &&
+      Number(cornerRadiusCm) > 0;
+    if (shouldMask) {
+      applyFaceCornerAlphaMask(
+        ctx,
+        canvasW,
+        canvasH,
+        cornerType,
+        cornerRadiusCm,
+        safeFaceW,
+        safeFaceH,
+      );
+    }
   }
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.flipY = true;
+  texture.premultiplyAlpha = false;
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = THREE.ClampToEdgeWrapping;
   texture.wrapT = THREE.ClampToEdgeWrapping;
@@ -196,7 +333,70 @@ export function createCoverCanvasTexture(
   return texture;
 }
 
-function applyFaceCornerClip(
+function resolveCornerRadiusPx(
+  canvasW: number,
+  canvasH: number,
+  cornerType: CornerType | 'none',
+  cornerRadiusCm: number,
+  faceWidthCm: number,
+  faceHeightCm: number,
+): number {
+  if (cornerType === 'none' || Number(cornerRadiusCm) <= 0) {
+    return 0;
+  }
+  return Math.min(
+    Math.max(0, (cornerRadiusCm / faceWidthCm) * canvasW),
+    Math.max(0, (cornerRadiusCm / faceHeightCm) * canvasH),
+    canvasW / 2 - 1,
+    canvasH / 2 - 1,
+  );
+}
+
+function traceFaceCornerPath(
+  ctx: CanvasRenderingContext2D,
+  canvasW: number,
+  canvasH: number,
+  cornerType: CornerType | 'none',
+  rPx: number,
+): void {
+  ctx.beginPath();
+  if (cornerType === 'none' || rPx <= 0) {
+    ctx.rect(0, 0, canvasW, canvasH);
+    return;
+  }
+
+  if (cornerType === 'rounded') {
+    if (typeof ctx.roundRect === 'function') {
+      ctx.roundRect(0, 0, canvasW, canvasH, rPx);
+      return;
+    }
+    ctx.moveTo(rPx, 0);
+    ctx.lineTo(canvasW - rPx, 0);
+    ctx.arcTo(canvasW, 0, canvasW, rPx, rPx);
+    ctx.lineTo(canvasW, canvasH - rPx);
+    ctx.arcTo(canvasW, canvasH, canvasW - rPx, canvasH, rPx);
+    ctx.lineTo(rPx, canvasH);
+    ctx.arcTo(0, canvasH, 0, canvasH - rPx, rPx);
+    ctx.lineTo(0, rPx);
+    ctx.arcTo(0, 0, rPx, 0, rPx);
+    ctx.closePath();
+    return;
+  }
+
+  // chamfer
+  ctx.moveTo(rPx, 0);
+  ctx.lineTo(canvasW - rPx, 0);
+  ctx.lineTo(canvasW, rPx);
+  ctx.lineTo(canvasW, canvasH - rPx);
+  ctx.lineTo(canvasW - rPx, canvasH);
+  ctx.lineTo(rPx, canvasH);
+  ctx.lineTo(0, canvasH - rPx);
+  ctx.lineTo(0, rPx);
+  ctx.closePath();
+}
+
+/** Punch alpha to rounded/chamfer face — reliable vs clip-before-draw. */
+function applyFaceCornerAlphaMask(
   ctx: CanvasRenderingContext2D,
   canvasW: number,
   canvasH: number,
@@ -205,31 +405,19 @@ function applyFaceCornerClip(
   faceWidthCm: number,
   faceHeightCm: number,
 ): void {
-  const rPx = Math.min(
-    Math.max(0, (cornerRadiusCm / faceWidthCm) * canvasW),
-    Math.max(0, (cornerRadiusCm / faceHeightCm) * canvasH),
-    canvasW / 2 - 1,
-    canvasH / 2 - 1,
+  const rPx = resolveCornerRadiusPx(
+    canvasW,
+    canvasH,
+    cornerType,
+    cornerRadiusCm,
+    faceWidthCm,
+    faceHeightCm,
   );
-
-  ctx.beginPath();
-  if (cornerType === 'none' || rPx <= 0) {
-    ctx.rect(0, 0, canvasW, canvasH);
-  } else if (cornerType === 'rounded') {
-    ctx.roundRect(0, 0, canvasW, canvasH, rPx);
-  } else {
-    // chamfer
-    ctx.moveTo(rPx, 0);
-    ctx.lineTo(canvasW - rPx, 0);
-    ctx.lineTo(canvasW, rPx);
-    ctx.lineTo(canvasW, canvasH - rPx);
-    ctx.lineTo(canvasW - rPx, canvasH);
-    ctx.lineTo(rPx, canvasH);
-    ctx.lineTo(0, canvasH - rPx);
-    ctx.lineTo(0, rPx);
-    ctx.closePath();
-  }
-  ctx.clip();
+  traceFaceCornerPath(ctx, canvasW, canvasH, cornerType, rPx);
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.fillStyle = '#000';
+  ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
 }
 
 export function isCrossOriginPreviewUrl(url: string): boolean {
@@ -256,6 +444,7 @@ export async function loadCoverPreviewTexture(
   faceHeightCm: number,
   cornerType: CornerType | 'none' = 'none',
   cornerRadiusCm = 0,
+  clipCorners = false,
   fetchBlob?: (sourceUrl: string) => Promise<Blob | null>,
 ): Promise<LoadedPreviewTexture> {
   const trimmed = url?.trim() || '';
@@ -282,6 +471,7 @@ export async function loadCoverPreviewTexture(
       faceHeightCm,
       cornerType,
       cornerRadiusCm,
+      clipCorners,
     );
     if (blobUrl) {
       URL.revokeObjectURL(blobUrl);

@@ -44,8 +44,6 @@ import {
 
   loadCoverPreviewTexture,
 
-  loadPreviewTexture,
-
   LoadedPreviewTexture,
 
   PH_PRINT_3D_PANEL_THICKNESS_CM,
@@ -564,7 +562,15 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
 
     const [colorTextureResult, imageTextureResult] = await Promise.all([
 
-      loadPreviewTexture(colorUrl, this.fetchPreviewBlob),
+      loadCoverPreviewTexture(
+        colorUrl,
+        widthCm,
+        heightCm,
+        this.cornerType,
+        Number(this.cornerRadiusCm) || 0,
+        false,
+        this.fetchPreviewBlob,
+      ),
 
       loadCoverPreviewTexture(
         this.imageUrl,
@@ -572,6 +578,7 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
         heightCm,
         this.cornerType,
         Number(this.cornerRadiusCm) || 0,
+        false,
         this.fetchPreviewBlob,
       ),
 
