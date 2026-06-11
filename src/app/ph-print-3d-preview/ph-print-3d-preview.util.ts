@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { CornerType } from '../ph-products/ph-product.model';
 
-export const PH_PRINT_3D_PANEL_THICKNESS_CM = 0.1;
+/** Panel depth in scene units (cm). 0.02 cm = 20% of nominal 0.1 cm sheet. */
+export const PH_PRINT_3D_PANEL_THICKNESS_CM = 0.02;
 
 export interface LoadedPreviewTexture {
   texture: THREE.Texture | null;
