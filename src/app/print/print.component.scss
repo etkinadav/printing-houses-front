@@ -707,6 +707,30 @@
   min-width: 0;
 }
 
+.preview-button {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  opacity: 0;
+  transition: opacity 250ms;
+  pointer-events: auto;
+  touch-action: manipulation;
+  z-index: 1000;
+}
+
+.preview-button-not-rtl {
+  left: unset;
+  right: 8px;
+}
+
+.zx-p-preview-container:hover .preview-button {
+  opacity: 1;
+}
+
+.preview-button * {
+  pointer-events: auto;
+}
+
 .no-image-selected-container {
   display: flex;
   justify-content: center;

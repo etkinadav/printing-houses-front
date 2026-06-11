@@ -38,6 +38,7 @@ import { PrintingHouseManagementComponent } from './management/printing-house-ma
 import { PrintingHousesListComponent } from './management/printing-houses-list/printing-houses-list.component';
 import { PhLogoCropComponent } from './ph-printing-house/ph-logo-crop.component';
 import { PhPrintPreviewComponent } from './ph-print-preview/ph-print-preview.component';
+import { PhPrint3dPreviewComponent } from './ph-print-3d-preview/ph-print-3d-preview.component';
 import { PrintComponent } from './print/print.component';
 import { FileIssuesComponent } from './dialog/file-issues/file-issues.component';
 
@@ -65,6 +66,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
     PrintingHousesListComponent,
     PhLogoCropComponent,
     PhPrintPreviewComponent,
+    PhPrint3dPreviewComponent,
     PrintComponent,
     FileIssuesComponent,
   ],

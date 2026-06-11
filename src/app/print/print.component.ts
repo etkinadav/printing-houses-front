@@ -118,6 +118,10 @@ export class PrintComponent implements OnInit, OnDestroy {
   currentImageIndex = 0;
   /** Stable preview URL — only changes when the selected page or its thumbnail changes. */
   previewThumbnailUrl: string | null = null;
+  /** When true, the preview area shows a Three.js panel instead of the 2D preview. */
+  is3dPreviewActive = false;
+  /** Stable object reference for preview background — avoids child ngOnChanges loops. */
+  previewSheetBackgroundStylesCache: Record<string, string> = { backgroundColor: '#ffffff' };
 
   /** Fixed: selected index in fixedDimensionOptions. */
   currentFixedOptionIndex: number | null = null;
@@ -477,10 +481,18 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   get previewSheetBackgroundStyles(): Record<string, string> {
     const color = this.selectedColor;
-    if (!color) {
-      return { backgroundColor: '#ffffff' };
+    const next = color
+      ? this.getColorSwatchStyles(color)
+      : { backgroundColor: '#ffffff' };
+    if (isEqual(next, this.previewSheetBackgroundStylesCache)) {
+      return this.previewSheetBackgroundStylesCache;
     }
-    return this.getColorSwatchStyles(color);
+    this.previewSheetBackgroundStylesCache = next;
+    return this.previewSheetBackgroundStylesCache;
+  }
+
+  togglePreviewMode(): void {
+    this.is3dPreviewActive = !this.is3dPreviewActive;
   }
 
   get printingHouseLogoUrl(): string {
@@ -798,7 +810,11 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.selectedFile = file;
     this.selectedImage = image;
     this.currentImageIndex = index;
-    this.previewThumbnailUrl = image.thumbnailUrl?.trim() || null;
+    const nextPreviewUrl = image.thumbnailUrl?.trim() || null;
+    if (nextPreviewUrl !== this.previewThumbnailUrl) {
+      this.is3dPreviewActive = false;
+    }
+    this.previewThumbnailUrl = nextPreviewUrl;
     this.refreshResolvedFileDimensions();
     this.syncSettingsUiFromImage(image);
 
@@ -1409,6 +1425,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.selectedImage = null;
     this.currentImageIndex = 0;
     this.previewThumbnailUrl = null;
+    this.is3dPreviewActive = false;
     this.refreshResolvedFileDimensions();
     if (this.product) {
       this.clearSettingsUiUnselected();
@@ -1430,6 +1447,7 @@ export class PrintComponent implements OnInit, OnDestroy {
           this.selectedImage = null;
           this.currentImageIndex = 0;
           this.previewThumbnailUrl = null;
+          this.is3dPreviewActive = false;
           this.pendingDefaultSettingsFileIds.clear();
           this.refreshResolvedFileDimensions();
           if (this.product) {
@@ -1820,6 +1838,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.selectedImage = null;
     this.currentImageIndex = 0;
     this.previewThumbnailUrl = null;
+    this.is3dPreviewActive = false;
   }
 
   /** Keep the selected page stable across polls by matching its id, else fall back to page 0. */
@@ -1946,6 +1965,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     const nextUrl = this.selectedImage?.thumbnailUrl?.trim() || null;
     if (nextUrl !== this.previewThumbnailUrl) {
       this.previewThumbnailUrl = nextUrl;
+      this.is3dPreviewActive = false;
     }
   }
 

@@ -1,5 +1,6 @@
 import {
   AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   Input,
@@ -53,6 +54,8 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   private loadedImageUrls = new Set<string>();
   private trackedImageUrlsKey = '';
 
+  constructor(private cdr: ChangeDetectorRef) {}
+
   get isDuplexStack(): boolean {
     return this.activeImageUrls.length > 1;
   }
@@ -61,22 +64,33 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
     const host = this.measureHost?.nativeElement;
     if (!host || typeof ResizeObserver === 'undefined') {
       this.scheduleLayoutRefresh();
+      this.scheduleImageLoadSync();
       return;
     }
 
     this.resizeObserver = new ResizeObserver(() => {
-      this.refreshLayout();
+      this.scheduleLayoutRefresh();
     });
     this.resizeObserver.observe(host);
-    this.refreshLayout();
-    this.finishImageLoadIfCached();
+    this.scheduleLayoutRefresh();
+    this.scheduleImageLoadSync();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['imageUrl'] || changes['secondImageUrl']) {
       this.beginImagesLoad();
     }
-    this.scheduleLayoutRefresh();
+    if (
+      changes['baseWidthCm'] ||
+      changes['baseHeightCm'] ||
+      changes['marginCm'] ||
+      changes['cornerType'] ||
+      changes['cornerRadiusCm'] ||
+      changes['foldingCount'] ||
+      changes['foldingOffsetCm']
+    ) {
+      this.scheduleLayoutRefresh();
+    }
   }
 
   ngOnDestroy(): void {
@@ -136,6 +150,7 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
       this.trackedImageUrlsKey = nextKey;
       this.imageLoading = true;
       this.loadedImageUrls.clear();
+      this.cdr.markForCheck();
     }
 
     this.imageLoadRetryTimer = setTimeout(() => {
@@ -161,13 +176,26 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
     this.syncImageLoadingState();
   }
 
+  private scheduleImageLoadSync(): void {
+    if (this.imageLoadRetryTimer) {
+      clearTimeout(this.imageLoadRetryTimer);
+    }
+    this.imageLoadRetryTimer = setTimeout(() => {
+      this.imageLoadRetryTimer = null;
+      this.finishImageLoadIfCached();
+    }, 0);
+  }
+
   private syncImageLoadingState(): void {
     const expected = this.activeImageUrls;
-    if (!expected.length) {
-      this.imageLoading = false;
+    const nextLoading = expected.length
+      ? !expected.every((url) => this.loadedImageUrls.has(url))
+      : false;
+    if (this.imageLoading === nextLoading) {
       return;
     }
-    this.imageLoading = !expected.every((url) => this.loadedImageUrls.has(url));
+    this.imageLoading = nextLoading;
+    this.cdr.markForCheck();
   }
 
   private scheduleLayoutRefresh(): void {
@@ -208,7 +236,7 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
       ? Math.max(40, (containerHeightPx - PH_PREVIEW_DUPLEX_STACK_GAP_PX) / 2)
       : containerHeightPx;
 
-    this.layout = computePhPrintPreviewLayout({
+    const nextLayout = computePhPrintPreviewLayout({
       containerWidthPx,
       containerHeightPx: layoutHeightPx,
       baseWidthCm: this.baseWidthCm,
@@ -219,5 +247,8 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
       foldingCount: this.foldingCount,
       foldingOffsetCm: this.foldingOffsetCm,
     });
+
+    this.layout = nextLayout;
+    this.cdr.markForCheck();
   }
 }
