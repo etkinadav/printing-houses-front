@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CornerType } from '../ph-products/ph-product.model';
+import { PhPrint3dMaterialSettings } from './ph-print-3d-preview-material.model';
 
 /** Panel depth in scene units (cm). 0.02 cm = 20% of nominal 0.1 cm sheet. */
 export const PH_PRINT_3D_PANEL_THICKNESS_CM = 0.02;
@@ -18,6 +19,8 @@ export interface PhPrint3dPreviewBuildInput {
   colorTexture: THREE.Texture | null;
   colorFallback: string;
   imageTexture: THREE.Texture | null;
+  material: PhPrint3dMaterialSettings;
+  bumpMap: THREE.Texture | null;
 }
 
 export interface PhPrint3dPanelMeshes {
@@ -45,12 +48,167 @@ function assignPlanarUVs(
   geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
 }
 
+/** Procedural fine-grain paper bump — shared across panel materials. */
+export function createPaperBumpTexture(repeat = 10): THREE.CanvasTexture {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    const imageData = ctx.createImageData(size, size);
+    const data = imageData.data;
+    for (let y = 0; y < size; y += 1) {
+      for (let x = 0; x < size; x += 1) {
+        const i = (y * size + x) * 4;
+        const fiber = Math.sin(x * 0.38 + y * 0.09) * 2.2;
+        const fiberCross = Math.sin(y * 0.31 - x * 0.06) * 1.6;
+        const grain = (Math.random() - 0.5) * 10;
+        const v = Math.max(0, Math.min(255, 128 + fiber + fiberCross + grain));
+        data[i] = v;
+        data[i + 1] = v;
+        data[i + 2] = v;
+        data[i + 3] = 255;
+      }
+    }
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(repeat, repeat);
+  texture.colorSpace = THREE.NoColorSpace;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+/** Load tiled paper bump from URL (via API proxy when cross-origin). */
+export async function loadPaperBumpTexture(
+  url: string | null | undefined,
+  repeat: number,
+  fetchBlob?: (sourceUrl: string) => Promise<Blob | null>,
+): Promise<THREE.Texture | null> {
+  const trimmed = url?.trim() || '';
+  if (!trimmed) {
+    return null;
+  }
+
+  let blobUrl: string | null = null;
+  let imageSrc = trimmed;
+
+  if (isCrossOriginPreviewUrl(trimmed) && fetchBlob) {
+    const blob = await fetchBlob(trimmed);
+    if (blob) {
+      blobUrl = URL.createObjectURL(blob);
+      imageSrc = blobUrl;
+    }
+  }
+
+  try {
+    const img = await loadImageElement(imageSrc);
+    const texture = new THREE.Texture(img);
+    const safeRepeat = Math.max(1, repeat);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(safeRepeat, safeRepeat);
+    texture.colorSpace = THREE.NoColorSpace;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.anisotropy = 4;
+    texture.generateMipmaps = true;
+    texture.needsUpdate = true;
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+    }
+    return texture;
+  } catch {
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+    }
+    return null;
+  }
+}
+
+interface GlossyPhotoSurfaceParams {
+  roughness: number;
+  metalness: number;
+  bumpScale: number;
+  envMapIntensity: number;
+  clearcoat: number;
+  clearcoatRoughness: number;
+  ior: number;
+  specularIntensity: number;
+}
+
+function resolveGlossyPhotoSurface(
+  materialParams: PhPrint3dMaterialSettings,
+  surface: 'body' | 'colorFace' | 'print',
+): GlossyPhotoSurfaceParams {
+  if (surface === 'print') {
+    return {
+      roughness: materialParams.printRoughness,
+      metalness: materialParams.printMetalness,
+      bumpScale: materialParams.printBumpScale,
+      envMapIntensity: materialParams.printEnvMapIntensity,
+      clearcoat: materialParams.printClearcoat,
+      clearcoatRoughness: materialParams.printClearcoatRoughness,
+      ior: materialParams.printIor,
+      specularIntensity: materialParams.printSpecularIntensity,
+    };
+  }
+  if (surface === 'colorFace') {
+    return {
+      roughness: materialParams.colorFaceRoughness,
+      metalness: materialParams.colorFaceMetalness,
+      bumpScale: materialParams.colorFaceBumpScale,
+      envMapIntensity: materialParams.colorFaceEnvMapIntensity,
+      clearcoat: materialParams.colorFaceClearcoat,
+      clearcoatRoughness: materialParams.colorFaceClearcoatRoughness,
+      ior: materialParams.colorFaceIor,
+      specularIntensity: materialParams.colorFaceSpecularIntensity,
+    };
+  }
+  return {
+    roughness: materialParams.bodyRoughness,
+    metalness: materialParams.bodyMetalness,
+    bumpScale: materialParams.bodyBumpScale,
+    envMapIntensity: materialParams.bodyEnvMapIntensity,
+    clearcoat: materialParams.bodyClearcoat,
+    clearcoatRoughness: materialParams.bodyClearcoatRoughness,
+    ior: materialParams.bodyIor,
+    specularIntensity: materialParams.bodySpecularIntensity,
+  };
+}
+
+function applyGlossyPhotoSurface(
+  material: THREE.MeshPhysicalMaterial,
+  bumpMap: THREE.Texture | null,
+  params: GlossyPhotoSurfaceParams,
+): void {
+  material.roughness = params.roughness;
+  material.metalness = params.metalness;
+  material.envMapIntensity = params.envMapIntensity;
+  material.clearcoat = params.clearcoat;
+  material.clearcoatRoughness = params.clearcoatRoughness;
+  material.ior = params.ior;
+  material.specularIntensity = params.specularIntensity;
+  material.specularColor = new THREE.Color(0xffffff);
+  if (bumpMap && params.bumpScale > 0) {
+    material.bumpMap = bumpMap;
+    material.bumpScale = params.bumpScale;
+  }
+}
+
 function createShapeFaceMesh(
   shape: THREE.Shape,
   widthCm: number,
   heightCm: number,
   zCm: number,
-  material: THREE.MeshStandardMaterial,
+  material: THREE.MeshPhysicalMaterial,
   flipY = false,
 ): THREE.Mesh {
   const geometry = new THREE.ShapeGeometry(shape);
@@ -70,24 +228,30 @@ function createTexturedShapeFaceMesh(
   heightCm: number,
   zCm: number,
   texture: THREE.Texture,
+  materialParams: PhPrint3dMaterialSettings,
+  bumpMap: THREE.Texture | null,
+  surface: 'colorFace' | 'print',
   options: {
     transparent?: boolean;
     alphaTest?: number;
-    roughness?: number;
-    metalness?: number;
     flipY?: boolean;
   } = {},
 ): THREE.Mesh {
-  const material = new THREE.MeshStandardMaterial({
+  const material = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
     map: texture,
     transparent: options.transparent ?? false,
     alphaTest: options.alphaTest ?? 0,
-    roughness: options.roughness ?? 0.72,
-    metalness: options.metalness ?? 0.04,
     depthWrite: !(options.transparent ?? false),
     side: THREE.FrontSide,
   });
+
+  applyGlossyPhotoSurface(
+    material,
+    bumpMap,
+    resolveGlossyPhotoSurface(materialParams, surface),
+  );
+
   return createShapeFaceMesh(shape, widthCm, heightCm, zCm, material, options.flipY ?? false);
 }
 
@@ -97,13 +261,18 @@ function createSolidShapeFaceMesh(
   heightCm: number,
   zCm: number,
   hexColor: string,
+  materialParams: PhPrint3dMaterialSettings,
+  bumpMap: THREE.Texture | null,
   flipY = false,
 ): THREE.Mesh {
-  const material = new THREE.MeshStandardMaterial({
+  const material = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(hexColor),
-    roughness: 0.72,
-    metalness: 0.04,
   });
+  applyGlossyPhotoSurface(
+    material,
+    bumpMap,
+    resolveGlossyPhotoSurface(materialParams, 'colorFace'),
+  );
   return createShapeFaceMesh(shape, widthCm, heightCm, zCm, material, flipY);
 }
 
@@ -177,11 +346,14 @@ export function createPrintPanelMeshes(input: PhPrint3dPreviewBuildInput): PhPri
   bodyGeometry.computeVertexNormals();
 
   // ExtrudeGeometry UVs distort texture maps — solid color on edges/sides only.
-  const bodyMaterial = new THREE.MeshStandardMaterial({
+  const bodyMaterial = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(input.colorFallback),
-    roughness: 0.72,
-    metalness: 0.04,
   });
+  applyGlossyPhotoSurface(
+    bodyMaterial,
+    input.bumpMap,
+    resolveGlossyPhotoSurface(input.material, 'body'),
+  );
 
   const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
   bodyMesh.castShadow = true;
@@ -197,6 +369,9 @@ export function createPrintPanelMeshes(input: PhPrint3dPreviewBuildInput): PhPri
       heightCm,
       -depthCm / 2 - 0.001,
       input.colorTexture,
+      input.material,
+      input.bumpMap,
+      'colorFace',
       { flipY: true },
     );
     backColorMesh.castShadow = true;
@@ -209,6 +384,9 @@ export function createPrintPanelMeshes(input: PhPrint3dPreviewBuildInput): PhPri
       heightCm,
       depthCm / 2 + 0.001,
       input.colorTexture,
+      input.material,
+      input.bumpMap,
+      'colorFace',
     );
     frontColorMesh.renderOrder = 1;
     frontColorMesh.castShadow = false;
@@ -221,6 +399,8 @@ export function createPrintPanelMeshes(input: PhPrint3dPreviewBuildInput): PhPri
       heightCm,
       depthCm / 2 + 0.001,
       input.colorFallback,
+      input.material,
+      input.bumpMap,
     );
     frontColorMesh.renderOrder = 1;
     frontColorMesh.castShadow = false;
@@ -236,11 +416,12 @@ export function createPrintPanelMeshes(input: PhPrint3dPreviewBuildInput): PhPri
       heightCm,
       depthCm / 2 + 0.002,
       input.imageTexture,
+      input.material,
+      input.bumpMap,
+      'print',
       {
         transparent: true,
         alphaTest: 0.001,
-        roughness: 0.38,
-        metalness: 0.02,
       },
     );
     frontMesh.renderOrder = 2;
@@ -272,6 +453,7 @@ export function createCoverCanvasTexture(
   cornerType: CornerType | 'none' = 'none',
   cornerRadiusCm = 0,
   clipCorners = false,
+  vividPrintColors = false,
 ): THREE.CanvasTexture {
   const safeFaceW = Math.max(0.1, faceWidthCm);
   const safeFaceH = Math.max(0.1, faceHeightCm);
@@ -302,7 +484,11 @@ export function createCoverCanvasTexture(
   const ctx = canvas.getContext('2d');
   if (ctx) {
     ctx.clearRect(0, 0, canvasW, canvasH);
+    if (vividPrintColors) {
+      ctx.filter = 'contrast(1.14) saturate(1.1) brightness(0.97)';
+    }
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvasW, canvasH);
+    ctx.filter = 'none';
 
     const shouldMask =
       clipCorners &&
@@ -327,9 +513,12 @@ export function createCoverCanvasTexture(
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = THREE.ClampToEdgeWrapping;
   texture.wrapT = THREE.ClampToEdgeWrapping;
-  texture.minFilter = THREE.LinearFilter;
+  texture.minFilter = vividPrintColors
+    ? THREE.LinearMipmapLinearFilter
+    : THREE.LinearFilter;
   texture.magFilter = THREE.LinearFilter;
-  texture.generateMipmaps = false;
+  texture.anisotropy = vividPrintColors ? 8 : 4;
+  texture.generateMipmaps = vividPrintColors;
   texture.needsUpdate = true;
   return texture;
 }
@@ -446,6 +635,7 @@ export async function loadCoverPreviewTexture(
   cornerType: CornerType | 'none' = 'none',
   cornerRadiusCm = 0,
   clipCorners = false,
+  vividPrintColors = false,
   fetchBlob?: (sourceUrl: string) => Promise<Blob | null>,
 ): Promise<LoadedPreviewTexture> {
   const trimmed = url?.trim() || '';
@@ -473,6 +663,7 @@ export async function loadCoverPreviewTexture(
       cornerType,
       cornerRadiusCm,
       clipCorners,
+      vividPrintColors,
     );
     if (blobUrl) {
       URL.revokeObjectURL(blobUrl);
@@ -627,5 +818,6 @@ function disposeMaterial(material: THREE.Material): void {
   std.roughnessMap?.dispose();
   std.metalnessMap?.dispose();
   std.aoMap?.dispose();
+  // bumpMap is shared — disposed by the component
   material.dispose();
 }
