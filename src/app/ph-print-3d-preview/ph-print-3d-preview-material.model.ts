@@ -94,7 +94,7 @@ export interface PhPrint3dFloorSettings {
 export const DEFAULT_PH_PRINT_3D_FLOOR: PhPrint3dFloorSettings = {
   textureUrl: null,
   textureRepeat: 10,
-  surfaceColor: '#ededed',
+  surfaceColor: '#ffffff',
   sizeCm: 200,
   roughness: 0.66,
   metalness: 0.69,
