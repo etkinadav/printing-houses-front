@@ -30,6 +30,7 @@ import {
   ExtraSettingsContext,
   EXTRA_OPTION_NONE_INDEX,
   isDoubleSidedRequired,
+  productHasDoubleSidedRequired,
   reconcileExtraUiStateOnTreeChange,
   resolveSelectedDuplex,
   resolveSelectedCorner,
@@ -625,6 +626,9 @@ export class PrintComponent implements OnInit, OnDestroy {
   isDuplexPairingModeActive(): boolean {
     if (!this.product) {
       return false;
+    }
+    if (productHasDoubleSidedRequired(this.product)) {
+      return true;
     }
     if (this.orderDoubleSidedRequired !== null) {
       return this.orderDoubleSidedRequired;
@@ -1520,6 +1524,9 @@ export class PrintComponent implements OnInit, OnDestroy {
   private afterProductLoaded(): void {
     if (!this.product) {
       return;
+    }
+    if (productHasDoubleSidedRequired(this.product)) {
+      this.orderDoubleSidedRequired = true;
     }
     this.ensureAllReadyFilesHaveSettings();
     this.applySettingsPanelState();

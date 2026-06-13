@@ -8,6 +8,7 @@ import {
   PhDynamicMaterial,
   PhFolding,
   PhMaterial,
+  PhProduct,
   PhSize,
   PhTreeExtraSettings,
 } from '../ph-products/ph-product.model';
@@ -98,6 +99,52 @@ export function isDoubleSidedRequired(ctx: ExtraSettingsContext): boolean {
     return false;
   }
   return getExtraSettingMode(node, 'double-sided') === 'required';
+}
+
+function nodeHasDoubleSidedRequired(node: PhTreeExtraSettings | null | undefined): boolean {
+  if (!node?.extraSettings?.includes('double-sided')) {
+    return false;
+  }
+  return getExtraSettingMode(node, 'double-sided') === 'required';
+}
+
+/** True when any size/material/color on the product requires double-sided. */
+export function productHasDoubleSidedRequired(product: PhProduct | null | undefined): boolean {
+  if (!product?.properties) {
+    return false;
+  }
+
+  const checkNode = (node: PhTreeExtraSettings | null | undefined): boolean =>
+    nodeHasDoubleSidedRequired(node);
+
+  for (const size of product.properties.fixed?.sizes ?? []) {
+    if (checkNode(size)) {
+      return true;
+    }
+    for (const material of size.materials ?? []) {
+      if (checkNode(material)) {
+        return true;
+      }
+      for (const color of material.colors ?? []) {
+        if (checkNode(color)) {
+          return true;
+        }
+      }
+    }
+  }
+
+  for (const material of product.properties.dynamic?.materials ?? []) {
+    if (checkNode(material)) {
+      return true;
+    }
+    for (const color of material.colors ?? []) {
+      if (checkNode(color)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 /** True when the resolved tree context crosses into or out of required double-sided mode. */
