@@ -63,6 +63,32 @@ export interface PhPrint3dLightingSettings {
 export const DEFAULT_PH_PRINT_3D_BUMP_MAP_URL =
   'https://everytexture.com/wp-content/uploads/2020/03/everytexture.com-stock-paper-texture-00104-1024x768.jpg';
 
+export const DEFAULT_PH_PRINT_3D_FLOOR_TEXTURE_URL =
+  'https://png.pngtree.com/background/20250314/original/pngtree-high-resolution-close-up-of-light-beige-wood-grain-texture-picture-image_16339835.jpg';
+
+/** Wood floor under the product. */
+export interface PhPrint3dFloorSettings {
+  textureUrl: string | null;
+  textureRepeat: number;
+  /** Square floor plane side length (cm). */
+  sizeCm: number;
+  roughness: number;
+  metalness: number;
+  envMapIntensity: number;
+  /** World Y of the floor surface. */
+  surfaceY: number;
+}
+
+export const DEFAULT_PH_PRINT_3D_FLOOR: PhPrint3dFloorSettings = {
+  textureUrl: DEFAULT_PH_PRINT_3D_FLOOR_TEXTURE_URL,
+  textureRepeat: 10,
+  sizeCm: 200,
+  roughness: 0.52,
+  metalness: 0,
+  envMapIntensity: 0.1,
+  surfaceY: 0,
+};
+
 export const DEFAULT_PH_PRINT_3D_MATERIAL: PhPrint3dMaterialSettings = {
   bodyRoughness: 0.42,
   bodyMetalness: 0,
@@ -73,45 +99,45 @@ export const DEFAULT_PH_PRINT_3D_MATERIAL: PhPrint3dMaterialSettings = {
   bodyIor: 1.42,
   bodySpecularIntensity: 0.55,
 
-  colorFaceRoughness: 0.26,
+  colorFaceRoughness: 0.48,
   colorFaceMetalness: 0,
-  colorFaceBumpScale: 0.008,
-  colorFaceEnvMapIntensity: 0.28,
-  colorFaceClearcoat: 0.38,
-  colorFaceClearcoatRoughness: 0.24,
-  colorFaceIor: 1.46,
-  colorFaceSpecularIntensity: 0.72,
+  colorFaceBumpScale: 0.004,
+  colorFaceEnvMapIntensity: 0.06,
+  colorFaceClearcoat: 0.04,
+  colorFaceClearcoatRoughness: 0.65,
+  colorFaceIor: 1.42,
+  colorFaceSpecularIntensity: 0.28,
 
-  printRoughness: 0.17,
+  printRoughness: 0.58,
   printMetalness: 0,
-  printBumpScale: 0.003,
-  printEnvMapIntensity: 0.38,
-  printClearcoat: 0.48,
-  printClearcoatRoughness: 0.2,
-  printIor: 1.48,
-  printSpecularIntensity: 0.82,
+  printBumpScale: 0,
+  printEnvMapIntensity: 0.03,
+  printClearcoat: 0,
+  printClearcoatRoughness: 1,
+  printIor: 1.4,
+  printSpecularIntensity: 0.18,
 
   bumpMapUrl: DEFAULT_PH_PRINT_3D_BUMP_MAP_URL,
   bumpMapRepeat: 5,
 };
 
 export const DEFAULT_PH_PRINT_3D_LIGHTING: PhPrint3dLightingSettings = {
-  toneMappingExposure: 0.96,
-  ambientIntensity: 0.09,
+  toneMappingExposure: 1,
+  ambientIntensity: 0.32,
   hemisphereSkyColor: '#eef1f6',
   hemisphereGroundColor: '#c8cdd6',
-  hemisphereIntensity: 0.26,
-  keyLightColor: '#fff9f0',
-  keyLightIntensity: 0.68,
-  keyLightPosition: { x: 12, y: 11, z: 5 },
-  fillLightColor: '#e6eeff',
-  fillLightIntensity: 0.16,
+  hemisphereIntensity: 0,
+  keyLightColor: '#ffffff',
+  keyLightIntensity: 0.58,
+  keyLightPosition: { x: 12, y: 44, z: 10 },
+  fillLightColor: '#ffffff',
+  fillLightIntensity: 0,
   fillLightPosition: { x: -9, y: 4, z: -3 },
-  rimLightColor: '#fff6ea',
-  rimLightIntensity: 0.12,
+  rimLightColor: '#ffffff',
+  rimLightIntensity: 0,
   rimLightPosition: { x: 2, y: 7, z: -11 },
-  environmentBlur: 0.065,
-  shadowMapSize: 2048,
-  shadowRadius: 8,
-  shadowOpacity: 0.21,
+  environmentBlur: 0.11,
+  shadowMapSize: 4096,
+  shadowRadius: 3,
+  shadowOpacity: 1,
 };

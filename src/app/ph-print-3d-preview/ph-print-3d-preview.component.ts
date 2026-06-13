@@ -13,25 +13,32 @@ import {
 } from '@angular/core';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { PhFilesService } from '../ph-files/ph-files.service';
 import { CornerType } from '../ph-products/ph-product.model';
 import {
+  DEFAULT_PH_PRINT_3D_FLOOR,
   DEFAULT_PH_PRINT_3D_LIGHTING,
   DEFAULT_PH_PRINT_3D_MATERIAL,
+  PhPrint3dFloorSettings,
   PhPrint3dLightingSettings,
   PhPrint3dMaterialSettings,
 } from './ph-print-3d-preview-material.model';
 import {
+  alignFloorUnderObject,
+  applyFloorTexture,
   buildPhPrint3dPreviewSignature,
+  createFloorMesh,
   createPaperBumpTexture,
   createPrintPanelMeshes,
   disposeObject3D,
+  updateShadowLightForPanel,
   fitPerspectiveCameraToObject,
   loadCoverPreviewTexture,
+  loadFloorTexture,
   loadPaperBumpTexture,
   LoadedPreviewTexture,
   PH_PRINT_3D_PANEL_THICKNESS_CM,
+  placeObjectOnFloor,
   resolvePreviewColorFallback,
   resolvePreviewColorTextureUrl,
   revokePreviewTextureBlob,
@@ -60,6 +67,9 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
   /** Scene lighting — wire to theme / product later. */
   readonly lightingSettings: PhPrint3dLightingSettings = { ...DEFAULT_PH_PRINT_3D_LIGHTING };
 
+  /** Wood floor — wire to product / theme later. */
+  readonly floorSettings: PhPrint3dFloorSettings = { ...DEFAULT_PH_PRINT_3D_FLOOR };
+
   @ViewChild('host') host?: ElementRef<HTMLElement>;
 
   loading = true;
@@ -69,7 +79,7 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
   private renderer?: THREE.WebGLRenderer;
   private controls?: OrbitControls;
   private panelGroup?: THREE.Group;
-  private shadowPlane?: THREE.Mesh;
+  private floorMesh?: THREE.Mesh;
   private keyLight?: THREE.DirectionalLight;
   private resizeObserver?: ResizeObserver;
   private animationFrameId: number | null = null;
@@ -79,8 +89,6 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
   private colorTextureResult: LoadedPreviewTexture | null = null;
   private imageTextureResult: LoadedPreviewTexture | null = null;
   private paperBumpMap?: THREE.Texture;
-  private environmentMap?: THREE.Texture;
-  private pmremGenerator?: THREE.PMREMGenerator;
 
   constructor(
     private cdr: ChangeDetectorRef,
@@ -94,7 +102,7 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
 
   private async bootstrapScene(): Promise<void> {
     this.initScene();
-    await this.loadPaperBumpMap();
+    await Promise.all([this.loadPaperBumpMap(), this.loadFloor()]);
     this.flushRebuildIfNeeded();
     this.setupResizeObserver();
   }
@@ -109,6 +117,20 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
     this.paperBumpMap?.dispose();
     this.paperBumpMap =
       loaded ?? createPaperBumpTexture(bumpMapRepeat);
+  }
+
+  private async loadFloor(): Promise<void> {
+    const { textureUrl, textureRepeat } = this.floorSettings;
+    const loaded = await loadFloorTexture(
+      textureUrl,
+      textureRepeat,
+      this.fetchPreviewBlob,
+    );
+    if (!this.scene || !this.floorMesh) {
+      loaded?.dispose();
+      return;
+    }
+    applyFloorTexture(this.floorMesh, loaded, this.floorSettings);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -137,11 +159,13 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
     }
     this.controls?.dispose();
     this.clearPanelAssets();
-    this.shadowPlane?.geometry.dispose();
-    (this.shadowPlane?.material as THREE.Material | undefined)?.dispose();
+    if (this.floorMesh) {
+      const floorMat = this.floorMesh.material as THREE.MeshLambertMaterial;
+      floorMat.map?.dispose();
+      floorMat.dispose();
+      this.floorMesh.geometry.dispose();
+    }
     this.paperBumpMap?.dispose();
-    this.environmentMap?.dispose();
-    this.pmremGenerator?.dispose();
     this.renderer?.dispose();
     this.renderer?.domElement.parentElement?.removeChild(this.renderer.domElement);
   }
@@ -195,22 +219,13 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
       powerPreference: 'high-performance',
     });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = lighting.toneMappingExposure;
+    this.renderer.toneMapping = THREE.NoToneMapping;
+    this.renderer.toneMappingExposure = 1;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setSize(width, height);
     host.appendChild(this.renderer.domElement);
-
-    this.pmremGenerator = new THREE.PMREMGenerator(this.renderer);
-    this.pmremGenerator.compileEquirectangularShader();
-    const roomEnv = new RoomEnvironment();
-    this.environmentMap = this.pmremGenerator.fromScene(
-      roomEnv,
-      lighting.environmentBlur,
-    ).texture;
-    this.scene.environment = this.environmentMap;
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
@@ -222,64 +237,28 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
     const ambient = new THREE.AmbientLight(0xffffff, lighting.ambientIntensity);
     this.scene.add(ambient);
 
-    const hemi = new THREE.HemisphereLight(
-      lighting.hemisphereSkyColor,
-      lighting.hemisphereGroundColor,
-      lighting.hemisphereIntensity,
-    );
-    this.scene.add(hemi);
-
     this.keyLight = new THREE.DirectionalLight(
       lighting.keyLightColor,
       lighting.keyLightIntensity,
     );
+    this.keyLight.castShadow = true;
+    this.keyLight.shadow.intensity = lighting.shadowOpacity;
+    this.keyLight.shadow.mapSize.set(lighting.shadowMapSize, lighting.shadowMapSize);
+    this.keyLight.shadow.radius = lighting.shadowRadius;
+    this.keyLight.shadow.bias = -0.0003;
+    this.keyLight.shadow.normalBias = 0.002;
+    this.keyLight.shadow.camera.near = 0.01;
+    this.keyLight.shadow.camera.far = 250;
     this.keyLight.position.set(
       lighting.keyLightPosition.x,
       lighting.keyLightPosition.y,
       lighting.keyLightPosition.z,
     );
-    this.keyLight.castShadow = true;
-    this.keyLight.shadow.mapSize.set(lighting.shadowMapSize, lighting.shadowMapSize);
-    this.keyLight.shadow.radius = lighting.shadowRadius;
-    this.keyLight.shadow.bias = -0.0002;
-    this.keyLight.shadow.normalBias = 0.025;
-    this.keyLight.shadow.camera.near = 0.1;
-    this.keyLight.shadow.camera.far = 120;
-    const shadowSpan = 40;
-    this.keyLight.shadow.camera.left = -shadowSpan;
-    this.keyLight.shadow.camera.right = shadowSpan;
-    this.keyLight.shadow.camera.top = shadowSpan;
-    this.keyLight.shadow.camera.bottom = -shadowSpan;
     this.scene.add(this.keyLight);
     this.scene.add(this.keyLight.target);
 
-    const fill = new THREE.DirectionalLight(
-      lighting.fillLightColor,
-      lighting.fillLightIntensity,
-    );
-    fill.position.set(
-      lighting.fillLightPosition.x,
-      lighting.fillLightPosition.y,
-      lighting.fillLightPosition.z,
-    );
-    this.scene.add(fill);
-
-    const rim = new THREE.DirectionalLight(
-      lighting.rimLightColor,
-      lighting.rimLightIntensity,
-    );
-    rim.position.set(
-      lighting.rimLightPosition.x,
-      lighting.rimLightPosition.y,
-      lighting.rimLightPosition.z,
-    );
-    this.scene.add(rim);
-
-    const shadowMat = new THREE.ShadowMaterial({ opacity: lighting.shadowOpacity });
-    this.shadowPlane = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), shadowMat);
-    this.shadowPlane.rotation.x = -Math.PI / 2;
-    this.shadowPlane.receiveShadow = true;
-    this.scene.add(this.shadowPlane);
+    this.floorMesh = createFloorMesh(null, this.floorSettings);
+    this.scene.add(this.floorMesh);
 
     this.startRenderLoop();
   }
@@ -314,6 +293,8 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
         this.panelGroup,
         width,
         height,
+        1.32,
+        this.floorSettings.surfaceY,
       );
       this.controls?.target.copy(target);
     } else {
@@ -383,6 +364,7 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
         false,
         true,
         this.fetchPreviewBlob,
+        colorFallback,
       ),
     ]);
 
@@ -413,14 +395,27 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
     this.panelGroup = built.group;
     this.scene?.add(this.panelGroup);
 
-    const box = new THREE.Box3().setFromObject(this.panelGroup);
-    const center = box.getCenter(new THREE.Vector3());
-    if (this.shadowPlane) {
-      this.shadowPlane.position.set(center.x, box.min.y - 0.06, center.z);
+    placeObjectOnFloor(this.panelGroup, this.floorSettings.surfaceY);
+
+    if (this.floorMesh) {
+      alignFloorUnderObject(
+        this.floorMesh,
+        this.panelGroup,
+        this.floorSettings.surfaceY,
+      );
     }
+
     if (this.keyLight) {
-      this.keyLight.target.position.copy(center);
-      this.keyLight.target.updateMatrixWorld();
+      updateShadowLightForPanel(
+        this.keyLight,
+        this.panelGroup,
+        this.floorSettings.surfaceY,
+        this.lightingSettings.keyLightPosition,
+      );
+    }
+
+    if (this.renderer) {
+      this.renderer.shadowMap.needsUpdate = true;
     }
 
     const host = this.host?.nativeElement;
@@ -430,6 +425,8 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
         this.panelGroup,
         Math.max(1, host.clientWidth),
         Math.max(1, host.clientHeight),
+        1.32,
+        this.floorSettings.surfaceY,
       );
       this.controls?.target.copy(target);
       this.controls?.update();
