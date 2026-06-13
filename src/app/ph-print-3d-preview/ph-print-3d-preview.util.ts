@@ -437,7 +437,7 @@ export function createPrintPanelMeshes(input: PhPrint3dPreviewBuildInput): PhPri
   }
 
   const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
-  bodyMesh.castShadow = true;
+  bodyMesh.castShadow = false;
   bodyMesh.receiveShadow = false;
 
   const group = new THREE.Group();
@@ -447,8 +447,10 @@ export function createPrintPanelMeshes(input: PhPrint3dPreviewBuildInput): PhPri
   const printSideColorZ = depthCm / 2 + faceInset;
   const printLayerZ = printSideColorZ + 0.004;
 
-  // Print side (+Z) — always show selected color/texture (same as 2D preview background layer).
-  addColorSubstrateFace(group, shape, widthCm, heightCm, printSideColorZ, input);
+  // Print side (+Z) — substrate-only when there is no print image (composite handles color+print).
+  if (!input.imageTexture) {
+    addColorSubstrateFace(group, shape, widthCm, heightCm, printSideColorZ, input);
+  }
 
   // Back side (-Z) — same stock color/texture.
   addColorSubstrateFace(group, shape, widthCm, heightCm, -depthCm / 2 - faceInset, input, {
@@ -472,23 +474,9 @@ export function createPrintPanelMeshes(input: PhPrint3dPreviewBuildInput): PhPri
     frontMesh.castShadow = false;
     frontMesh.receiveShadow = false;
     group.add(frontMesh);
-
-    addShapeSilhouetteShadowCaster(
-      group,
-      shape,
-      widthCm,
-      heightCm,
-      printSideColorZ + 0.002,
-    );
-  } else {
-    addShapeSilhouetteShadowCaster(
-      group,
-      shape,
-      widthCm,
-      heightCm,
-      printSideColorZ + 0.004,
-    );
   }
+
+  addPanelShadowCaster(group, shape, depthCm);
 
   // Upright on floor — print face toward +Z, bottom edge rests on surface.
   group.rotation.set(0, 0, 0);
@@ -496,39 +484,24 @@ export function createPrintPanelMeshes(input: PhPrint3dPreviewBuildInput): PhPri
   return { group, bodyMesh, frontMesh };
 }
 
-function applyShapeShadowCast(
-  mesh: THREE.Mesh,
-  alphaTexture?: THREE.Texture | null,
-  alphaTest = 0.01,
-): void {
-  mesh.castShadow = true;
-  mesh.receiveShadow = false;
-  if (alphaTexture) {
-    mesh.customDepthMaterial = new THREE.MeshDepthMaterial({
-      map: alphaTexture,
-      alphaTest,
-      side: THREE.DoubleSide,
-    });
-  }
-}
-
-/** Exact product outline (rounded/chamfer corners) — shadow-map caster only. */
-function addShapeSilhouetteShadowCaster(
+function addPanelShadowCaster(
   group: THREE.Group,
   shape: THREE.Shape,
-  widthCm: number,
-  heightCm: number,
-  zCm: number,
-  alphaTexture?: THREE.Texture | null,
-  alphaTest = 0.01,
+  depthCm: number,
 ): void {
-  const geometry = createPanelFaceGeometry(shape, widthCm, heightCm);
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: depthCm,
+    bevelEnabled: false,
+    steps: 1,
+  });
+  geometry.translate(0, 0, -depthCm / 2);
   const material = new THREE.MeshLambertMaterial({ color: 0xffffff });
   material.colorWrite = false;
   material.depthWrite = false;
   const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.z = zCm;
-  applyShapeShadowCast(mesh, alphaTexture, alphaTest);
+  mesh.name = 'phPanelShadowCaster';
+  mesh.castShadow = true;
+  mesh.receiveShadow = false;
   group.add(mesh);
 }
 
@@ -573,19 +546,23 @@ function resolvePanelLightFocus(
 
 function updateDirectionalLightShadowCamera(
   light: THREE.DirectionalLight,
-  shadowCenter: THREE.Vector3,
-  size: THREE.Vector3,
+  shadowCenterLocal: THREE.Vector3,
+  panelWidth: number,
+  panelHeight: number,
 ): void {
-  const span = Math.max(size.x, size.z, 10) * 2.6 + size.y * 0.75;
+  const halfW = Math.max(panelWidth * 0.5, 0.5);
+  const halfH = Math.max(panelHeight * 0.5, 0.5);
+  const spanX = halfW * 1.06;
+  const spanY = halfH * 1.08;
   const cam = light.shadow.camera;
-  cam.left = -span;
-  cam.right = span;
-  cam.top = span;
-  cam.bottom = -span;
-  cam.near = 0.05;
-  cam.far = span * 4 + 80;
+  cam.left = -spanX;
+  cam.right = spanX;
+  cam.top = spanY;
+  cam.bottom = -spanY;
+  cam.near = 0.1;
+  cam.far = Math.max(panelHeight, panelWidth) * 5 + 80;
   cam.updateProjectionMatrix();
-  light.target.position.copy(shadowCenter);
+  light.target.position.copy(shadowCenterLocal);
   light.target.updateMatrixWorld();
 }
 
@@ -593,26 +570,30 @@ function updateDirectionalLightShadowCamera(
 export function updatePreviewLightsForPanel(
   lights: PhPrint3dPreviewLights,
   panel: THREE.Object3D,
-  surfaceY: number,
+  _surfaceY: number,
   settings: PhPrint3dLightingSettings,
 ): void {
-  const resolved = resolvePanelLightFocus(panel, surfaceY);
+  const resolved = resolvePanelLightFocus(panel, _surfaceY);
   if (!resolved) {
     return;
   }
   const { size } = resolved;
-  panel.updateWorldMatrix(true, true);
-  const panelBox = new THREE.Box3().setFromObject(panel);
-  const center = panelBox.getCenter(new THREE.Vector3());
-  const floorFocus = new THREE.Vector3(center.x, surfaceY, center.z);
-  const shadowCenter = center.clone().lerp(floorFocus, 0.55);
+  const halfH = size.y * 0.5;
+  const halfW = size.x * 0.5;
 
   const keyPos = settings.keyLightPosition;
-  lights.keyLight.position.set(keyPos.x, keyPos.y, keyPos.z);
-  lights.keyLight.target.position.set(0, 0, 0);
+  // Key on the print-face axis (+Z, X=0) so the floor shadow falls straight behind (-Z).
+  lights.keyLight.position.set(0, keyPos.y, Math.max(keyPos.z, 1));
+  const shadowCenterLocal = new THREE.Vector3(0, -halfH, -halfH * 0.22);
+  lights.keyLight.target.position.copy(shadowCenterLocal);
   lights.keyLight.updateMatrixWorld(true);
   lights.keyLight.target.updateMatrixWorld(true);
-  updateDirectionalLightShadowCamera(lights.keyLight, shadowCenter, size);
+  updateDirectionalLightShadowCamera(
+    lights.keyLight,
+    shadowCenterLocal,
+    halfW * 2,
+    halfH * 2,
+  );
 
   if (lights.fillLight) {
     const fillPos = settings.fillLightPosition;
@@ -767,20 +748,23 @@ function loadImageElement(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Match 2D preview `object-fit: cover` — crop source image, bake to canvas texture. */
-export function createCoverCanvasTexture(
-  img: HTMLImageElement,
+function resolveFaceCanvasDimensions(
   faceWidthCm: number,
   faceHeightCm: number,
-  cornerType: CornerType | 'none' = 'none',
-  cornerRadiusCm = 0,
-  clipCorners = false,
-  vividPrintColors = false,
-  backgroundFillColor?: string | null,
-): THREE.CanvasTexture {
+  maxEdge = 2048,
+): { canvasW: number; canvasH: number; faceAspect: number } {
   const safeFaceW = Math.max(0.1, faceWidthCm);
   const safeFaceH = Math.max(0.1, faceHeightCm);
   const faceAspect = safeFaceW / safeFaceH;
+  const canvasW = faceAspect >= 1 ? maxEdge : Math.max(1, Math.round(maxEdge * faceAspect));
+  const canvasH = faceAspect >= 1 ? Math.max(1, Math.round(maxEdge / faceAspect)) : maxEdge;
+  return { canvasW, canvasH, faceAspect };
+}
+
+function computeCoverSourceRect(
+  img: HTMLImageElement,
+  faceAspect: number,
+): { sx: number; sy: number; sw: number; sh: number } {
   const texW = Math.max(1, img.naturalWidth || img.width);
   const texH = Math.max(1, img.naturalHeight || img.height);
   const texAspect = texW / texH;
@@ -796,10 +780,55 @@ export function createCoverCanvasTexture(
     sh = Math.round(texW / faceAspect);
     sy = Math.round((texH - sh) / 2);
   }
+  return { sx, sy, sw, sh };
+}
 
-  const maxEdge = 2048;
-  const canvasW = faceAspect >= 1 ? maxEdge : Math.max(1, Math.round(maxEdge * faceAspect));
-  const canvasH = faceAspect >= 1 ? Math.max(1, Math.round(maxEdge / faceAspect)) : maxEdge;
+function drawCoverImage(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  canvasW: number,
+  canvasH: number,
+  faceAspect: number,
+): void {
+  const { sx, sy, sw, sh } = computeCoverSourceRect(img, faceAspect);
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvasW, canvasH);
+}
+
+function finalizeFaceCanvasTexture(
+  canvas: HTMLCanvasElement,
+  vividPrintColors: boolean,
+): THREE.CanvasTexture {
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.flipY = true;
+  texture.premultiplyAlpha = false;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.minFilter = vividPrintColors
+    ? THREE.LinearMipmapLinearFilter
+    : THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.anisotropy = vividPrintColors ? 8 : 4;
+  texture.generateMipmaps = vividPrintColors;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+/** Match 2D preview: color/texture layer with print image on top (object-fit: cover). */
+export function createCompositePrintFaceCanvasTexture(
+  printImg: HTMLImageElement,
+  colorImg: HTMLImageElement | null,
+  colorFallback: string,
+  faceWidthCm: number,
+  faceHeightCm: number,
+  cornerType: CornerType | 'none' = 'none',
+  cornerRadiusCm = 0,
+  clipCorners = false,
+  vividPrintColors = false,
+): THREE.CanvasTexture {
+  const { canvasW, canvasH, faceAspect } = resolveFaceCanvasDimensions(faceWidthCm, faceHeightCm);
+  const safeFaceW = Math.max(0.1, faceWidthCm);
+  const safeFaceH = Math.max(0.1, faceHeightCm);
 
   const canvas = document.createElement('canvas');
   canvas.width = canvasW;
@@ -807,15 +836,16 @@ export function createCoverCanvasTexture(
   const ctx = canvas.getContext('2d');
   if (ctx) {
     ctx.clearRect(0, 0, canvasW, canvasH);
-    const fillColor = backgroundFillColor?.trim();
-    if (fillColor) {
-      ctx.fillStyle = fillColor;
+    if (colorImg) {
+      drawCoverImage(ctx, colorImg, canvasW, canvasH, faceAspect);
+    } else {
+      ctx.fillStyle = colorFallback;
       ctx.fillRect(0, 0, canvasW, canvasH);
     }
     if (vividPrintColors) {
       ctx.filter = 'contrast(1.14) saturate(1.1) brightness(0.97)';
     }
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvasW, canvasH);
+    drawCoverImage(ctx, printImg, canvasW, canvasH, faceAspect);
     ctx.filter = 'none';
 
     const shouldMask =
@@ -835,20 +865,150 @@ export function createCoverCanvasTexture(
     }
   }
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.flipY = true;
-  texture.premultiplyAlpha = false;
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = THREE.ClampToEdgeWrapping;
-  texture.wrapT = THREE.ClampToEdgeWrapping;
-  texture.minFilter = vividPrintColors
-    ? THREE.LinearMipmapLinearFilter
-    : THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.anisotropy = vividPrintColors ? 8 : 4;
-  texture.generateMipmaps = vividPrintColors;
-  texture.needsUpdate = true;
-  return texture;
+  return finalizeFaceCanvasTexture(canvas, vividPrintColors);
+}
+
+async function resolvePreviewImageSource(
+  url: string | null | undefined,
+  fetchBlob?: (sourceUrl: string) => Promise<Blob | null>,
+): Promise<{ img: HTMLImageElement | null; blobUrl: string | null }> {
+  const trimmed = url?.trim() || '';
+  if (!trimmed) {
+    return { img: null, blobUrl: null };
+  }
+
+  let blobUrl: string | null = null;
+  let imageSrc = trimmed;
+
+  if (isCrossOriginPreviewUrl(trimmed) && fetchBlob) {
+    const blob = await fetchBlob(trimmed);
+    if (blob) {
+      blobUrl = URL.createObjectURL(blob);
+      imageSrc = blobUrl;
+    }
+  }
+
+  try {
+    const img = await loadImageElement(imageSrc);
+    return { img, blobUrl };
+  } catch {
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+    }
+    return { img: null, blobUrl: null };
+  }
+}
+
+export async function loadCompositePrintFaceTexture(
+  printUrl: string | null | undefined,
+  colorUrl: string | null | undefined,
+  colorFallback: string,
+  faceWidthCm: number,
+  faceHeightCm: number,
+  cornerType: CornerType | 'none' = 'none',
+  cornerRadiusCm = 0,
+  fetchBlob?: (sourceUrl: string) => Promise<Blob | null>,
+): Promise<LoadedPreviewTexture> {
+  const trimmedPrint = printUrl?.trim() || '';
+  if (!trimmedPrint) {
+    return { texture: null, blobUrl: null };
+  }
+
+  const [printSource, colorSource] = await Promise.all([
+    resolvePreviewImageSource(trimmedPrint, fetchBlob),
+    resolvePreviewImageSource(colorUrl, fetchBlob),
+  ]);
+
+  if (!printSource.img) {
+    if (printSource.blobUrl) {
+      URL.revokeObjectURL(printSource.blobUrl);
+    }
+    if (colorSource.blobUrl) {
+      URL.revokeObjectURL(colorSource.blobUrl);
+    }
+    return { texture: null, blobUrl: null };
+  }
+
+  try {
+    const texture = createCompositePrintFaceCanvasTexture(
+      printSource.img,
+      colorSource.img,
+      colorFallback,
+      faceWidthCm,
+      faceHeightCm,
+      cornerType,
+      cornerRadiusCm,
+      false,
+      true,
+    );
+    if (printSource.blobUrl) {
+      URL.revokeObjectURL(printSource.blobUrl);
+    }
+    if (colorSource.blobUrl) {
+      URL.revokeObjectURL(colorSource.blobUrl);
+    }
+    return { texture, blobUrl: null };
+  } catch {
+    if (printSource.blobUrl) {
+      URL.revokeObjectURL(printSource.blobUrl);
+    }
+    if (colorSource.blobUrl) {
+      URL.revokeObjectURL(colorSource.blobUrl);
+    }
+    return { texture: null, blobUrl: null };
+  }
+}
+
+/** Match 2D preview `object-fit: cover` — crop source image, bake to canvas texture. */
+export function createCoverCanvasTexture(
+  img: HTMLImageElement,
+  faceWidthCm: number,
+  faceHeightCm: number,
+  cornerType: CornerType | 'none' = 'none',
+  cornerRadiusCm = 0,
+  clipCorners = false,
+  vividPrintColors = false,
+  backgroundFillColor?: string | null,
+): THREE.CanvasTexture {
+  const safeFaceW = Math.max(0.1, faceWidthCm);
+  const safeFaceH = Math.max(0.1, faceHeightCm);
+  const { canvasW, canvasH, faceAspect } = resolveFaceCanvasDimensions(faceWidthCm, faceHeightCm);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = canvasW;
+  canvas.height = canvasH;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.clearRect(0, 0, canvasW, canvasH);
+    const fillColor = backgroundFillColor?.trim();
+    if (fillColor) {
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(0, 0, canvasW, canvasH);
+    }
+    if (vividPrintColors) {
+      ctx.filter = 'contrast(1.14) saturate(1.1) brightness(0.97)';
+    }
+    drawCoverImage(ctx, img, canvasW, canvasH, faceAspect);
+    ctx.filter = 'none';
+
+    const shouldMask =
+      clipCorners &&
+      cornerType !== 'none' &&
+      Number(cornerRadiusCm) > 0;
+    if (shouldMask) {
+      applyFaceCornerAlphaMask(
+        ctx,
+        canvasW,
+        canvasH,
+        cornerType,
+        cornerRadiusCm,
+        safeFaceW,
+        safeFaceH,
+      );
+    }
+  }
+
+  return finalizeFaceCanvasTexture(canvas, vividPrintColors);
 }
 
 function resolveCornerRadiusPx(

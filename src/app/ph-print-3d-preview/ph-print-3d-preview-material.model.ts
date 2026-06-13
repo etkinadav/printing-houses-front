@@ -63,6 +63,7 @@ export interface PhPrint3dLightingSettings {
   /** PMREM blur for scene.environment (lower = softer reflections). */
   environmentBlur: number;
   shadowMapSize: number;
+  /** PCF soft shadow blur — higher = softer edges (Three.js shadow.radius). */
   shadowRadius: number;
   shadowOpacity: number;
   shadowBias: number;
@@ -141,7 +142,7 @@ export const DEFAULT_PH_PRINT_3D_LIGHTING: PhPrint3dLightingSettings = {
   hemisphereIntensity: 0.12,
   keyLightColor: '#ffffff',
   keyLightIntensity: 2,
-  keyLightPosition: { x: 12, y: 55, z: 36 },
+  keyLightPosition: { x: 0, y: 55, z: 48 },
   keyLightTowardCameraRatio: 0.38,
   keyLightElevationRatio: 0.52,
   keyLightLateralRatio: 0.05,
@@ -153,8 +154,8 @@ export const DEFAULT_PH_PRINT_3D_LIGHTING: PhPrint3dLightingSettings = {
   rimLightPosition: { x: -39, y: 21, z: 49 },
   environmentBlur: 0.11,
   shadowMapSize: 4096,
-  shadowRadius: 4.5,
-  shadowOpacity: 0.4,
-  shadowBias: 0.01,
-  shadowNormalBias: 0.051,
+  shadowRadius: 8,
+  shadowOpacity: 0.48,
+  shadowBias: -0.00015,
+  shadowNormalBias: 0.018,
 };

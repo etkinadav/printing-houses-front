@@ -43,6 +43,7 @@ import {
   updatePreviewLightsForPanel,
   fitPerspectiveCameraToObject,
   loadCoverPreviewTexture,
+  loadCompositePrintFaceTexture,
   loadFloorTexture,
   loadPaperBumpTexture,
   LoadedPreviewTexture,
@@ -170,8 +171,9 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
     if (this.keyLight) {
       this.keyLight.color.set(lighting.keyLightColor);
       this.keyLight.intensity = lighting.keyLightIntensity;
+      this.keyLight.castShadow = true;
       this.keyLight.shadow.intensity = lighting.shadowOpacity;
-      this.keyLight.shadow.radius = lighting.shadowRadius;
+      this.keyLight.shadow.radius = Math.max(0, lighting.shadowRadius);
       this.keyLight.shadow.bias = lighting.shadowBias;
       this.keyLight.shadow.normalBias = lighting.shadowNormalBias;
       if (
@@ -179,10 +181,14 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
         this.keyLight.shadow.mapSize.y !== lighting.shadowMapSize
       ) {
         this.keyLight.shadow.mapSize.set(lighting.shadowMapSize, lighting.shadowMapSize);
-        if (this.renderer) {
-          this.renderer.shadowMap.needsUpdate = true;
-        }
       }
+      if (this.renderer) {
+        this.renderer.shadowMap.needsUpdate = true;
+      }
+    }
+
+    if (this.floorMesh) {
+      this.floorMesh.receiveShadow = true;
     }
 
     if (this.fillLight) {
@@ -534,6 +540,7 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
     this.setupPanelLightsRig();
 
     this.floorMesh = createFloorMesh(null, this.floorSettings);
+    this.floorMesh.receiveShadow = true;
     this.scene.add(this.floorMesh);
 
     this.startRenderLoop();
@@ -632,16 +639,15 @@ export class PhPrint3dPreviewComponent implements AfterViewInit, OnChanges, OnDe
         false,
         this.fetchPreviewBlob,
       ),
-      loadCoverPreviewTexture(
+      loadCompositePrintFaceTexture(
         this.imageUrl,
+        colorUrl,
+        colorFallback,
         widthCm,
         heightCm,
         this.cornerType,
         Number(this.cornerRadiusCm) || 0,
-        false,
-        true,
         this.fetchPreviewBlob,
-        colorFallback,
       ),
     ]);
 

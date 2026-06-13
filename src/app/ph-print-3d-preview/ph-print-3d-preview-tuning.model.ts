@@ -138,9 +138,8 @@ export const PH_PRINT_3D_TUNING_FIELDS: PhPrint3dTuningField[] = [
 
   color('lighting.keyLightColor', 'Key — צבע', 'Key light'),
   num('lighting.keyLightIntensity', 'Key — עוצמה', 'Key light', 0, 2, 0.01),
-  num('lighting.keyLightPosition.x', 'Key — X (יחסי למודל)', 'Key light', -120, 120, 1),
   num('lighting.keyLightPosition.y', 'Key — Y (יחסי למודל)', 'Key light', -20, 120, 1),
-  num('lighting.keyLightPosition.z', 'Key — Z (יחסי למודל)', 'Key light', -120, 120, 1),
+  num('lighting.keyLightPosition.z', 'Key — Z (מלפנים, צל מאחור)', 'Key light', 1, 120, 1),
 
   color('lighting.fillLightColor', 'Fill — צבע', 'Fill light'),
   num('lighting.fillLightIntensity', 'Fill — עוצמה', 'Fill light', 0, 1.5, 0.01),
@@ -154,11 +153,11 @@ export const PH_PRINT_3D_TUNING_FIELDS: PhPrint3dTuningField[] = [
   num('lighting.rimLightPosition.y', 'Rim — Y (יחסי למודל)', 'Rim light', -20, 120, 1),
   num('lighting.rimLightPosition.z', 'Rim — Z (יחסי למודל)', 'Rim light', -120, 120, 1),
 
-  num('lighting.shadowOpacity', 'עוצמת צל', 'צללים', 0, 1, 0.01),
-  num('lighting.shadowRadius', 'רכות צל (radius)', 'צללים', 0, 12, 0.5),
-  num('lighting.shadowMapSize', 'רזולוציית shadow map', 'צללים', 512, 8192, 512),
-  num('lighting.shadowBias', 'Shadow bias', 'צללים', -0.01, 0.01, 0.00001),
-  num('lighting.shadowNormalBias', 'Shadow normal bias', 'צללים', 0, 0.2, 0.001),
+  num('lighting.shadowOpacity', 'צל — עוצמה', 'צללים', 0, 1, 0.01),
+  num('lighting.shadowRadius', 'צל — טשטוש קצוות', 'צללים', 0, 32, 0.25),
+  num('lighting.shadowMapSize', 'צל — רזולוציה', 'צללים', 512, 8192, 512),
+  num('lighting.shadowBias', 'צל — bias', 'צללים', -0.01, 0.01, 0.00001),
+  num('lighting.shadowNormalBias', 'צל — normal bias', 'צללים', 0, 0.2, 0.001),
 
   num('material.bodyRoughness', 'Body — roughness', 'חומר — Body', 0, 1, 0.01),
   num('material.bodyMetalness', 'Body — metalness', 'חומר — Body', 0, 1, 0.01),
