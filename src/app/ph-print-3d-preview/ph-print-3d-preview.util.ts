@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { CornerType } from '../ph-products/ph-product.model';
 import {
+  DEFAULT_PH_PRINT_3D_LIGHTING,
   PhPrint3dFloorSettings,
+  PhPrint3dLightingSettings,
   PhPrint3dMaterialSettings,
 } from './ph-print-3d-preview-material.model';
 
@@ -477,8 +479,6 @@ export function createPrintPanelMeshes(input: PhPrint3dPreviewBuildInput): PhPri
       widthCm,
       heightCm,
       printSideColorZ + 0.002,
-      input.imageTexture,
-      0.01,
     );
   } else {
     addShapeSilhouetteShadowCaster(
@@ -538,35 +538,97 @@ export function updateShadowLightForPanel(
   surfaceY: number,
   lightOffset: { x: number; y: number; z: number },
 ): void {
+  updatePreviewLightsForPanel(
+    { keyLight: light },
+    panel,
+    surfaceY,
+    {
+      ...DEFAULT_PH_PRINT_3D_LIGHTING,
+      keyLightPosition: lightOffset,
+    },
+  );
+}
+
+export interface PhPrint3dPreviewLights {
+  keyLight: THREE.DirectionalLight;
+  fillLight?: THREE.DirectionalLight | null;
+  rimLight?: THREE.DirectionalLight | null;
+}
+
+function resolvePanelLightFocus(
+  panel: THREE.Object3D,
+  surfaceY: number,
+): { focus: THREE.Vector3; size: THREE.Vector3 } | null {
   panel.updateWorldMatrix(true, true);
   const panelBox = new THREE.Box3().setFromObject(panel);
   if (!Number.isFinite(panelBox.min.x)) {
-    return;
+    return null;
   }
-
   const center = panelBox.getCenter(new THREE.Vector3());
   const size = panelBox.getSize(new THREE.Vector3());
   const floorFocus = new THREE.Vector3(center.x, surfaceY, center.z);
   const focus = center.clone().lerp(floorFocus, 0.3);
+  return { focus, size };
+}
 
-  light.target.position.copy(focus);
-  light.target.updateMatrixWorld();
-  light.position.set(
-    focus.x + lightOffset.x,
-    focus.y + lightOffset.y,
-    focus.z + lightOffset.z,
-  );
-  light.updateMatrixWorld();
-
-  const span = Math.max(size.x, size.y, size.z, 14) * 2;
+function updateDirectionalLightShadowCamera(
+  light: THREE.DirectionalLight,
+  shadowCenter: THREE.Vector3,
+  size: THREE.Vector3,
+): void {
+  const span = Math.max(size.x, size.z, 10) * 2.6 + size.y * 0.75;
   const cam = light.shadow.camera;
   cam.left = -span;
   cam.right = span;
   cam.top = span;
   cam.bottom = -span;
-  cam.near = 0.01;
-  cam.far = span * 3 + 60;
+  cam.near = 0.05;
+  cam.far = span * 4 + 80;
   cam.updateProjectionMatrix();
+  light.target.position.copy(shadowCenter);
+  light.target.updateMatrixWorld();
+}
+
+/** Directional lights use panel-local offsets (+Z = print face). */
+export function updatePreviewLightsForPanel(
+  lights: PhPrint3dPreviewLights,
+  panel: THREE.Object3D,
+  surfaceY: number,
+  settings: PhPrint3dLightingSettings,
+): void {
+  const resolved = resolvePanelLightFocus(panel, surfaceY);
+  if (!resolved) {
+    return;
+  }
+  const { size } = resolved;
+  panel.updateWorldMatrix(true, true);
+  const panelBox = new THREE.Box3().setFromObject(panel);
+  const center = panelBox.getCenter(new THREE.Vector3());
+  const floorFocus = new THREE.Vector3(center.x, surfaceY, center.z);
+  const shadowCenter = center.clone().lerp(floorFocus, 0.55);
+
+  const keyPos = settings.keyLightPosition;
+  lights.keyLight.position.set(keyPos.x, keyPos.y, keyPos.z);
+  lights.keyLight.target.position.set(0, 0, 0);
+  lights.keyLight.updateMatrixWorld(true);
+  lights.keyLight.target.updateMatrixWorld(true);
+  updateDirectionalLightShadowCamera(lights.keyLight, shadowCenter, size);
+
+  if (lights.fillLight) {
+    const fillPos = settings.fillLightPosition;
+    lights.fillLight.position.set(fillPos.x, fillPos.y, fillPos.z);
+    lights.fillLight.target.position.set(0, 0, 0);
+    lights.fillLight.updateMatrixWorld(true);
+    lights.fillLight.target.updateMatrixWorld(true);
+  }
+
+  if (lights.rimLight) {
+    const rimPos = settings.rimLightPosition;
+    lights.rimLight.position.set(rimPos.x, rimPos.y, rimPos.z);
+    lights.rimLight.target.position.set(0, 0, 0);
+    lights.rimLight.updateMatrixWorld(true);
+    lights.rimLight.target.updateMatrixWorld(true);
+  }
 }
 
 /** Crop vignetted edges so floor texture tiles more cleanly. */
@@ -648,7 +710,7 @@ export function createFloorMesh(
 ): THREE.Mesh {
   const geometry = new THREE.PlaneGeometry(settings.sizeCm, settings.sizeCm);
   const material = new THREE.MeshLambertMaterial({
-    color: new THREE.Color(texture ? 0xffffff : 0xc8b08a),
+    color: new THREE.Color(texture ? 0xffffff : settings.surfaceColor),
     map: texture,
   });
   const mesh = new THREE.Mesh(geometry, material);
@@ -670,7 +732,7 @@ export function applyFloorTexture(
     previous.dispose();
   }
   material.map = texture;
-  material.color.set(texture ? 0xffffff : 0xc8b08a);
+  material.color.set(texture ? 0xffffff : settings.surfaceColor);
   material.needsUpdate = true;
 }
 

@@ -45,7 +45,14 @@ export interface PhPrint3dLightingSettings {
   hemisphereIntensity: number;
   keyLightColor: string;
   keyLightIntensity: number;
+  /** Fixed offset from panel focus — fallback when no camera; also used for fill / rim. */
   keyLightPosition: { x: number; y: number; z: number };
+  /** Pull key light toward the viewer as a fraction of camera–panel distance. */
+  keyLightTowardCameraRatio: number;
+  /** Lift key light above the panel focus (fraction of camera–panel distance). */
+  keyLightElevationRatio: number;
+  /** Subtle sideways offset for natural asymmetry (fraction of distance). */
+  keyLightLateralRatio: number;
   fillLightColor: string;
   fillLightIntensity: number;
   fillLightPosition: { x: number; y: number; z: number };
@@ -58,6 +65,8 @@ export interface PhPrint3dLightingSettings {
   shadowMapSize: number;
   shadowRadius: number;
   shadowOpacity: number;
+  shadowBias: number;
+  shadowNormalBias: number;
 }
 
 export const DEFAULT_PH_PRINT_3D_BUMP_MAP_URL =
@@ -66,10 +75,12 @@ export const DEFAULT_PH_PRINT_3D_BUMP_MAP_URL =
 export const DEFAULT_PH_PRINT_3D_FLOOR_TEXTURE_URL =
   'https://png.pngtree.com/background/20250314/original/pngtree-high-resolution-close-up-of-light-beige-wood-grain-texture-picture-image_16339835.jpg';
 
-/** Wood floor under the product. */
+/** Horizontal floor plane under the product. */
 export interface PhPrint3dFloorSettings {
   textureUrl: string | null;
   textureRepeat: number;
+  /** Solid surface color when no texture is set. */
+  surfaceColor: string;
   /** Square floor plane side length (cm). */
   sizeCm: number;
   roughness: number;
@@ -80,37 +91,38 @@ export interface PhPrint3dFloorSettings {
 }
 
 export const DEFAULT_PH_PRINT_3D_FLOOR: PhPrint3dFloorSettings = {
-  textureUrl: DEFAULT_PH_PRINT_3D_FLOOR_TEXTURE_URL,
+  textureUrl: null,
   textureRepeat: 10,
+  surfaceColor: '#ededed',
   sizeCm: 200,
-  roughness: 0.52,
-  metalness: 0,
-  envMapIntensity: 0.1,
-  surfaceY: 0,
+  roughness: 0.66,
+  metalness: 0.69,
+  envMapIntensity: 1.55,
+  surfaceY: 4.75,
 };
 
 export const DEFAULT_PH_PRINT_3D_MATERIAL: PhPrint3dMaterialSettings = {
-  bodyRoughness: 0.42,
-  bodyMetalness: 0,
-  bodyBumpScale: 0.014,
-  bodyEnvMapIntensity: 0.18,
-  bodyClearcoat: 0.12,
-  bodyClearcoatRoughness: 0.38,
-  bodyIor: 1.42,
-  bodySpecularIntensity: 0.55,
+  bodyRoughness: 0.51,
+  bodyMetalness: 0.87,
+  bodyBumpScale: 0.074,
+  bodyEnvMapIntensity: 0.63,
+  bodyClearcoat: 0.73,
+  bodyClearcoatRoughness: 0.41,
+  bodyIor: 1.82,
+  bodySpecularIntensity: 1.28,
 
-  colorFaceRoughness: 0.48,
-  colorFaceMetalness: 0,
-  colorFaceBumpScale: 0.004,
-  colorFaceEnvMapIntensity: 0.06,
+  colorFaceRoughness: 0.26,
+  colorFaceMetalness: 0.32,
+  colorFaceBumpScale: 0.04,
+  colorFaceEnvMapIntensity: 1.27,
   colorFaceClearcoat: 0.04,
   colorFaceClearcoatRoughness: 0.65,
   colorFaceIor: 1.42,
-  colorFaceSpecularIntensity: 0.28,
+  colorFaceSpecularIntensity: 0.85,
 
-  printRoughness: 0.58,
-  printMetalness: 0,
-  printBumpScale: 0,
+  printRoughness: 0.65,
+  printMetalness: 0.49,
+  printBumpScale: 0.057,
   printEnvMapIntensity: 0.03,
   printClearcoat: 0,
   printClearcoatRoughness: 1,
@@ -118,26 +130,31 @@ export const DEFAULT_PH_PRINT_3D_MATERIAL: PhPrint3dMaterialSettings = {
   printSpecularIntensity: 0.18,
 
   bumpMapUrl: DEFAULT_PH_PRINT_3D_BUMP_MAP_URL,
-  bumpMapRepeat: 5,
+  bumpMapRepeat: 30,
 };
 
 export const DEFAULT_PH_PRINT_3D_LIGHTING: PhPrint3dLightingSettings = {
   toneMappingExposure: 1,
-  ambientIntensity: 0.32,
+  ambientIntensity: 0.24,
   hemisphereSkyColor: '#eef1f6',
-  hemisphereGroundColor: '#c8cdd6',
-  hemisphereIntensity: 0,
+  hemisphereGroundColor: '#d8dce4',
+  hemisphereIntensity: 0.12,
   keyLightColor: '#ffffff',
-  keyLightIntensity: 0.58,
-  keyLightPosition: { x: 12, y: 44, z: 10 },
+  keyLightIntensity: 2,
+  keyLightPosition: { x: 12, y: 55, z: 36 },
+  keyLightTowardCameraRatio: 0.38,
+  keyLightElevationRatio: 0.52,
+  keyLightLateralRatio: 0.05,
   fillLightColor: '#ffffff',
-  fillLightIntensity: 0,
-  fillLightPosition: { x: -9, y: 4, z: -3 },
+  fillLightIntensity: 1.5,
+  fillLightPosition: { x: -51, y: 74, z: -35 },
   rimLightColor: '#ffffff',
-  rimLightIntensity: 0,
-  rimLightPosition: { x: 2, y: 7, z: -11 },
+  rimLightIntensity: 1.06,
+  rimLightPosition: { x: -39, y: 21, z: 49 },
   environmentBlur: 0.11,
   shadowMapSize: 4096,
-  shadowRadius: 3,
-  shadowOpacity: 1,
+  shadowRadius: 4.5,
+  shadowOpacity: 0.4,
+  shadowBias: 0.01,
+  shadowNormalBias: 0.051,
 };

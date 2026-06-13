@@ -701,6 +701,12 @@
   }
 }
 
+.preview-3d-stack {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
 /* Preview pane — outer breathing room; dim gutters live on ph-print-preview-bundle */
 .zx-p-preview-container {
   padding: 40px 20px 20px;

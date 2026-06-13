@@ -1286,17 +1286,24 @@
           [isDarkMode]="isDarkMode">
         </app-ph-print-preview>
 
-        <app-ph-print-3d-preview
+        <div
           *ngIf="hasFiles && previewFrontThumbnailUrl && is3dPreviewActive"
-          class="w-100 h-100"
-          [imageUrl]="previewFrontThumbnailUrl"
-          [widthCm]="previewBaseWidthCm"
-          [heightCm]="previewBaseHeightCm"
-          [cornerType]="previewCornerType"
-          [cornerRadiusCm]="previewCornerRadiusCm"
-          [sheetBackgroundStyles]="previewSheetBackgroundStyles"
-          [isDarkMode]="isDarkMode">
-        </app-ph-print-3d-preview>
+          class="preview-3d-stack w-100 h-100 position-relative">
+          <app-ph-print-3d-preview
+            #preview3d
+            class="w-100 h-100"
+            [imageUrl]="previewFrontThumbnailUrl"
+            [widthCm]="previewBaseWidthCm"
+            [heightCm]="previewBaseHeightCm"
+            [cornerType]="previewCornerType"
+            [cornerRadiusCm]="previewCornerRadiusCm"
+            [sheetBackgroundStyles]="previewSheetBackgroundStyles"
+            [isDarkMode]="isDarkMode">
+          </app-ph-print-3d-preview>
+
+          <app-ph-print-3d-preview-tunings [preview]="preview3d">
+          </app-ph-print-3d-preview-tunings>
+        </div>
       </div>
 
       <button
