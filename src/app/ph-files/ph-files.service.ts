@@ -1,7 +1,6 @@
 import { HttpClient, HttpEvent } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, firstValueFrom, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 
 import { environment } from 'src/environments/environment';
 
@@ -54,15 +53,4 @@ export class PhFilesService {
     });
   }
 
-  /** Same-origin proxy for S3 thumbnails/textures (WebGL cannot load cross-origin S3 directly). */
-  fetchPreviewTexture(url: string): Observable<Blob | null> {
-    return this.http.get(`${BACKEND_URL}/preview-texture`, {
-      params: { url },
-      responseType: 'blob',
-    }).pipe(catchError(() => of(null)));
-  }
-
-  fetchPreviewTextureBlob(url: string): Promise<Blob | null> {
-    return firstValueFrom(this.fetchPreviewTexture(url));
-  }
 }

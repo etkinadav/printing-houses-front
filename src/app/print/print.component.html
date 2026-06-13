@@ -1270,7 +1270,7 @@
         </article>
 
         <app-ph-print-preview
-          *ngIf="hasFiles && previewFrontThumbnailUrl && !is3dPreviewActive"
+          *ngIf="hasFiles && previewFrontThumbnailUrl"
           class="w-100 h-100"
           [imageUrl]="previewFrontThumbnailUrl"
           [secondImageUrl]="previewBackThumbnailUrl"
@@ -1285,39 +1285,7 @@
           [isRTL]="isRTL"
           [isDarkMode]="isDarkMode">
         </app-ph-print-preview>
-
-        <div
-          *ngIf="hasFiles && previewFrontThumbnailUrl && is3dPreviewActive"
-          class="preview-3d-stack w-100 h-100 position-relative">
-          <app-ph-print-3d-preview
-            #preview3d
-            class="w-100 h-100"
-            [imageUrl]="previewFrontThumbnailUrl"
-            [widthCm]="previewBaseWidthCm"
-            [heightCm]="previewBaseHeightCm"
-            [cornerType]="previewCornerType"
-            [cornerRadiusCm]="previewCornerRadiusCm"
-            [sheetBackgroundStyles]="previewSheetBackgroundStyles"
-            [isDarkMode]="isDarkMode">
-          </app-ph-print-3d-preview>
-
-          <app-ph-print-3d-preview-tunings [preview]="preview3d">
-          </app-ph-print-3d-preview-tunings>
-        </div>
       </div>
-
-      <button
-        *ngIf="hasFiles && previewFrontThumbnailUrl"
-        type="button"
-        mat-button
-        class="preview-button"
-        [class.preview-button-not-rtl]="!isRTL"
-        (click)="togglePreviewMode()">
-        <div class="d-flex align-items-center gap-2">
-          <span class="zx-text-tiny m-0">{{ 'printing-table.preview' | translate }}</span>
-          <mat-icon class="mt-1 mx-0 mb-0">{{ is3dPreviewActive ? 'photo' : 'view_in_ar' }}</mat-icon>
-        </div>
-      </button>
     </article>
   </div>
 </div>
