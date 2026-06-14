@@ -40,6 +40,9 @@ export interface MockupCropGuideSvgModel {
   rightPolygonPoints: string | null;
   /** Quad slot outline in canvas coordinates (includes padding offset). */
   slotPolygonPoints: string | null;
+  /** 1px outline wrapping slot + both crop extensions together. */
+  outerPolygonPoints: string | null;
+  outerRect: MockupCropGuideRect | null;
 }
 
 /** Same object-fit:cover crop as the preview sheet image layer. */
@@ -277,6 +280,13 @@ export function buildMockupCropGuideSvgModel(
     leftPolygonPoints: null,
     rightPolygonPoints: null,
     slotPolygonPoints: null,
+    outerPolygonPoints: null,
+    outerRect: {
+      x: 0,
+      y: 0,
+      width: canvas.totalWidthPx,
+      height: canvas.totalHeightPx,
+    },
   };
 }
 
@@ -322,6 +332,90 @@ function shiftPolygonPoints(
   return formatPolygonPoints(points.map((point) => shiftPoint(point, dx, dy)));
 }
 
+interface QuadExtensionCorners {
+  topLeft: { x: number; y: number } | null;
+  topRight: { x: number; y: number } | null;
+  bottomLeft: { x: number; y: number } | null;
+  bottomRight: { x: number; y: number } | null;
+  leftTop: { x: number; y: number } | null;
+  leftBottom: { x: number; y: number } | null;
+  rightTop: { x: number; y: number } | null;
+  rightBottom: { x: number; y: number } | null;
+}
+
+function buildQuadOuterPerimeter(
+  nw: { x: number; y: number },
+  ne: { x: number; y: number },
+  se: { x: number; y: number },
+  sw: { x: number; y: number },
+  crop: MockupCoverCropModel,
+  ext: QuadExtensionCorners,
+): { x: number; y: number }[] | null {
+  if (
+    crop.cropVertical &&
+    crop.cropHorizontal &&
+    ext.topLeft &&
+    ext.topRight &&
+    ext.bottomLeft &&
+    ext.bottomRight &&
+    ext.leftTop &&
+    ext.leftBottom &&
+    ext.rightTop &&
+    ext.rightBottom
+  ) {
+    return [
+      ext.topLeft,
+      ext.topRight,
+      ext.rightTop,
+      ext.rightBottom,
+      ext.bottomRight,
+      ext.bottomLeft,
+      ext.leftBottom,
+      ext.leftTop,
+    ];
+  }
+
+  if (
+    crop.cropVertical &&
+    ext.topLeft &&
+    ext.topRight &&
+    ext.bottomLeft &&
+    ext.bottomRight
+  ) {
+    return [
+      ext.topLeft,
+      ext.topRight,
+      ne,
+      se,
+      ext.bottomRight,
+      ext.bottomLeft,
+      sw,
+      nw,
+    ];
+  }
+
+  if (
+    crop.cropHorizontal &&
+    ext.leftTop &&
+    ext.leftBottom &&
+    ext.rightTop &&
+    ext.rightBottom
+  ) {
+    return [
+      ext.leftTop,
+      nw,
+      ne,
+      ext.rightTop,
+      ext.rightBottom,
+      se,
+      sw,
+      ext.leftBottom,
+    ];
+  }
+
+  return null;
+}
+
 /** Quad slot: each edge extends by cropRatio × that edge's length. */
 export function buildMockupQuadCropGuideSvgModel(
   corners: MockupQuadCornersPx,
@@ -344,6 +438,16 @@ export function buildMockupQuadCropGuideSvgModel(
   let bottomCorners: { x: number; y: number }[] | null = null;
   let leftCorners: { x: number; y: number }[] | null = null;
   let rightCorners: { x: number; y: number }[] | null = null;
+  const extCorners: QuadExtensionCorners = {
+    topLeft: null,
+    topRight: null,
+    bottomLeft: null,
+    bottomRight: null,
+    leftTop: null,
+    leftBottom: null,
+    rightTop: null,
+    rightBottom: null,
+  };
 
   if (crop.cropVertical && crop.topExtensionRatio > 0) {
     const topLeftExtPx = crop.topExtensionRatio * leftEdgeLen;
@@ -351,6 +455,8 @@ export function buildMockupQuadCropGuideSvgModel(
     if (topLeftExtPx > 0 || topRightExtPx > 0) {
       const topLeft = extendFromToward(nw, sw, topLeftExtPx);
       const topRight = extendFromToward(ne, se, topRightExtPx);
+      extCorners.topLeft = topLeft;
+      extCorners.topRight = topRight;
       topCorners = [topLeft, topRight, ne, nw];
       canvasPoints.push(topLeft, topRight);
     }
@@ -362,6 +468,8 @@ export function buildMockupQuadCropGuideSvgModel(
     if (bottomLeftExtPx > 0 || bottomRightExtPx > 0) {
       const bottomLeft = extendFromToward(sw, nw, bottomLeftExtPx);
       const bottomRight = extendFromToward(se, ne, bottomRightExtPx);
+      extCorners.bottomLeft = bottomLeft;
+      extCorners.bottomRight = bottomRight;
       bottomCorners = [sw, se, bottomRight, bottomLeft];
       canvasPoints.push(bottomLeft, bottomRight);
     }
@@ -373,6 +481,8 @@ export function buildMockupQuadCropGuideSvgModel(
     if (leftTopExtPx > 0 || leftBottomExtPx > 0) {
       const leftTop = extendFromToward(nw, ne, leftTopExtPx);
       const leftBottom = extendFromToward(sw, se, leftBottomExtPx);
+      extCorners.leftTop = leftTop;
+      extCorners.leftBottom = leftBottom;
       leftCorners = [leftTop, leftBottom, sw, nw];
       canvasPoints.push(leftTop, leftBottom);
     }
@@ -384,10 +494,14 @@ export function buildMockupQuadCropGuideSvgModel(
     if (rightTopExtPx > 0 || rightBottomExtPx > 0) {
       const rightTop = extendFromToward(ne, nw, rightTopExtPx);
       const rightBottom = extendFromToward(se, sw, rightBottomExtPx);
+      extCorners.rightTop = rightTop;
+      extCorners.rightBottom = rightBottom;
       rightCorners = [ne, se, rightBottom, rightTop];
       canvasPoints.push(rightTop, rightBottom);
     }
   }
+
+  const outerPerimeter = buildQuadOuterPerimeter(nw, ne, se, sw, crop, extCorners);
 
   const bbox = computePointsBoundingBox(canvasPoints);
   const shiftX = -bbox.minX;
@@ -424,5 +538,9 @@ export function buildMockupQuadCropGuideSvgModel(
       ? shiftPolygonPoints(rightCorners, shiftX, shiftY)
       : null,
     slotPolygonPoints: shiftPolygonPoints([nw, ne, se, sw], shiftX, shiftY),
+    outerPolygonPoints: outerPerimeter
+      ? shiftPolygonPoints(outerPerimeter, shiftX, shiftY)
+      : null,
+    outerRect: null,
   };
 }

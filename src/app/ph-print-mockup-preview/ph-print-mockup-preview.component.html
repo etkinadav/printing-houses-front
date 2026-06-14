@@ -153,6 +153,23 @@
       stroke-width="2"
       stroke-dasharray="8 6"
       vector-effect="non-scaling-stroke" />
+    <rect
+      *ngIf="guide.outerRect as outerRect"
+      class="ph-print-mockup-print-area-guide__outer"
+      [attr.x]="outerRect.x"
+      [attr.y]="outerRect.y"
+      [attr.width]="outerRect.width"
+      [attr.height]="outerRect.height"
+      fill="none"
+      stroke-width="1"
+      vector-effect="non-scaling-stroke" />
+    <polygon
+      *ngIf="guide.outerPolygonPoints as outerPoints"
+      class="ph-print-mockup-print-area-guide__outer"
+      [attr.points]="outerPoints"
+      fill="none"
+      stroke-width="1"
+      vector-effect="non-scaling-stroke" />
   </svg>
   <ng-template #simplePrintAreaGuide>
     <svg
