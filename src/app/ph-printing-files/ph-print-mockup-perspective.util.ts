@@ -165,8 +165,8 @@ function solveHomography3x3(
   for (let index = 0; index < 4; index += 1) {
     const { x, y } = src[index];
     const { x: u, y: v } = dst[index];
-    rows.push([-x, -y, -1, 0, 0, 0, u * x, u * y, u]);
-    rows.push([0, 0, 0, -x, -y, -1, v * x, v * y, v]);
+    rows.push([x, y, 1, 0, 0, 0, -u * x, -u * y, u]);
+    rows.push([0, 0, 0, x, y, 1, -v * x, -v * y, v]);
   }
 
   const solution = solveLinearSystem8x9(rows);
