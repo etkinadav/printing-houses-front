@@ -279,6 +279,50 @@ export function buildMockupCropGuideSvgModel(
     slotPolygonPoints: null,
   };
 }
+
+function computePointsBoundingBox(points: { x: number; y: number }[]): {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+  widthPx: number;
+  heightPx: number;
+} {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (const point of points) {
+    minX = Math.min(minX, point.x);
+    minY = Math.min(minY, point.y);
+    maxX = Math.max(maxX, point.x);
+    maxY = Math.max(maxY, point.y);
+  }
+
+  if (!Number.isFinite(minX)) {
+    return { minX: 0, minY: 0, maxX: 0, maxY: 0, widthPx: 0, heightPx: 0 };
+  }
+
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+    widthPx: maxX - minX,
+    heightPx: maxY - minY,
+  };
+}
+
+function shiftPolygonPoints(
+  points: { x: number; y: number }[],
+  dx: number,
+  dy: number,
+): string {
+  return formatPolygonPoints(points.map((point) => shiftPoint(point, dx, dy)));
+}
+
+/** Quad slot: each edge extends by cropRatio × that edge's length. */
 export function buildMockupQuadCropGuideSvgModel(
   corners: MockupQuadCornersPx,
   crop: MockupCoverCropModel,
@@ -289,14 +333,65 @@ export function buildMockupQuadCropGuideSvgModel(
     return null;
   }
 
-  const canvas = computeGuideCanvasLayout(crop, slotWidthPx, slotHeightPx);
-  const shiftX = canvas.paddingLeftPx;
-  const shiftY = canvas.paddingTopPx;
+  const { nw, ne, se, sw } = corners;
+  const leftEdgeLen = edgeLength(nw, sw);
+  const rightEdgeLen = edgeLength(ne, se);
+  const topEdgeLen = edgeLength(nw, ne);
+  const bottomEdgeLen = edgeLength(sw, se);
 
-  const nw = shiftPoint(corners.nw, shiftX, shiftY);
-  const ne = shiftPoint(corners.ne, shiftX, shiftY);
-  const se = shiftPoint(corners.se, shiftX, shiftY);
-  const sw = shiftPoint(corners.sw, shiftX, shiftY);
+  const canvasPoints: { x: number; y: number }[] = [nw, ne, se, sw];
+  let topCorners: { x: number; y: number }[] | null = null;
+  let bottomCorners: { x: number; y: number }[] | null = null;
+  let leftCorners: { x: number; y: number }[] | null = null;
+  let rightCorners: { x: number; y: number }[] | null = null;
+
+  if (crop.cropVertical && crop.topExtensionRatio > 0) {
+    const topLeftExtPx = crop.topExtensionRatio * leftEdgeLen;
+    const topRightExtPx = crop.topExtensionRatio * rightEdgeLen;
+    if (topLeftExtPx > 0 || topRightExtPx > 0) {
+      const topLeft = extendFromToward(nw, sw, topLeftExtPx);
+      const topRight = extendFromToward(ne, se, topRightExtPx);
+      topCorners = [topLeft, topRight, ne, nw];
+      canvasPoints.push(topLeft, topRight);
+    }
+  }
+
+  if (crop.cropVertical && crop.bottomExtensionRatio > 0) {
+    const bottomLeftExtPx = crop.bottomExtensionRatio * leftEdgeLen;
+    const bottomRightExtPx = crop.bottomExtensionRatio * rightEdgeLen;
+    if (bottomLeftExtPx > 0 || bottomRightExtPx > 0) {
+      const bottomLeft = extendFromToward(sw, nw, bottomLeftExtPx);
+      const bottomRight = extendFromToward(se, ne, bottomRightExtPx);
+      bottomCorners = [sw, se, bottomRight, bottomLeft];
+      canvasPoints.push(bottomLeft, bottomRight);
+    }
+  }
+
+  if (crop.cropHorizontal && crop.leftExtensionRatio > 0) {
+    const leftTopExtPx = crop.leftExtensionRatio * topEdgeLen;
+    const leftBottomExtPx = crop.leftExtensionRatio * bottomEdgeLen;
+    if (leftTopExtPx > 0 || leftBottomExtPx > 0) {
+      const leftTop = extendFromToward(nw, ne, leftTopExtPx);
+      const leftBottom = extendFromToward(sw, se, leftBottomExtPx);
+      leftCorners = [leftTop, leftBottom, sw, nw];
+      canvasPoints.push(leftTop, leftBottom);
+    }
+  }
+
+  if (crop.cropHorizontal && crop.rightExtensionRatio > 0) {
+    const rightTopExtPx = crop.rightExtensionRatio * topEdgeLen;
+    const rightBottomExtPx = crop.rightExtensionRatio * bottomEdgeLen;
+    if (rightTopExtPx > 0 || rightBottomExtPx > 0) {
+      const rightTop = extendFromToward(ne, nw, rightTopExtPx);
+      const rightBottom = extendFromToward(se, sw, rightBottomExtPx);
+      rightCorners = [ne, se, rightBottom, rightTop];
+      canvasPoints.push(rightTop, rightBottom);
+    }
+  }
+
+  const bbox = computePointsBoundingBox(canvasPoints);
+  const shiftX = -bbox.minX;
+  const shiftY = -bbox.minY;
 
   const slotRect: MockupCropGuideRect = {
     x: shiftX,
@@ -305,58 +400,29 @@ export function buildMockupQuadCropGuideSvgModel(
     height: slotHeightPx,
   };
 
-  let topPolygonPoints: string | null = null;
-  let bottomPolygonPoints: string | null = null;
-  let leftPolygonPoints: string | null = null;
-  let rightPolygonPoints: string | null = null;
-
-  if (crop.cropVertical) {
-    const visibleHeightPx = (edgeLength(nw, sw) + edgeLength(ne, se)) / 2;
-    const topExtensionPx = crop.topExtensionRatio * visibleHeightPx;
-    const bottomExtensionPx = crop.bottomExtensionRatio * visibleHeightPx;
-
-    if (topExtensionPx > 0) {
-      const topLeft = extendFromToward(nw, sw, topExtensionPx);
-      const topRight = extendFromToward(ne, se, topExtensionPx);
-      topPolygonPoints = formatPolygonPoints([topLeft, topRight, ne, nw]);
-    }
-
-    if (bottomExtensionPx > 0) {
-      const bottomLeft = extendFromToward(sw, nw, bottomExtensionPx);
-      const bottomRight = extendFromToward(se, ne, bottomExtensionPx);
-      bottomPolygonPoints = formatPolygonPoints([sw, se, bottomRight, bottomLeft]);
-    }
-  }
-
-  if (crop.cropHorizontal) {
-    const visibleWidthPx = (edgeLength(nw, ne) + edgeLength(sw, se)) / 2;
-    const leftExtensionPx = crop.leftExtensionRatio * visibleWidthPx;
-    const rightExtensionPx = crop.rightExtensionRatio * visibleWidthPx;
-
-    if (leftExtensionPx > 0) {
-      const leftTop = extendFromToward(nw, ne, leftExtensionPx);
-      const leftBottom = extendFromToward(sw, se, leftExtensionPx);
-      leftPolygonPoints = formatPolygonPoints([leftTop, leftBottom, sw, nw]);
-    }
-
-    if (rightExtensionPx > 0) {
-      const rightTop = extendFromToward(ne, nw, rightExtensionPx);
-      const rightBottom = extendFromToward(se, sw, rightExtensionPx);
-      rightPolygonPoints = formatPolygonPoints([ne, se, rightBottom, rightTop]);
-    }
-  }
-
   return {
-    ...buildGuideCanvas(crop, slotWidthPx, slotHeightPx),
+    viewBox: `0 0 ${bbox.widthPx} ${bbox.heightPx}`,
+    offsetLeftPx: bbox.minX,
+    offsetTopPx: bbox.minY,
+    widthPx: bbox.widthPx,
+    heightPx: bbox.heightPx,
     slotRect,
     topRect: null,
     bottomRect: null,
     leftRect: null,
     rightRect: null,
-    topPolygonPoints,
-    bottomPolygonPoints,
-    leftPolygonPoints,
-    rightPolygonPoints,
-    slotPolygonPoints: formatPolygonPoints([nw, ne, se, sw]),
+    topPolygonPoints: topCorners
+      ? shiftPolygonPoints(topCorners, shiftX, shiftY)
+      : null,
+    bottomPolygonPoints: bottomCorners
+      ? shiftPolygonPoints(bottomCorners, shiftX, shiftY)
+      : null,
+    leftPolygonPoints: leftCorners
+      ? shiftPolygonPoints(leftCorners, shiftX, shiftY)
+      : null,
+    rightPolygonPoints: rightCorners
+      ? shiftPolygonPoints(rightCorners, shiftX, shiftY)
+      : null,
+    slotPolygonPoints: shiftPolygonPoints([nw, ne, se, sw], shiftX, shiftY),
   };
 }
