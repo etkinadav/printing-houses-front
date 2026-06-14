@@ -17,6 +17,10 @@ import {
   PH_PREVIEW_DUPLEX_STACK_GAP_PX,
   PhPrintPreviewLayout,
 } from '../ph-printing-files/ph-print-preview-layout.util';
+import {
+  MockupPrintOverlayQuad,
+  MockupPrintOverlayRect,
+} from '../ph-printing-files/ph-print-mockup.util';
 
 @Component({
   selector: 'app-ph-print-preview',
@@ -39,6 +43,17 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   @Input() sheetBackgroundStyles: Record<string, string> = { backgroundColor: '#ffffff' };
   @Input() isRTL = false;
   @Input() isDarkMode = false;
+  /** Sheet only — no dim labels; fills parent (mockup print slot). */
+  @Input() compactSheetOnly = false;
+  /** When set (mockup embed), layout matches full preview pane — not the print slot. */
+  @Input() layoutContainerWidthPx: number | null = null;
+  @Input() layoutContainerHeightPx: number | null = null;
+  /** Print-slot size on mockup — sheet is cover-scaled to fill this area. */
+  @Input() printSlotWidthPx: number | null = null;
+  @Input() printSlotHeightPx: number | null = null;
+  /** Quad print area — perspective warp onto mockup surface. */
+  @Input() mockupQuadOverlay: (MockupPrintOverlayQuad & { kind: 'quad' }) | null = null;
+  @Input() mockupQuadBox: MockupPrintOverlayRect | null = null;
 
   @ViewChild('measureHost') measureHost?: ElementRef<HTMLElement>;
   @ViewChildren('preloadImage') preloadImages?: QueryList<ElementRef<HTMLImageElement>>;
@@ -74,6 +89,9 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
     this.resizeObserver.observe(host);
     this.scheduleLayoutRefresh();
     this.scheduleImageLoadSync();
+    if (this.compactSheetOnly && this.imageUrl?.trim()) {
+      this.beginImagesLoad();
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -87,7 +105,14 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
       changes['cornerType'] ||
       changes['cornerRadiusCm'] ||
       changes['foldingCount'] ||
-      changes['foldingOffsetCm']
+      changes['foldingOffsetCm'] ||
+      changes['compactSheetOnly'] ||
+      changes['layoutContainerWidthPx'] ||
+      changes['layoutContainerHeightPx'] ||
+      changes['printSlotWidthPx'] ||
+      changes['printSlotHeightPx'] ||
+      changes['mockupQuadOverlay'] ||
+      changes['mockupQuadBox']
     ) {
       this.scheduleLayoutRefresh();
     }
@@ -214,11 +239,47 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
       return;
     }
 
-    const containerWidthPx = host.clientWidth;
-    const containerHeightPx = host.clientHeight;
+    const useLayoutOverride =
+      this.compactSheetOnly &&
+      Number(this.layoutContainerWidthPx) > 0 &&
+      Number(this.layoutContainerHeightPx) > 0;
+
+    const slotWidthPx = Number(this.printSlotWidthPx) || host.clientWidth;
+    const slotHeightPx = Number(this.printSlotHeightPx) || host.clientHeight;
+    const slotReady = slotWidthPx >= 1 && slotHeightPx >= 1;
+
+    let containerWidthPx: number;
+    let containerHeightPx: number;
+    let skipDimGutters = false;
+
+    if (this.compactSheetOnly && useLayoutOverride) {
+      // Same sheet layout as the normal preview pane (identical crop).
+      containerWidthPx = Number(this.layoutContainerWidthPx);
+      containerHeightPx = Number(this.layoutContainerHeightPx);
+      skipDimGutters = false;
+    } else if (this.compactSheetOnly && slotReady) {
+      containerWidthPx = slotWidthPx;
+      containerHeightPx = slotHeightPx;
+      skipDimGutters = true;
+    } else if (useLayoutOverride) {
+      containerWidthPx = Number(this.layoutContainerWidthPx);
+      containerHeightPx = Number(this.layoutContainerHeightPx);
+      skipDimGutters = false;
+    } else {
+      containerWidthPx = host.clientWidth;
+      containerHeightPx = host.clientHeight;
+      skipDimGutters = this.compactSheetOnly;
+    }
+
+    const sizeToValidate = this.compactSheetOnly
+      ? {
+          w: useLayoutOverride ? containerWidthPx : slotReady ? slotWidthPx : containerWidthPx,
+          h: useLayoutOverride ? containerHeightPx : slotReady ? slotHeightPx : containerHeightPx,
+        }
+      : { w: containerWidthPx, h: containerHeightPx };
 
     if (
-      (containerWidthPx <= 0 || containerHeightPx <= 0) &&
+      (sizeToValidate.w <= 0 || sizeToValidate.h <= 0) &&
       this.measureRetryCount < 8
     ) {
       this.measureRetryCount += 1;
@@ -238,7 +299,7 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
 
     const nextLayout = computePhPrintPreviewLayout({
       containerWidthPx,
-      containerHeightPx: layoutHeightPx,
+      containerHeightPx: this.compactSheetOnly ? containerHeightPx : layoutHeightPx,
       baseWidthCm: this.baseWidthCm,
       baseHeightCm: this.baseHeightCm,
       marginCm: this.marginCm,
@@ -246,6 +307,8 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
       cornerRadiusCm: this.cornerRadiusCm,
       foldingCount: this.foldingCount,
       foldingOffsetCm: this.foldingOffsetCm,
+      skipDimGutters,
+      minContainerPx: this.compactSheetOnly ? 1 : undefined,
     });
 
     this.layout = nextLayout;

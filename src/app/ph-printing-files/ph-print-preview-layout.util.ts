@@ -23,6 +23,10 @@ export interface PhPrintPreviewLayoutInput {
   foldingCount?: number;
   /** Fold offset cm — splits each fold line into two when > 0. */
   foldingOffsetCm?: number;
+  /** Fit sheet to full container — skip dim-label gutters (mockup embed). */
+  skipDimGutters?: boolean;
+  /** Lower minimum for mockup embed (print slot can be small). */
+  minContainerPx?: number;
 }
 
 export interface PhPrintPreviewLayout {
@@ -112,13 +116,14 @@ export function computePhPrintPreviewLayout(
 ): PhPrintPreviewLayout | null {
   const baseWidthCm = Number(input.baseWidthCm);
   const baseHeightCm = Number(input.baseHeightCm);
+  const minContainerPx = input.minContainerPx ?? MIN_CONTAINER_PX;
   if (
     !Number.isFinite(baseWidthCm) ||
     !Number.isFinite(baseHeightCm) ||
     baseWidthCm <= 0 ||
     baseHeightCm <= 0 ||
-    input.containerWidthPx < MIN_CONTAINER_PX ||
-    input.containerHeightPx < MIN_CONTAINER_PX
+    input.containerWidthPx < minContainerPx ||
+    input.containerHeightPx < minContainerPx
   ) {
     return null;
   }
@@ -128,22 +133,23 @@ export function computePhPrintPreviewLayout(
   const totalWidthCm = baseWidthCm + (hasBleed ? bleedCm * 2 : 0);
   const totalHeightCm = baseHeightCm + (hasBleed ? bleedCm * 2 : 0);
 
-  const hasFoldDims = willHaveFoldDims(
-    input.foldingCount,
-    input.foldingOffsetCm,
-    baseWidthCm,
-  );
+  const skipDimGutters = !!input.skipDimGutters;
+  const hasFoldDims = skipDimGutters
+    ? false
+    : willHaveFoldDims(
+        input.foldingCount,
+        input.foldingOffsetCm,
+        baseWidthCm,
+      );
   const topGutterPx = computePhPrintPreviewTopGutterPx(hasFoldDims);
   const bundlePadYPx = topGutterPx + PH_PREVIEW_BUNDLE_PAD_BOTTOM_PX;
 
-  const availWidthPx = Math.max(
-    1,
-    input.containerWidthPx - PH_PREVIEW_BUNDLE_PAD_X_PX,
-  );
-  const availHeightPx = Math.max(
-    1,
-    input.containerHeightPx - bundlePadYPx,
-  );
+  const availWidthPx = skipDimGutters
+    ? Math.max(1, input.containerWidthPx)
+    : Math.max(1, input.containerWidthPx - PH_PREVIEW_BUNDLE_PAD_X_PX);
+  const availHeightPx = skipDimGutters
+    ? Math.max(1, input.containerHeightPx)
+    : Math.max(1, input.containerHeightPx - bundlePadYPx);
 
   let factor: number;
   if (availHeightPx / availWidthPx > totalHeightCm / totalWidthCm) {

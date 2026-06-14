@@ -1,0 +1,149 @@
+.ph-print-mockup-host {
+
+  position: relative;
+
+  min-width: 0;
+
+  min-height: 0;
+
+}
+
+
+
+:host {
+
+  display: block;
+
+  width: 100%;
+
+  height: 100%;
+
+  min-width: 0;
+
+  min-height: 0;
+
+}
+
+
+
+.ph-print-mockup-loading {
+
+  position: absolute;
+
+  inset: 0;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  z-index: 2;
+
+  pointer-events: none;
+
+}
+
+
+
+.ph-print-mockup-frame-wrap {
+
+  width: 100%;
+
+  height: 100%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  min-width: 0;
+
+  min-height: 0;
+
+}
+
+
+
+.ph-print-mockup-frame {
+
+  position: relative;
+
+  max-width: 100%;
+
+  max-height: 100%;
+
+  line-height: 0;
+
+}
+
+
+
+.ph-print-mockup-bg {
+
+  display: block;
+
+  max-width: 100%;
+
+  max-height: calc(100vh - 160px);
+
+  width: auto;
+
+  height: auto;
+
+  object-fit: contain;
+
+  user-select: none;
+
+  pointer-events: none;
+
+}
+
+
+
+.ph-print-mockup-print {
+
+  position: absolute;
+
+  box-sizing: border-box;
+
+  overflow: visible;
+
+  pointer-events: none;
+
+  z-index: 2;
+
+}
+
+
+
+.ph-print-mockup-print--quad {
+
+  overflow: visible;
+
+}
+
+
+
+.ph-print-mockup-print-area-guide {
+
+  position: absolute;
+
+  inset: 0;
+
+  width: 100%;
+
+  height: 100%;
+
+  pointer-events: none;
+
+  z-index: 2;
+
+  stroke: var(--zx-green);
+
+  fill: none;
+
+}
+
+

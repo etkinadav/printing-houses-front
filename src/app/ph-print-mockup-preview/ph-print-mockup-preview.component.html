@@ -1,0 +1,71 @@
+<div
+  class="ph-print-mockup-host w-100 h-100 d-flex justify-content-center align-items-center"
+  [class.ph-print-mockup-host--rtl]="isRTL">
+  <div
+    *ngIf="mockupLoading"
+    class="ph-print-mockup-loading"
+    aria-busy="true"
+    aria-live="polite">
+    <mat-spinner [diameter]="24"></mat-spinner>
+  </div>
+
+  <div *ngIf="mockupUrl && printOverlay" class="ph-print-mockup-frame-wrap">
+    <div #mockupFrame class="ph-print-mockup-frame">
+      <img
+        class="ph-print-mockup-bg"
+        [src]="mockupUrl"
+        alt=""
+        draggable="false"
+        (load)="onMockupImageLoad()"
+        (error)="onMockupImageLoad()" />
+
+      <div
+        *ngIf="rectOverlay as rect"
+        #printSlot
+        class="ph-print-mockup-print"
+        [style.left.%]="rect.x * 100"
+        [style.top.%]="rect.y * 100"
+        [style.width.%]="rect.width * 100"
+        [style.height.%]="rect.height * 100">
+        <svg
+          class="ph-print-mockup-print-area-guide"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden="true">
+          <rect
+            x="1"
+            y="1"
+            width="98"
+            height="98"
+            fill="none"
+            stroke-width="2"
+            stroke-dasharray="8 6"
+            vector-effect="non-scaling-stroke" />
+        </svg>
+      </div>
+
+      <div
+        *ngIf="quadOverlay as quad"
+        #printSlot
+        class="ph-print-mockup-print ph-print-mockup-print--quad"
+        [style.left.%]="quad.box.x * 100"
+        [style.top.%]="quad.box.y * 100"
+        [style.width.%]="quad.box.width * 100"
+        [style.height.%]="quad.box.height * 100"
+        [style.clip-path]="quad.clipPath">
+        <svg
+          class="ph-print-mockup-print-area-guide"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden="true">
+          <polygon
+            [attr.points]="quadSlotGuidePoints(quad)"
+            fill="none"
+            stroke-width="2"
+            stroke-dasharray="8 6"
+            vector-effect="non-scaling-stroke" />
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>

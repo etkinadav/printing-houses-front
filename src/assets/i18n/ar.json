@@ -747,6 +747,7 @@
     "printing-table.send-files-without-rasterize": "إلغاء تسطيح الملفات (Rasterize)",
     "printing-table.preview": "معاينة",
     "printing-table.mockup": "محاكاة",
+    "printing-table.mockup-not-available": "لا توجد صورة محاكاة للإعدادات الحالية",
     "printing-table.preview.not-avalble": "يرجى اختيار نوع الورق لعرض معاينة الملف.",
     "printing-table.preview.chainge-properties.plotter": "لتغيير الأبعاد، اضغط على زر 'تغيير الحجم' في 'إعدادات الطباعة'",
     "printing-table.preview.chainge-properties.express": "لتغيير الأبعاد، اختر بين 'مناسب للقياس' و'أصلي' في 'إعدادات الطباعة'",

@@ -38,6 +38,7 @@ import {
   syncExtraUiStateFromSaved,
   validateExtraSelections,
 } from '../ph-printing-files/ph-print-extra-settings.util';
+import { resolveMockupForPrint } from '../ph-printing-files/ph-print-mockup.util';
 import {
   formatImageOriginalDimensionsLine,
   getImageOriginalHeightCm,
@@ -59,6 +60,7 @@ import {
   PhDynamicMaterial,
   ExtraSettingKey,
   PhMaterial,
+  PhMockup,
   PhProduct,
   PhSize,
   CornerType,
@@ -121,6 +123,8 @@ export class PrintComponent implements OnInit, OnDestroy {
   previewThumbnailUrl: string | null = null;
   /** Stable object reference for preview background — avoids child ngOnChanges loops. */
   previewSheetBackgroundStylesCache: Record<string, string> = { backgroundColor: '#ffffff' };
+  /** When true, desktop/mobile preview pane shows product mockup instead of print preview. */
+  mockupViewActive = false;
 
   /** Fixed: selected index in fixedDimensionOptions. */
   currentFixedOptionIndex: number | null = null;
@@ -443,6 +447,22 @@ export class PrintComponent implements OnInit, OnDestroy {
       return null;
     }
     return this.selectedDuplexPair.back.image.thumbnailUrl?.trim() || null;
+  }
+
+  get resolvedPrintMockup(): PhMockup | null {
+    return resolveMockupForPrint(
+      this.getCurrentExtraSettingsContext(),
+      this.extraSettingsUi,
+      this.product?.properties?.dynamic?.mockup,
+    );
+  }
+
+  get showMockupPreview(): boolean {
+    return (
+      this.mockupViewActive &&
+      !!this.resolvedPrintMockup &&
+      !!this.previewFrontThumbnailUrl
+    );
   }
 
   /** Extra margin strips in preview — duplex (תוספת שוליים), not bleed. */
@@ -1258,6 +1278,19 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   onMockupClick(event?: Event): void {
     event?.stopPropagation();
+    const mockup = this.resolvedPrintMockup;
+    if (!mockup) {
+      this.snackBar.open(
+        this.translateService.instant('printing-table.mockup-not-available'),
+        undefined,
+        { duration: 4000 },
+      );
+      return;
+    }
+    if (!this.previewFrontThumbnailUrl) {
+      return;
+    }
+    this.mockupViewActive = !this.mockupViewActive;
   }
 
   onContinue(): void {

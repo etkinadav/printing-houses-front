@@ -564,6 +564,7 @@
                   <article
                     *ngIf="showPrintSettingsPanel && selectedImage"
                     class="w-100 d-flex p-2 d-flex d-md-none align-items-center bg-white rounded-4 gap-2 ph-print-mockup-mobile-row"
+                    [class.ph-print-mockup-mobile-row--active]="mockupViewActive"
                     [class.zx-bg-dark]="isDarkMode">
                     <div
                       class="zx-medium-plus-icon-size position-relative c-pointer"
@@ -1301,7 +1302,7 @@
         </article>
 
         <app-ph-print-preview
-          *ngIf="hasFiles && previewFrontThumbnailUrl"
+          *ngIf="hasFiles && previewFrontThumbnailUrl && !showMockupPreview"
           class="w-100 h-100"
           [imageUrl]="previewFrontThumbnailUrl"
           [secondImageUrl]="previewBackThumbnailUrl"
@@ -1316,10 +1317,28 @@
           [isRTL]="isRTL"
           [isDarkMode]="isDarkMode">
         </app-ph-print-preview>
+
+        <app-ph-print-mockup-preview
+          *ngIf="showMockupPreview"
+          class="w-100 h-100"
+          [mockup]="resolvedPrintMockup"
+          [printImageUrl]="previewFrontThumbnailUrl"
+          [baseWidthCm]="previewBaseWidthCm"
+          [baseHeightCm]="previewBaseHeightCm"
+          [marginCm]="previewMarginCm"
+          [cornerType]="previewCornerType"
+          [cornerRadiusCm]="previewCornerRadiusCm"
+          [foldingCount]="previewFoldingCount"
+          [foldingOffsetCm]="previewFoldingOffsetCm"
+          [sheetBackgroundStyles]="previewSheetBackgroundStyles"
+          [isRTL]="isRTL"
+          [isDarkMode]="isDarkMode">
+        </app-ph-print-mockup-preview>
       </div>
       <div
         *ngIf="hasFiles && previewFrontThumbnailUrl"
         class="preview-button mockup-button d-none d-md-flex justify-content-center align-items-center"
+        [class.mockup-button--active]="mockupViewActive"
         [class.preview-button-not-rtl]="!isRTL">
         <button mat-button type="button" (click)="onMockupClick($event)">
           <div class="d-flex align-items-center gap-2">

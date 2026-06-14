@@ -747,6 +747,7 @@
 	"printing-table.send-files-without-rasterize": "Disable file rasterize (Rasterize)",
 	"printing-table.preview": "Preview",
 	"printing-table.mockup": "Mockup",
+	"printing-table.mockup-not-available": "No mockup image is available for the current settings",
 	"printing-table.preview.not-avalble": "Please select a paper type to view the file preview.",
 	"printing-table.preview.chainge-properties.plotter": "To change the dimensions, click the 'Resize' button in 'Printing Settings'",
 	"printing-table.preview.chainge-properties.express": "To change the dimensions, choose between 'Fit to Scale' or 'Original' in 'Printing Settings'",

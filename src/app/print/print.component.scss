@@ -734,6 +734,19 @@
   margin-top: 8px;
 }
 
+.ph-print-mockup-mobile-row--active,
+.mockup-button--active {
+  color: var(--zx-pink);
+}
+
+:host ::ng-deep .mockup-button--active.mat-mdc-button {
+  color: var(--zx-pink);
+}
+
+:host ::ng-deep .mockup-button--active .mat-icon {
+  color: var(--zx-pink);
+}
+
 .no-image-selected-container {
   display: flex;
   justify-content: center;
