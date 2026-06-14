@@ -289,3 +289,38 @@ function isUsableWarpMatrix(
 
   return true;
 }
+
+/** Map axis-aligned rect to a quad; null when the warp would be unusable. */
+export function buildRectToQuadWarpTransform(
+  width: number,
+  height: number,
+  topLeft: PhMockupPoint,
+  topRight: PhMockupPoint,
+  bottomRight: PhMockupPoint,
+  bottomLeft: PhMockupPoint,
+  boundsWidthPx: number,
+  boundsHeightPx: number,
+): string | null {
+  const matrix = solveRectToQuadMatrix3d(
+    width,
+    height,
+    topLeft,
+    topRight,
+    bottomRight,
+    bottomLeft,
+  );
+  if (
+    !isUsableWarpMatrix(
+      matrix,
+      width,
+      height,
+      boundsWidthPx,
+      boundsHeightPx,
+      0,
+      0,
+    )
+  ) {
+    return null;
+  }
+  return `matrix3d(${matrix.join(', ')})`;
+}

@@ -1,3 +1,5 @@
+import { computeRectToQuadMatrix3d } from './ph-print-mockup-perspective.util';
+
 export interface MockupCoverCropModel {
   cropVertical: boolean;
   cropHorizontal: boolean;
@@ -43,6 +45,15 @@ export interface MockupCropGuideSvgModel {
   /** 1px outline wrapping slot + both crop extensions together. */
   outerPolygonPoints: string | null;
   outerRect: MockupCropGuideRect | null;
+  /** Four corners of the full cover image for perspective warp. */
+  outerWarpQuad: MockupOuterWarpQuad | null;
+}
+
+export interface MockupOuterWarpQuad {
+  topLeft: { x: number; y: number };
+  topRight: { x: number; y: number };
+  bottomRight: { x: number; y: number };
+  bottomLeft: { x: number; y: number };
 }
 
 /** Same object-fit:cover crop as the preview sheet image layer. */
@@ -112,6 +123,35 @@ export function mockupCoverCropHasExtensions(crop: MockupCoverCropModel): boolea
     (crop.cropHorizontal &&
       (crop.leftExtensionRatio > 0 || crop.rightExtensionRatio > 0))
   );
+}
+
+/** CSS clip-path for the red outer frame (HTML layer). */
+export function buildMockupOuterClipPathCss(
+  guide: Pick<
+    MockupCropGuideSvgModel,
+    'outerPolygonPoints' | 'outerRect'
+  >,
+): string | null {
+  if (guide.outerPolygonPoints) {
+    const cssPoints = guide.outerPolygonPoints
+      .trim()
+      .split(/\s+/)
+      .map((pair) => {
+        const [x, y] = pair.split(',');
+        return `${x}px ${y}px`;
+      })
+      .join(', ');
+    return `polygon(${cssPoints})`;
+  }
+
+  if (guide.outerRect) {
+    const r = guide.outerRect;
+    const x2 = r.x + r.width;
+    const y2 = r.y + r.height;
+    return `polygon(${r.x}px ${r.y}px, ${x2}px ${r.y}px, ${x2}px ${y2}px, ${r.x}px ${y2}px)`;
+  }
+
+  return null;
 }
 
 interface GuideCanvasLayout {
@@ -287,6 +327,12 @@ export function buildMockupCropGuideSvgModel(
       width: canvas.totalWidthPx,
       height: canvas.totalHeightPx,
     },
+    outerWarpQuad: outerWarpQuadFromRect({
+      x: 0,
+      y: 0,
+      width: canvas.totalWidthPx,
+      height: canvas.totalHeightPx,
+    }),
   };
 }
 
@@ -416,7 +462,109 @@ function buildQuadOuterPerimeter(
   return null;
 }
 
-/** Quad slot: each edge extends by cropRatio × that edge's length. */
+function buildOuterWarpQuad(
+  crop: MockupCoverCropModel,
+  ext: QuadExtensionCorners,
+  shiftX: number,
+  shiftY: number,
+): MockupOuterWarpQuad | null {
+  const shift = (point: { x: number; y: number }): { x: number; y: number } =>
+    shiftPoint(point, shiftX, shiftY);
+
+  if (
+    crop.cropVertical &&
+    crop.cropHorizontal &&
+    ext.topLeft &&
+    ext.topRight &&
+    ext.bottomLeft &&
+    ext.bottomRight
+  ) {
+    return {
+      topLeft: shift(ext.topLeft),
+      topRight: shift(ext.topRight),
+      bottomRight: shift(ext.bottomRight),
+      bottomLeft: shift(ext.bottomLeft),
+    };
+  }
+
+  if (
+    crop.cropVertical &&
+    ext.topLeft &&
+    ext.topRight &&
+    ext.bottomLeft &&
+    ext.bottomRight
+  ) {
+    return {
+      topLeft: shift(ext.topLeft),
+      topRight: shift(ext.topRight),
+      bottomRight: shift(ext.bottomRight),
+      bottomLeft: shift(ext.bottomLeft),
+    };
+  }
+
+  if (
+    crop.cropHorizontal &&
+    ext.leftTop &&
+    ext.rightTop &&
+    ext.rightBottom &&
+    ext.leftBottom
+  ) {
+    return {
+      topLeft: shift(ext.leftTop),
+      topRight: shift(ext.rightTop),
+      bottomRight: shift(ext.rightBottom),
+      bottomLeft: shift(ext.leftBottom),
+    };
+  }
+
+  return null;
+}
+
+function outerWarpQuadFromRect(rect: MockupCropGuideRect): MockupOuterWarpQuad {
+  return {
+    topLeft: { x: rect.x, y: rect.y },
+    topRight: { x: rect.x + rect.width, y: rect.y },
+    bottomRight: { x: rect.x + rect.width, y: rect.y + rect.height },
+    bottomLeft: { x: rect.x, y: rect.y + rect.height },
+  };
+}
+
+export function resolveMockupOuterWarpQuad(
+  guide: Pick<
+    MockupCropGuideSvgModel,
+    'outerWarpQuad' | 'outerRect' | 'outerPolygonPoints'
+  >,
+): MockupOuterWarpQuad | null {
+  if (guide.outerWarpQuad) {
+    return guide.outerWarpQuad;
+  }
+  if (guide.outerRect) {
+    return outerWarpQuadFromRect(guide.outerRect);
+  }
+  if (guide.outerPolygonPoints) {
+    const points = guide.outerPolygonPoints
+      .trim()
+      .split(/\s+/)
+      .map((pair) => {
+        const [x, y] = pair.split(',').map(Number);
+        return { x, y };
+      })
+      .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
+    if (points.length >= 3) {
+      const bbox = computePointsBoundingBox(points);
+      if (bbox.widthPx > 0 && bbox.heightPx > 0) {
+        return outerWarpQuadFromRect({
+          x: bbox.minX,
+          y: bbox.minY,
+          width: bbox.widthPx,
+          height: bbox.heightPx,
+        });
+      }
+    }
+  }
+  return null;
+}
+
 export function buildMockupQuadCropGuideSvgModel(
   corners: MockupQuadCornersPx,
   crop: MockupCoverCropModel,
@@ -506,6 +654,7 @@ export function buildMockupQuadCropGuideSvgModel(
   const bbox = computePointsBoundingBox(canvasPoints);
   const shiftX = -bbox.minX;
   const shiftY = -bbox.minY;
+  const shiftedOuterWarpQuad = buildOuterWarpQuad(crop, extCorners, shiftX, shiftY);
 
   const slotRect: MockupCropGuideRect = {
     x: shiftX,
@@ -542,5 +691,66 @@ export function buildMockupQuadCropGuideSvgModel(
       ? shiftPolygonPoints(outerPerimeter, shiftX, shiftY)
       : null,
     outerRect: null,
+    outerWarpQuad: shiftedOuterWarpQuad,
+  };
+}
+
+export interface MockupPrintImageWarpModel {
+  transform: string | null;
+  scaledWidthPx: number;
+  scaledHeightPx: number;
+  axisAlignedFill: MockupCropGuideRect | null;
+}
+
+function isAxisAlignedOuterWarpQuad(quad: MockupOuterWarpQuad): boolean {
+  const tol = 0.5;
+  return (
+    Math.abs(quad.topLeft.y - quad.topRight.y) < tol &&
+    Math.abs(quad.bottomLeft.y - quad.bottomRight.y) < tol &&
+    Math.abs(quad.topLeft.x - quad.bottomLeft.x) < tol &&
+    Math.abs(quad.topRight.x - quad.bottomRight.x) < tol
+  );
+}
+
+/** Stretch print image to fill the red outer frame on the mockup (no crop). */
+export function buildMockupPrintImageWarp(
+  canvasWidthPx: number,
+  canvasHeightPx: number,
+  outerWarpQuad: MockupOuterWarpQuad,
+): MockupPrintImageWarpModel | null {
+  if (canvasWidthPx <= 0 || canvasHeightPx <= 0) {
+    return null;
+  }
+
+  const fill: MockupCropGuideRect = {
+    x: 0,
+    y: 0,
+    width: canvasWidthPx,
+    height: canvasHeightPx,
+  };
+
+  if (isAxisAlignedOuterWarpQuad(outerWarpQuad)) {
+    return {
+      transform: null,
+      scaledWidthPx: canvasWidthPx,
+      scaledHeightPx: canvasHeightPx,
+      axisAlignedFill: fill,
+    };
+  }
+
+  const transform = computeRectToQuadMatrix3d(
+    canvasWidthPx,
+    canvasHeightPx,
+    outerWarpQuad.topLeft,
+    outerWarpQuad.topRight,
+    outerWarpQuad.bottomRight,
+    outerWarpQuad.bottomLeft,
+  );
+
+  return {
+    transform,
+    scaledWidthPx: canvasWidthPx,
+    scaledHeightPx: canvasHeightPx,
+    axisAlignedFill: null,
   };
 }

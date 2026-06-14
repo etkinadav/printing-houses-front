@@ -52,6 +52,35 @@
     [style.top.px]="cropGuideSvg?.offsetTopPx ?? null"
     [style.width.px]="cropGuideSvg?.widthPx ?? null"
     [style.height.px]="cropGuideSvg?.heightPx ?? null">
+  <div
+    *ngIf="showAxisAlignedPrintImageLayer"
+    class="ph-print-mockup-print-image-layer"
+    [style.clip-path]="printOuterClipPathCss">
+    <img
+      class="ph-print-mockup-print-image-stretch"
+      [src]="printImageUrl"
+      alt=""
+      draggable="false"
+      (load)="onPrintImageLoad($event)"
+      (error)="onPrintImageError($event)" />
+  </div>
+  <div
+    *ngIf="showPerspectivePrintImageLayer && printImageWarp as warp"
+    class="ph-print-mockup-print-image-layer ph-print-mockup-print-image-layer--warp">
+    <div
+      class="ph-print-mockup-print-image-warp"
+      [style.width.px]="warp.scaledWidthPx"
+      [style.height.px]="warp.scaledHeightPx"
+      [style.transform]="warp.transform">
+      <img
+        class="ph-print-mockup-print-image-stretch"
+        [src]="printImageUrl"
+        alt=""
+        draggable="false"
+        (load)="onPrintImageLoad($event)"
+        (error)="onPrintImageError($event)" />
+    </div>
+  </div>
   <svg
     *ngIf="cropGuideSvg as guide; else simplePrintAreaGuide"
     class="ph-print-mockup-print-area-guide"
