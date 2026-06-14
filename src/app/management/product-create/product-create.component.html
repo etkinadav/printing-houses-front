@@ -223,9 +223,7 @@
               </span>
               <ng-container *ngTemplateOutlet="extraSettingsBtn; context: { $implicit: material }"></ng-container>
               <span class="tree-node__heading-actions">
-                <ng-container *ngIf="!isOptionalMockupEnabled(material, null)">
-                  <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: material, settingKey: null }"></ng-container>
-                </ng-container>
+                <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: material, settingKey: null }"></ng-container>
                 <span *ngIf="materials.length > 1" class="tree-node__delete-wrap">
                   <button
                     mat-icon-button
@@ -269,9 +267,7 @@
       <div *ngIf="withDimensions" class="tree-node__fields tree-node__fields--under-title">
         <div *ngIf="materials.length === 1" class="tree-extra-btn-row">
           <ng-container *ngTemplateOutlet="extraSettingsBtn; context: { $implicit: material }"></ng-container>
-          <ng-container *ngIf="!isOptionalMockupEnabled(material, null)">
-            <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: material, settingKey: null }"></ng-container>
-          </ng-container>
+          <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: material, settingKey: null }"></ng-container>
         </div>
         <mat-form-field
           *ngIf="materials.length === 1"
@@ -400,9 +396,7 @@
               </span>
               <ng-container *ngTemplateOutlet="extraSettingsBtn; context: { $implicit: color }"></ng-container>
               <span class="tree-node__heading-actions">
-                <ng-container *ngIf="!isOptionalMockupEnabled(color, null)">
-                  <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: color, settingKey: null }"></ng-container>
-                </ng-container>
+                <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: color, settingKey: null }"></ng-container>
                 <span *ngIf="colors.length > 1" class="tree-node__delete-wrap">
                   <button
                     mat-icon-button
@@ -506,19 +500,28 @@
 
 <ng-template #optionalMockupBtn let-group="group" let-settingKey="settingKey">
   <button
+    *ngIf="!isOptionalMockupEnabled(group, settingKey); else mockupStatusBtn"
     mat-icon-button
     type="button"
     class="tree-extra-btn tree-extra-btn--compact tree-mockup-btn"
-    [class.tree-mockup-btn--active]="hasOptionalMockupConfigured(group, settingKey)"
     [matTooltip]="'management.product-create.mockup-image-btn' | translate"
     [attr.aria-label]="'management.product-create.mockup-image-btn' | translate"
     [matMenuTriggerFor]="optionalMockupMenu">
     <mat-icon>photo_library</mat-icon>
   </button>
+  <ng-template #mockupStatusBtn>
+    <button
+      mat-icon-button
+      type="button"
+      class="tree-extra-btn tree-extra-btn--compact tree-mockup-btn tree-mockup-btn--active"
+      [matTooltip]="'management.product-create.mockup-image-btn' | translate"
+      [attr.aria-label]="'management.product-create.mockup-image-btn' | translate">
+      <mat-icon>photo_library</mat-icon>
+    </button>
+  </ng-template>
   <mat-menu #optionalMockupMenu="matMenu" class="extra-settings-menu">
     <div class="extra-settings-menu__list" (click)="$event.stopPropagation()">
       <button
-        *ngIf="!isOptionalMockupEnabled(group, settingKey)"
         type="button"
         class="extra-settings-menu__item"
         (click)="enableOptionalMockup(group, settingKey, $event)">
@@ -615,9 +618,7 @@
           {{ 'management.product-create.corner-number' | translate: { n: ci + 1 } }}
         </span>
         <span class="tree-node__heading-actions">
-          <ng-container *ngIf="!isOptionalMockupEnabled(corner, null)">
-            <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: corner, settingKey: null }"></ng-container>
-          </ng-container>
+          <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: corner, settingKey: null }"></ng-container>
           <span class="tree-node__delete-wrap">
             <button
               mat-icon-button
@@ -687,9 +688,7 @@
           {{ 'management.product-create.bleed-number' | translate: { n: bi + 1 } }}
         </span>
         <span class="tree-node__heading-actions">
-          <ng-container *ngIf="!isOptionalMockupEnabled(bleed, null)">
-            <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: bleed, settingKey: null }"></ng-container>
-          </ng-container>
+          <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: bleed, settingKey: null }"></ng-container>
           <span class="tree-node__delete-wrap">
             <button
               mat-icon-button
@@ -748,9 +747,7 @@
           {{ 'management.product-create.folding-number' | translate: { n: fi + 1 } }}
         </span>
         <span class="tree-node__heading-actions">
-          <ng-container *ngIf="!isOptionalMockupEnabled(folding, null)">
-            <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: folding, settingKey: null }"></ng-container>
-          </ng-container>
+          <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: folding, settingKey: null }"></ng-container>
           <span class="tree-node__delete-wrap">
             <button
               mat-icon-button
@@ -816,9 +813,7 @@
           {{ 'management.product-create.duplex-number' | translate: { n: di + 1 } }}
         </span>
         <span class="tree-node__heading-actions">
-          <ng-container *ngIf="!isOptionalMockupEnabled(duplex, null)">
-            <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: duplex, settingKey: null }"></ng-container>
-          </ng-container>
+          <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: duplex, settingKey: null }"></ng-container>
           <span class="tree-node__delete-wrap">
             <button
               mat-icon-button
@@ -869,9 +864,7 @@
           {{ 'management.product-create.extra-settings.double-sided' | translate }}
         </span>
         <span class="tree-node__heading-actions">
-          <ng-container *ngIf="!isOptionalMockupEnabled(getDoubleSided(group), null)">
-            <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: getDoubleSided(group), settingKey: null }"></ng-container>
-          </ng-container>
+          <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: getDoubleSided(group), settingKey: null }"></ng-container>
           <span class="tree-node__delete-wrap">
             <button
               mat-icon-button
@@ -905,7 +898,6 @@
         {{ 'management.product-create.mockup-title' | translate }}
       </span>
       <span *ngIf="!required" class="tree-node__heading-actions">
-        <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: mockupGroup, settingKey: mockupSetting }"></ng-container>
         <span class="tree-node__delete-wrap">
           <button
             mat-icon-button
@@ -983,27 +975,59 @@
           (pointerup)="onMockupPointerUp($event, mockupGroup, mockupSetting)"
           (pointercancel)="onMockupPointerUp($event, mockupGroup, mockupSetting)">
           <img [src]="getMockupUrl(mockupGroup, mockupSetting)" class="mockup-upload-preview__img" alt="" draggable="false" />
-          <div
-            *ngIf="getMockupRect(mockupGroup, mockupSetting) as mockupRect"
-            class="mockup-upload-preview__rect"
-            [style.left.%]="mockupRect.x * 100"
-            [style.top.%]="mockupRect.y * 100"
-            [style.width.%]="mockupRect.width * 100"
-            [style.height.%]="mockupRect.height * 100"
-            (pointerdown)="onMockupRectPointerDown($event, mockupGroup, mockupSetting)">
-            <span
-              class="mockup-upload-preview__corner mockup-upload-preview__corner--nw"
-              (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'nw', mockupSetting)"></span>
-            <span
-              class="mockup-upload-preview__corner mockup-upload-preview__corner--ne"
-              (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'ne', mockupSetting)"></span>
-            <span
-              class="mockup-upload-preview__corner mockup-upload-preview__corner--sw"
-              (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'sw', mockupSetting)"></span>
-            <span
-              class="mockup-upload-preview__corner mockup-upload-preview__corner--se"
-              (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'se', mockupSetting)"></span>
-          </div>
+          <ng-container *ngIf="usesMockupQuad(mockupGroup); else mockupRectOverlay">
+            <ng-container *ngIf="getMockupQuad(mockupGroup, mockupSetting) as mockupQuad; else mockupQuadDrawingRect">
+              <svg
+                class="mockup-upload-preview__overlay"
+                viewBox="0 0 1 1"
+                preserveAspectRatio="none"
+                aria-hidden="true">
+                <polygon
+                  class="mockup-upload-preview__quad"
+                  [attr.points]="getMockupQuadSvgPoints(mockupQuad)"
+                  (pointerdown)="onMockupQuadPointerDown($event, mockupGroup, mockupSetting)" />
+              </svg>
+              <span
+                *ngFor="let corner of mockupQuadCorners"
+                class="mockup-upload-preview__corner mockup-upload-preview__corner--absolute"
+                [style.left.%]="getMockupQuadCorner(mockupQuad, corner).x * 100"
+                [style.top.%]="getMockupQuadCorner(mockupQuad, corner).y * 100"
+                (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, corner, mockupSetting)"></span>
+            </ng-container>
+            <ng-template #mockupQuadDrawingRect>
+              <div
+                *ngIf="getMockupRect(mockupGroup, mockupSetting) as mockupRect"
+                class="mockup-upload-preview__rect"
+                [style.left.%]="mockupRect.x * 100"
+                [style.top.%]="mockupRect.y * 100"
+                [style.width.%]="mockupRect.width * 100"
+                [style.height.%]="mockupRect.height * 100">
+              </div>
+            </ng-template>
+          </ng-container>
+          <ng-template #mockupRectOverlay>
+            <div
+              *ngIf="getMockupRect(mockupGroup, mockupSetting) as mockupRect"
+              class="mockup-upload-preview__rect"
+              [style.left.%]="mockupRect.x * 100"
+              [style.top.%]="mockupRect.y * 100"
+              [style.width.%]="mockupRect.width * 100"
+              [style.height.%]="mockupRect.height * 100"
+              (pointerdown)="onMockupRectPointerDown($event, mockupGroup, mockupSetting)">
+              <span
+                class="mockup-upload-preview__corner mockup-upload-preview__corner--nw"
+                (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'nw', mockupSetting)"></span>
+              <span
+                class="mockup-upload-preview__corner mockup-upload-preview__corner--ne"
+                (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'ne', mockupSetting)"></span>
+              <span
+                class="mockup-upload-preview__corner mockup-upload-preview__corner--sw"
+                (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'sw', mockupSetting)"></span>
+              <span
+                class="mockup-upload-preview__corner mockup-upload-preview__corner--se"
+                (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'se', mockupSetting)"></span>
+            </div>
+          </ng-template>
         </div>
       </div>
       <div class="mockup-upload-preview__actions">

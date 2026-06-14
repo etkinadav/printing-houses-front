@@ -80,13 +80,31 @@ export interface PhDynamicMaterial extends PhMaterial {
   defaultHeight: number;
 }
 
-/** Print area on a mockup image — normalized 0–1 fractions of image width/height. */
-export interface PhMockupPrintArea {
+/** Normalized point on a mockup image (0–1 fractions of image width/height). */
+export interface PhMockupPoint {
+  x: number;
+  y: number;
+}
+
+/** Axis-aligned print area on a mockup image. */
+export interface PhMockupPrintAreaRect {
+  shape?: 'rect';
   x: number;
   y: number;
   width: number;
   height: number;
 }
+
+/** Free-form quadrilateral print area — four corners relative to original image size. */
+export interface PhMockupPrintAreaQuad {
+  shape: 'quad';
+  nw: PhMockupPoint;
+  ne: PhMockupPoint;
+  sw: PhMockupPoint;
+  se: PhMockupPoint;
+}
+
+export type PhMockupPrintArea = PhMockupPrintAreaRect | PhMockupPrintAreaQuad;
 
 export interface PhMockup {
   url: string;

@@ -38,6 +38,9 @@ import {
   PhMaterial,
   PhDynamicMaterial,
   PhMockup,
+  PhMockupPoint,
+  PhMockupPrintArea,
+  PhMockupPrintAreaQuad,
   PhProduct,
   PhProductLabel,
   PhProductProperties,
@@ -52,12 +55,20 @@ interface MockupRect {
   height: number;
 }
 
+interface MockupQuad {
+  nw: PhMockupPoint;
+  ne: PhMockupPoint;
+  sw: PhMockupPoint;
+  se: PhMockupPoint;
+}
+
 interface ProductMockupState {
   url: string;
   uploading: boolean;
   progress: number;
   penActive: boolean;
   rect: MockupRect | null;
+  quad: MockupQuad | null;
 }
 
 type MockupCorner = 'nw' | 'ne' | 'sw' | 'se';
@@ -72,6 +83,7 @@ interface MockupPointerDrag {
   startX: number;
   startY: number;
   origRect: MockupRect | null;
+  origQuad: MockupQuad | null;
 }
 
 @Component({
@@ -112,6 +124,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   private mockupPenOutsidePointerHandler: ((event: PointerEvent) => void) | null = null;
   private readonly mockupDefaultRectSize = 0.22;
   private readonly mockupMinRectSize = 0.04;
+  readonly mockupQuadCorners: MockupCorner[] = ['nw', 'ne', 'sw', 'se'];
 
   form = new FormGroup({
     name_he: new FormControl<string>('', {
@@ -328,6 +341,10 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     return group === this.dynamicGroup || !!group.get('length');
   }
 
+  usesMockupQuad(_group: AbstractControl): boolean {
+    return this.flexability === 'fixed';
+  }
+
   isOptionalMockupOwner(group: AbstractControl): boolean {
     return (
       !!group.get('color') ||
@@ -504,10 +521,25 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     return this.getMockupState(group, settingKey).rect;
   }
 
+  getMockupQuad(group: AbstractControl, settingKey?: ExtraSettingKey | null): MockupQuad | null {
+    return this.getMockupState(group, settingKey).quad;
+  }
+
+  getMockupQuadSvgPoints(quad: MockupQuad): string {
+    return `${quad.nw.x},${quad.nw.y} ${quad.ne.x},${quad.ne.y} ${quad.se.x},${quad.se.y} ${quad.sw.x},${quad.sw.y}`;
+  }
+
+  getMockupQuadCorner(quad: MockupQuad, corner: MockupCorner): PhMockupPoint {
+    return quad[corner];
+  }
+
   isMockupComplete(group: AbstractControl, settingKey?: ExtraSettingKey | null): boolean {
     const state = this.getMockupState(group, settingKey);
     if (!state.url.trim() || state.uploading) {
       return false;
+    }
+    if (this.usesMockupQuad(group)) {
+      return !!state.quad && this.isMockupQuadComplete(state.quad);
     }
     const rect = state.rect;
     return !!rect && rect.width >= this.mockupMinRectSize && rect.height >= this.mockupMinRectSize;
@@ -607,7 +639,11 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     }
 
     const state = this.getMockupState(group, settingKey);
-    if (state.rect && this.isMockupPointInRect(point.x, point.y, state.rect)) {
+    const usesQuad = this.usesMockupQuad(group);
+    if (usesQuad && state.quad && this.isMockupPointInQuad(point.x, point.y, state.quad)) {
+      return;
+    }
+    if (!usesQuad && state.rect && this.isMockupPointInRect(point.x, point.y, state.rect)) {
       return;
     }
 
@@ -618,15 +654,35 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       startX: point.x,
       startY: point.y,
       origRect: null,
+      origQuad: null,
     };
 
     state.rect = { x: point.x, y: point.y, width: 0, height: 0 };
+    if (usesQuad) {
+      state.quad = null;
+    }
 
     frame.setPointerCapture(event.pointerId);
     event.preventDefault();
   }
 
   onMockupRectPointerDown(
+    event: PointerEvent,
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): void {
+    this.onMockupShapePointerDown(event, group, settingKey);
+  }
+
+  onMockupQuadPointerDown(
+    event: PointerEvent,
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): void {
+    this.onMockupShapePointerDown(event, group, settingKey);
+  }
+
+  private onMockupShapePointerDown(
     event: PointerEvent,
     group: AbstractControl,
     settingKey?: ExtraSettingKey | null,
@@ -638,7 +694,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
     const frame = this.mockupFrameFromEvent(event);
     const state = this.getMockupState(group, settingKey);
-    if (!frame || !state.rect) {
+    const usesQuad = this.usesMockupQuad(group);
+    if (!frame || (usesQuad ? !state.quad : !state.rect)) {
       return;
     }
 
@@ -653,7 +710,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       mode: 'move',
       startX: point.x,
       startY: point.y,
-      origRect: { ...state.rect },
+      origRect: usesQuad ? null : state.rect ? { ...state.rect } : null,
+      origQuad: usesQuad && state.quad ? this.cloneMockupQuad(state.quad) : null,
     };
 
     frame.setPointerCapture(event.pointerId);
@@ -674,7 +732,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
     const frame = this.mockupFrameFromEvent(event);
     const state = this.getMockupState(group, settingKey);
-    if (!frame || !state.rect) {
+    const usesQuad = this.usesMockupQuad(group);
+    if (!frame || (usesQuad ? !state.quad : !state.rect)) {
       return;
     }
 
@@ -690,7 +749,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       corner,
       startX: point.x,
       startY: point.y,
-      origRect: { ...state.rect },
+      origRect: usesQuad ? null : state.rect ? { ...state.rect } : null,
+      origQuad: usesQuad && state.quad ? this.cloneMockupQuad(state.quad) : null,
     };
 
     frame.setPointerCapture(event.pointerId);
@@ -720,25 +780,34 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     }
 
     const state = this.getMockupState(group, settingKey);
+    const usesQuad = this.usesMockupQuad(group);
 
     if (drag.mode === 'draw') {
       state.rect = this.mockupRectFromPoints(drag.startX, drag.startY, point.x, point.y);
       return;
     }
 
-    if (drag.mode === 'resize' && drag.corner && drag.origRect) {
-      state.rect = this.mockupResizeRect(drag.origRect, drag.corner, point);
+    if (drag.mode === 'resize' && drag.corner) {
+      if (usesQuad && drag.origQuad) {
+        state.quad = this.resizeMockupQuadCorner(drag.origQuad, drag.corner, point);
+      } else if (drag.origRect) {
+        state.rect = this.mockupResizeRect(drag.origRect, drag.corner, point);
+      }
       return;
     }
 
-    if (drag.mode === 'move' && drag.origRect) {
+    if (drag.mode === 'move') {
       const dx = point.x - drag.startX;
       const dy = point.y - drag.startY;
-      state.rect = {
-        ...drag.origRect,
-        x: this.clampMockupCoord(drag.origRect.x + dx, 0, 1 - drag.origRect.width),
-        y: this.clampMockupCoord(drag.origRect.y + dy, 0, 1 - drag.origRect.height),
-      };
+      if (usesQuad && drag.origQuad) {
+        state.quad = this.moveMockupQuad(drag.origQuad, dx, dy);
+      } else if (drag.origRect) {
+        state.rect = {
+          ...drag.origRect,
+          x: this.clampMockupCoord(drag.origRect.x + dx, 0, 1 - drag.origRect.width),
+          y: this.clampMockupCoord(drag.origRect.y + dy, 0, 1 - drag.origRect.height),
+        };
+      }
     }
   }
 
@@ -757,7 +826,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     frame?.releasePointerCapture(event.pointerId);
 
     const state = this.getMockupState(group, settingKey);
-    if ((drag.mode === 'resize' || drag.mode === 'move') && state.rect) {
+    const usesQuad = this.usesMockupQuad(group);
+
+    if ((drag.mode === 'resize' || drag.mode === 'move') && !usesQuad && state.rect) {
       state.rect = this.normalizeMockupRect(state.rect);
     }
 
@@ -775,6 +846,11 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         };
       } else {
         state.rect = this.normalizeMockupRect(state.rect);
+      }
+
+      if (usesQuad) {
+        state.quad = this.mockupQuadFromRect(state.rect);
+        state.rect = null;
       }
     }
 
@@ -859,6 +935,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         progress: 0,
         penActive: false,
         rect: state.rect ? { ...state.rect } : null,
+        quad: state.quad ? this.cloneMockupQuad(state.quad) : null,
       });
       if (this.optionalMockupEnabled.has(key)) {
         this.optionalMockupEnabled.add(newKey);
@@ -867,7 +944,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   private createEmptyMockupState(): ProductMockupState {
-    return { url: '', uploading: false, progress: 0, penActive: false, rect: null };
+    return { url: '', uploading: false, progress: 0, penActive: false, rect: null, quad: null };
   }
 
   private mockupFrameFromEvent(event: PointerEvent): HTMLElement | null {
@@ -960,6 +1037,140 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
   private isMockupPointInRect(x: number, y: number, rect: MockupRect): boolean {
     return x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height;
+  }
+
+  private cloneMockupQuad(quad: MockupQuad): MockupQuad {
+    return {
+      nw: { ...quad.nw },
+      ne: { ...quad.ne },
+      sw: { ...quad.sw },
+      se: { ...quad.se },
+    };
+  }
+
+  private mockupQuadFromRect(rect: MockupRect): MockupQuad {
+    return {
+      nw: { x: rect.x, y: rect.y },
+      ne: { x: rect.x + rect.width, y: rect.y },
+      sw: { x: rect.x, y: rect.y + rect.height },
+      se: { x: rect.x + rect.width, y: rect.y + rect.height },
+    };
+  }
+
+  private mockupBoundingBoxFromQuad(quad: MockupQuad): MockupRect {
+    const xs = [quad.nw.x, quad.ne.x, quad.sw.x, quad.se.x];
+    const ys = [quad.nw.y, quad.ne.y, quad.sw.y, quad.se.y];
+    const x = Math.min(...xs);
+    const y = Math.min(...ys);
+    return {
+      x,
+      y,
+      width: Math.max(...xs) - x,
+      height: Math.max(...ys) - y,
+    };
+  }
+
+  private mockupQuadArea(quad: MockupQuad): number {
+    const pts = [quad.nw, quad.ne, quad.se, quad.sw];
+    let sum = 0;
+    for (let i = 0; i < 4; i += 1) {
+      const j = (i + 1) % 4;
+      sum += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
+    }
+    return Math.abs(sum) / 2;
+  }
+
+  private isMockupQuadComplete(quad: MockupQuad): boolean {
+    const box = this.mockupBoundingBoxFromQuad(quad);
+    if (box.width < this.mockupMinRectSize || box.height < this.mockupMinRectSize) {
+      return false;
+    }
+    return this.mockupQuadArea(quad) >= this.mockupMinRectSize * this.mockupMinRectSize;
+  }
+
+  private isMockupPointInQuad(x: number, y: number, quad: MockupQuad): boolean {
+    const pts = [quad.nw, quad.ne, quad.se, quad.sw];
+    let inside = false;
+    for (let i = 0, j = 3; i < 4; j = i, i += 1) {
+      const xi = pts[i].x;
+      const yi = pts[i].y;
+      const xj = pts[j].x;
+      const yj = pts[j].y;
+      const intersects = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+      if (intersects) {
+        inside = !inside;
+      }
+    }
+    return inside;
+  }
+
+  private moveMockupQuad(orig: MockupQuad, dx: number, dy: number): MockupQuad {
+    const corners: MockupCorner[] = ['nw', 'ne', 'sw', 'se'];
+    let maxDxPos = Infinity;
+    let maxDxNeg = -Infinity;
+    let maxDyPos = Infinity;
+    let maxDyNeg = -Infinity;
+
+    for (const corner of corners) {
+      const point = orig[corner];
+      maxDxPos = Math.min(maxDxPos, 1 - point.x);
+      maxDxNeg = Math.max(maxDxNeg, -point.x);
+      maxDyPos = Math.min(maxDyPos, 1 - point.y);
+      maxDyNeg = Math.max(maxDyNeg, -point.y);
+    }
+
+    const clampedDx = this.clampMockupCoord(dx, maxDxNeg, maxDxPos);
+    const clampedDy = this.clampMockupCoord(dy, maxDyNeg, maxDyPos);
+
+    return {
+      nw: { x: orig.nw.x + clampedDx, y: orig.nw.y + clampedDy },
+      ne: { x: orig.ne.x + clampedDx, y: orig.ne.y + clampedDy },
+      sw: { x: orig.sw.x + clampedDx, y: orig.sw.y + clampedDy },
+      se: { x: orig.se.x + clampedDx, y: orig.se.y + clampedDy },
+    };
+  }
+
+  private resizeMockupQuadCorner(
+    orig: MockupQuad,
+    corner: MockupCorner,
+    point: PhMockupPoint,
+  ): MockupQuad {
+    return {
+      ...orig,
+      [corner]: {
+        x: this.clampMockupCoord(point.x, 0, 1),
+        y: this.clampMockupCoord(point.y, 0, 1),
+      },
+    };
+  }
+
+  private isQuadPrintArea(area: PhMockupPrintArea): area is PhMockupPrintAreaQuad {
+    return area.shape === 'quad';
+  }
+
+  private normalizeMockupQuadFromPrintArea(area: PhMockupPrintArea): MockupQuad | null {
+    if (this.isQuadPrintArea(area)) {
+      return {
+        nw: { x: area.nw.x, y: area.nw.y },
+        ne: { x: area.ne.x, y: area.ne.y },
+        sw: { x: area.sw.x, y: area.sw.y },
+        se: { x: area.se.x, y: area.se.y },
+      };
+    }
+    if (
+      Number.isFinite(area.x)
+      && Number.isFinite(area.y)
+      && Number.isFinite(area.width)
+      && Number.isFinite(area.height)
+    ) {
+      return this.mockupQuadFromRect({
+        x: area.x,
+        y: area.y,
+        width: area.width,
+        height: area.height,
+      });
+    }
+    return null;
   }
 
   private clampMockupCoord(value: number, min: number, max: number): number {
@@ -1709,6 +1920,20 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     settingKey?: ExtraSettingKey | null,
   ): PhMockup {
     const state = this.getMockupState(group, settingKey);
+    if (this.usesMockupQuad(group)) {
+      const quad = state.quad!;
+      return {
+        url: state.url.trim(),
+        printArea: {
+          shape: 'quad',
+          nw: { ...quad.nw },
+          ne: { ...quad.ne },
+          sw: { ...quad.sw },
+          se: { ...quad.se },
+        },
+      };
+    }
+
     const rect = state.rect!;
     return {
       url: state.url.trim(),
@@ -1740,15 +1965,25 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     const scope = this.resolveMockupScope(settingKey);
     const state = this.getMockupState(group, settingKey);
     state.url = mockup.url.trim();
-    state.rect = {
-      x: mockup.printArea.x,
-      y: mockup.printArea.y,
-      width: mockup.printArea.width,
-      height: mockup.printArea.height,
-    };
     state.penActive = false;
     state.uploading = false;
     state.progress = 0;
+
+    if (this.usesMockupQuad(group)) {
+      state.quad = this.normalizeMockupQuadFromPrintArea(mockup.printArea);
+      state.rect = null;
+    } else {
+      const area = mockup.printArea;
+      if (!this.isQuadPrintArea(area)) {
+        state.rect = {
+          x: area.x,
+          y: area.y,
+          width: area.width,
+          height: area.height,
+        };
+      }
+      state.quad = null;
+    }
 
     if (settingKey !== null || this.isOptionalMockupOwner(group)) {
       this.optionalMockupEnabled.add(this.mockupScopeKey(group, scope));
