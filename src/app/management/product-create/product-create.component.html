@@ -75,8 +75,7 @@
                       <span *ngIf="sizes.length > 1" class="size-title-row__prefix">
                         {{ 'management.product-create.size-number' | translate: { n: si + 1 } }}
                       </span>
-                      <ng-container
-                        *ngTemplateOutlet="extraSettingsBtn; context: { $implicit: sizeGroup }"></ng-container>
+                      <ng-container *ngTemplateOutlet="extraSettingsBtn; context: { $implicit: sizeGroup }"></ng-container>
                       <span *ngIf="sizes.length > 1" class="tree-node__delete-wrap">
                         <button
                           mat-icon-button
@@ -139,7 +138,7 @@
               </div>
 
               <ng-container
-                *ngTemplateOutlet="mockupUploadBlock; context: { sizeGroup: sizeGroup }">
+                *ngTemplateOutlet="mockupUploadBlock; context: { mockupGroup: sizeGroup, mockupSetting: null, required: true }">
               </ng-container>
             </div>
             </ng-container>
@@ -167,7 +166,7 @@
         </div>
 
         <ng-container *ngIf="flexability === 'dynamic'">
-          <ng-container *ngTemplateOutlet="mockupUploadBlock; context: { sizeGroup: null }"></ng-container>
+          <ng-container *ngTemplateOutlet="mockupUploadBlock; context: { mockupGroup: dynamicGroup, mockupSetting: null, required: true }"></ng-container>
         </ng-container>
 
         <div class="product-create-save">
@@ -223,14 +222,19 @@
                 {{ 'management.product-create.material-number' | translate: { n: mi + 1 } }}
               </span>
               <ng-container *ngTemplateOutlet="extraSettingsBtn; context: { $implicit: material }"></ng-container>
-              <span *ngIf="materials.length > 1" class="tree-node__delete-wrap">
-                <button
-                  mat-icon-button
-                  type="button"
-                  class="tree-node__delete"
-                  (click)="removeMaterial(materials, mi, withDimensions)">
-                  <mat-icon>delete_outline</mat-icon>
-                </button>
+              <span class="tree-node__heading-actions">
+                <ng-container *ngIf="!isOptionalMockupEnabled(material, null)">
+                  <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: material, settingKey: null }"></ng-container>
+                </ng-container>
+                <span *ngIf="materials.length > 1" class="tree-node__delete-wrap">
+                  <button
+                    mat-icon-button
+                    type="button"
+                    class="tree-node__delete"
+                    (click)="removeMaterial(materials, mi, withDimensions)">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </span>
               </span>
             </div>
             <div [formGroup]="$any(material.get('label'))" class="size-title-row__field">
@@ -257,11 +261,17 @@
       </div>
       <ng-container *ngIf="!withDimensions">
         <ng-container *ngTemplateOutlet="extraSettingsPanels; context: { $implicit: material }"></ng-container>
+        <ng-container *ngIf="isOptionalMockupEnabled(material, null)">
+          <ng-container *ngTemplateOutlet="mockupUploadBlock; context: { mockupGroup: material, mockupSetting: null, required: false }"></ng-container>
+        </ng-container>
       </ng-container>
 
       <div *ngIf="withDimensions" class="tree-node__fields tree-node__fields--under-title">
         <div *ngIf="materials.length === 1" class="tree-extra-btn-row">
           <ng-container *ngTemplateOutlet="extraSettingsBtn; context: { $implicit: material }"></ng-container>
+          <ng-container *ngIf="!isOptionalMockupEnabled(material, null)">
+            <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: material, settingKey: null }"></ng-container>
+          </ng-container>
         </div>
         <mat-form-field
           *ngIf="materials.length === 1"
@@ -342,6 +352,9 @@
           </div>
         </div>
           <ng-container *ngTemplateOutlet="extraSettingsPanels; context: { $implicit: material }"></ng-container>
+          <ng-container *ngIf="isOptionalMockupEnabled(material, null)">
+            <ng-container *ngTemplateOutlet="mockupUploadBlock; context: { mockupGroup: material, mockupSetting: null, required: false }"></ng-container>
+          </ng-container>
       </div>
 
       <div class="tree-node__children" [class.tree-node__children--from-material-title]="withDimensions">
@@ -386,14 +399,19 @@
                 {{ 'management.product-create.color-number' | translate: { n: ci + 1 } }}
               </span>
               <ng-container *ngTemplateOutlet="extraSettingsBtn; context: { $implicit: color }"></ng-container>
-              <span *ngIf="colors.length > 1" class="tree-node__delete-wrap">
-                <button
-                  mat-icon-button
-                  type="button"
-                  class="tree-node__delete"
-                  (click)="removeColor(colors, ci)">
-                  <mat-icon>delete_outline</mat-icon>
-                </button>
+              <span class="tree-node__heading-actions">
+                <ng-container *ngIf="!isOptionalMockupEnabled(color, null)">
+                  <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: color, settingKey: null }"></ng-container>
+                </ng-container>
+                <span *ngIf="colors.length > 1" class="tree-node__delete-wrap">
+                  <button
+                    mat-icon-button
+                    type="button"
+                    class="tree-node__delete"
+                    (click)="removeColor(colors, ci)">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </span>
               </span>
             </div>
             <div class="size-title-row__color-line">
@@ -470,6 +488,9 @@
         </div>
       </div>
       <ng-container *ngTemplateOutlet="extraSettingsPanels; context: { $implicit: color }"></ng-container>
+      <ng-container *ngIf="isOptionalMockupEnabled(color, null)">
+        <ng-container *ngTemplateOutlet="mockupUploadBlock; context: { mockupGroup: color, mockupSetting: null, required: false }"></ng-container>
+      </ng-container>
     </div>
     </ng-container>
 
@@ -481,6 +502,38 @@
       </button>
     </div>
   </div>
+</ng-template>
+
+<ng-template #optionalMockupBtn let-group="group" let-settingKey="settingKey">
+  <button
+    mat-icon-button
+    type="button"
+    class="tree-extra-btn tree-extra-btn--compact tree-mockup-btn"
+    [class.tree-mockup-btn--active]="hasOptionalMockupConfigured(group, settingKey)"
+    [matTooltip]="'management.product-create.mockup-image-btn' | translate"
+    [attr.aria-label]="'management.product-create.mockup-image-btn' | translate"
+    [matMenuTriggerFor]="optionalMockupMenu">
+    <mat-icon>photo_library</mat-icon>
+  </button>
+  <mat-menu #optionalMockupMenu="matMenu" class="extra-settings-menu">
+    <div class="extra-settings-menu__list" (click)="$event.stopPropagation()">
+      <button
+        *ngIf="!isOptionalMockupEnabled(group, settingKey)"
+        type="button"
+        class="extra-settings-menu__item"
+        (click)="enableOptionalMockup(group, settingKey, $event)">
+        <span class="extra-settings-menu__label">
+          {{ 'management.product-create.mockup-add' | translate }}
+        </span>
+      </button>
+    </div>
+  </mat-menu>
+</ng-template>
+
+<ng-template #extraSettingItemMockup let-item="item">
+  <ng-container *ngIf="item && isOptionalMockupEnabled(item, null)">
+    <ng-container *ngTemplateOutlet="mockupUploadBlock; context: { mockupGroup: item, mockupSetting: null, required: false }"></ng-container>
+  </ng-container>
 </ng-template>
 
 <ng-template #extraSettingsBtn let-group>
@@ -561,14 +614,19 @@
         <span class="corners-node__prefix">
           {{ 'management.product-create.corner-number' | translate: { n: ci + 1 } }}
         </span>
-        <span class="tree-node__delete-wrap">
-          <button
-            mat-icon-button
-            type="button"
-            class="tree-node__delete"
-            (click)="removeCorner(group, ci)">
-            <mat-icon>delete_outline</mat-icon>
-          </button>
+        <span class="tree-node__heading-actions">
+          <ng-container *ngIf="!isOptionalMockupEnabled(corner, null)">
+            <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: corner, settingKey: null }"></ng-container>
+          </ng-container>
+          <span class="tree-node__delete-wrap">
+            <button
+              mat-icon-button
+              type="button"
+              class="tree-node__delete"
+              (click)="removeCorner(group, ci)">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </span>
         </span>
       </div>
       <div class="corners-node__fields">
@@ -591,6 +649,7 @@
           </mat-error>
         </mat-form-field>
       </div>
+      <ng-container *ngTemplateOutlet="extraSettingItemMockup; context: { item: corner }"></ng-container>
     </div>
 
     <ng-container
@@ -627,14 +686,19 @@
         <span class="bleed-node__prefix">
           {{ 'management.product-create.bleed-number' | translate: { n: bi + 1 } }}
         </span>
-        <span class="tree-node__delete-wrap">
-          <button
-            mat-icon-button
-            type="button"
-            class="tree-node__delete"
-            (click)="removeBleed(group, bi)">
-            <mat-icon>delete_outline</mat-icon>
-          </button>
+        <span class="tree-node__heading-actions">
+          <ng-container *ngIf="!isOptionalMockupEnabled(bleed, null)">
+            <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: bleed, settingKey: null }"></ng-container>
+          </ng-container>
+          <span class="tree-node__delete-wrap">
+            <button
+              mat-icon-button
+              type="button"
+              class="tree-node__delete"
+              (click)="removeBleed(group, bi)">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </span>
         </span>
       </div>
       <div class="bleed-node__fields">
@@ -646,6 +710,7 @@
           </mat-error>
         </mat-form-field>
       </div>
+      <ng-container *ngTemplateOutlet="extraSettingItemMockup; context: { item: bleed }"></ng-container>
     </div>
 
     <ng-container
@@ -682,14 +747,19 @@
         <span class="folding-node__prefix">
           {{ 'management.product-create.folding-number' | translate: { n: fi + 1 } }}
         </span>
-        <span class="tree-node__delete-wrap">
-          <button
-            mat-icon-button
-            type="button"
-            class="tree-node__delete"
-            (click)="removeFolding(group, fi)">
-            <mat-icon>delete_outline</mat-icon>
-          </button>
+        <span class="tree-node__heading-actions">
+          <ng-container *ngIf="!isOptionalMockupEnabled(folding, null)">
+            <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: folding, settingKey: null }"></ng-container>
+          </ng-container>
+          <span class="tree-node__delete-wrap">
+            <button
+              mat-icon-button
+              type="button"
+              class="tree-node__delete"
+              (click)="removeFolding(group, fi)">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </span>
         </span>
       </div>
       <div class="folding-node__fields">
@@ -708,6 +778,7 @@
           </mat-error>
         </mat-form-field>
       </div>
+      <ng-container *ngTemplateOutlet="extraSettingItemMockup; context: { item: folding }"></ng-container>
     </div>
 
     <ng-container
@@ -744,14 +815,19 @@
         <span class="duplex-node__prefix">
           {{ 'management.product-create.duplex-number' | translate: { n: di + 1 } }}
         </span>
-        <span class="tree-node__delete-wrap">
-          <button
-            mat-icon-button
-            type="button"
-            class="tree-node__delete"
-            (click)="removeDuplex(group, di)">
-            <mat-icon>delete_outline</mat-icon>
-          </button>
+        <span class="tree-node__heading-actions">
+          <ng-container *ngIf="!isOptionalMockupEnabled(duplex, null)">
+            <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: duplex, settingKey: null }"></ng-container>
+          </ng-container>
+          <span class="tree-node__delete-wrap">
+            <button
+              mat-icon-button
+              type="button"
+              class="tree-node__delete"
+              (click)="removeDuplex(group, di)">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </span>
         </span>
       </div>
       <div class="duplex-node__fields">
@@ -763,6 +839,7 @@
           </mat-error>
         </mat-form-field>
       </div>
+      <ng-container *ngTemplateOutlet="extraSettingItemMockup; context: { item: duplex }"></ng-container>
     </div>
 
     <ng-container
@@ -791,19 +868,25 @@
         <span class="double-sided-node__prefix">
           {{ 'management.product-create.extra-settings.double-sided' | translate }}
         </span>
-        <span class="tree-node__delete-wrap">
-          <button
-            mat-icon-button
-            type="button"
-            class="tree-node__delete"
-            (click)="removeDoubleSided(group)">
-            <mat-icon>delete_outline</mat-icon>
-          </button>
+        <span class="tree-node__heading-actions">
+          <ng-container *ngIf="!isOptionalMockupEnabled(getDoubleSided(group), null)">
+            <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: getDoubleSided(group), settingKey: null }"></ng-container>
+          </ng-container>
+          <span class="tree-node__delete-wrap">
+            <button
+              mat-icon-button
+              type="button"
+              class="tree-node__delete"
+              (click)="removeDoubleSided(group)">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </span>
         </span>
       </div>
       <ng-container
         *ngTemplateOutlet="extraSettingModeSelect; context: { $implicit: getDoubleSided(group) }">
       </ng-container>
+      <ng-container *ngTemplateOutlet="extraSettingItemMockup; context: { item: getDoubleSided(group) }"></ng-container>
     </div>
 
     <div class="double-sided-branch__footer">
@@ -812,14 +895,30 @@
   </div>
 </ng-template>
 
-<ng-template #mockupUploadBlock let-sizeGroup="sizeGroup">
+<ng-template #mockupUploadBlock let-mockupGroup="mockupGroup" let-mockupSetting="mockupSetting" let-required="required">
   <div
     class="mockup-upload-section"
-    [class.mockup-upload-section--error]="hasMockupValidationError(sizeGroup)">
-    <div class="section-title">
-      {{ 'management.product-create.mockup-title' | translate }}
+    [class.mockup-upload-section--optional]="!required"
+    [class.mockup-upload-section--error]="hasMockupValidationError(mockupGroup, required, mockupSetting)">
+    <div class="mockup-upload-section__header">
+      <span class="mockup-upload-section__title zx-text-small">
+        {{ 'management.product-create.mockup-title' | translate }}
+      </span>
+      <span *ngIf="!required" class="tree-node__heading-actions">
+        <ng-container *ngTemplateOutlet="optionalMockupBtn; context: { group: mockupGroup, settingKey: mockupSetting }"></ng-container>
+        <span class="tree-node__delete-wrap">
+          <button
+            mat-icon-button
+            type="button"
+            class="tree-node__delete"
+            (click)="removeOptionalMockup(mockupGroup, mockupSetting, $event)"
+            [attr.aria-label]="'management.product-create.mockup-remove' | translate">
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        </span>
+      </span>
     </div>
-    <p *ngIf="hasMockupValidationError(sizeGroup)" class="mockup-upload-section__error mb-2">
+    <p *ngIf="hasMockupValidationError(mockupGroup, required, mockupSetting)" class="mockup-upload-section__error mb-2">
       {{ 'management.product-create.mockup-required-hint' | translate }}
     </p>
 
@@ -828,21 +927,21 @@
       type="file"
       [attr.accept]="expressFileAccept"
       hidden
-      (change)="onMockupFileSelected($event, sizeGroup)"
+      (change)="onMockupFileSelected($event, mockupGroup, mockupSetting)"
     />
 
     <div
-      *ngIf="!hasMockupUrl(sizeGroup)"
+      *ngIf="!hasMockupUrl(mockupGroup, mockupSetting)"
       class="logo-upload-zone"
-      [class.logo-upload-zone--uploading]="isMockupUploading(sizeGroup)"
-      [class.c-pointer]="!isMockupUploading(sizeGroup)"
-      (click)="!isMockupUploading(sizeGroup) && triggerMockupFilePicker(sizeGroup, mockupFileInput)"
+      [class.logo-upload-zone--uploading]="isMockupUploading(mockupGroup, mockupSetting)"
+      [class.c-pointer]="!isMockupUploading(mockupGroup, mockupSetting)"
+      (click)="!isMockupUploading(mockupGroup, mockupSetting) && triggerMockupFilePicker(mockupGroup, mockupFileInput, mockupSetting)"
     >
       <button
-        *ngIf="isMockupUploading(sizeGroup)"
+        *ngIf="isMockupUploading(mockupGroup, mockupSetting)"
         type="button"
         class="logo-upload-zone__cancel"
-        (click)="cancelMockupUpload(sizeGroup, $event)"
+        (click)="cancelMockupUpload(mockupGroup, mockupSetting, $event)"
         [attr.aria-label]="'management.product-create.mockup-upload-cancel' | translate"
       >
         <mat-icon>close</mat-icon>
@@ -850,7 +949,7 @@
 
       <h4 class="logo-upload-zone__title mb-0 fw-bold text-center">
         {{
-          (isMockupUploading(sizeGroup)
+          (isMockupUploading(mockupGroup, mockupSetting)
             ? 'management.product-create.mockup-uploading'
             : 'management.product-create.mockup-upload')
             | translate
@@ -858,52 +957,52 @@
       </h4>
 
       <img
-        *ngIf="!isMockupUploading(sizeGroup)"
+        *ngIf="!isMockupUploading(mockupGroup, mockupSetting)"
         src="assets/images/upload-file-icon.svg"
         class="logo-upload-zone__icon"
         alt=""
       />
 
-      <p *ngIf="!isMockupUploading(sizeGroup)" class="logo-upload-zone__hint mb-0 text-center">
+      <p *ngIf="!isMockupUploading(mockupGroup, mockupSetting)" class="logo-upload-zone__hint mb-0 text-center">
         {{ 'management.product-create.mockup-upload-hint' | translate }}
       </p>
 
-      <div *ngIf="isMockupUploading(sizeGroup)" class="logo-upload-zone__progress">
-        <mat-progress-bar mode="determinate" [value]="getMockupUploadProgress(sizeGroup)"></mat-progress-bar>
-        <span class="logo-upload-zone__progress-label">{{ getMockupUploadProgress(sizeGroup) }}%</span>
+      <div *ngIf="isMockupUploading(mockupGroup, mockupSetting)" class="logo-upload-zone__progress">
+        <mat-progress-bar mode="determinate" [value]="getMockupUploadProgress(mockupGroup, mockupSetting)"></mat-progress-bar>
+        <span class="logo-upload-zone__progress-label">{{ getMockupUploadProgress(mockupGroup, mockupSetting) }}%</span>
       </div>
     </div>
 
-    <div *ngIf="hasMockupUrl(sizeGroup)" class="mockup-upload-preview w-100">
+    <div *ngIf="hasMockupUrl(mockupGroup, mockupSetting)" class="mockup-upload-preview w-100">
       <div class="mockup-upload-preview__frame-wrap">
         <div
           class="mockup-upload-preview__frame"
-          [class.mockup-upload-preview__frame--pen-active]="isMockupPenActive(sizeGroup)"
-          (pointerdown)="onMockupPointerDown($event, sizeGroup)"
-          (pointermove)="onMockupPointerMove($event, sizeGroup)"
-          (pointerup)="onMockupPointerUp($event, sizeGroup)"
-          (pointercancel)="onMockupPointerUp($event, sizeGroup)">
-          <img [src]="getMockupUrl(sizeGroup)" class="mockup-upload-preview__img" alt="" draggable="false" />
+          [class.mockup-upload-preview__frame--pen-active]="isMockupPenActive(mockupGroup, mockupSetting)"
+          (pointerdown)="onMockupPointerDown($event, mockupGroup, mockupSetting)"
+          (pointermove)="onMockupPointerMove($event, mockupGroup, mockupSetting)"
+          (pointerup)="onMockupPointerUp($event, mockupGroup, mockupSetting)"
+          (pointercancel)="onMockupPointerUp($event, mockupGroup, mockupSetting)">
+          <img [src]="getMockupUrl(mockupGroup, mockupSetting)" class="mockup-upload-preview__img" alt="" draggable="false" />
           <div
-            *ngIf="getMockupRect(sizeGroup) as mockupRect"
+            *ngIf="getMockupRect(mockupGroup, mockupSetting) as mockupRect"
             class="mockup-upload-preview__rect"
             [style.left.%]="mockupRect.x * 100"
             [style.top.%]="mockupRect.y * 100"
             [style.width.%]="mockupRect.width * 100"
             [style.height.%]="mockupRect.height * 100"
-            (pointerdown)="onMockupRectPointerDown($event, sizeGroup)">
+            (pointerdown)="onMockupRectPointerDown($event, mockupGroup, mockupSetting)">
             <span
               class="mockup-upload-preview__corner mockup-upload-preview__corner--nw"
-              (pointerdown)="onMockupCornerPointerDown($event, sizeGroup, 'nw')"></span>
+              (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'nw', mockupSetting)"></span>
             <span
               class="mockup-upload-preview__corner mockup-upload-preview__corner--ne"
-              (pointerdown)="onMockupCornerPointerDown($event, sizeGroup, 'ne')"></span>
+              (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'ne', mockupSetting)"></span>
             <span
               class="mockup-upload-preview__corner mockup-upload-preview__corner--sw"
-              (pointerdown)="onMockupCornerPointerDown($event, sizeGroup, 'sw')"></span>
+              (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'sw', mockupSetting)"></span>
             <span
               class="mockup-upload-preview__corner mockup-upload-preview__corner--se"
-              (pointerdown)="onMockupCornerPointerDown($event, sizeGroup, 'se')"></span>
+              (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'se', mockupSetting)"></span>
           </div>
         </div>
       </div>
@@ -912,10 +1011,10 @@
           mat-stroked-button
           type="button"
           class="mockup-upload-preview__define-btn"
-          [class.mockup-upload-preview__define-btn--active]="isMockupPenActive(sizeGroup)"
-          [disabled]="isMockupUploading(sizeGroup)"
-          (click)="enableMockupPen(sizeGroup, $event)"
-          [attr.aria-pressed]="isMockupPenActive(sizeGroup)">
+          [class.mockup-upload-preview__define-btn--active]="isMockupPenActive(mockupGroup, mockupSetting)"
+          [disabled]="isMockupUploading(mockupGroup, mockupSetting)"
+          (click)="enableMockupPen(mockupGroup, mockupSetting, $event)"
+          [attr.aria-pressed]="isMockupPenActive(mockupGroup, mockupSetting)">
           <mat-icon>edit</mat-icon>
           {{ 'management.product-create.mockup-define-print-area' | translate }}
         </button>
@@ -923,9 +1022,9 @@
           mat-stroked-button
           type="button"
           class="mockup-upload-preview__replace-btn"
-          [disabled]="isMockupUploading(sizeGroup)"
-          (click)="beginMockupReplace(sizeGroup, mockupFileInput, $event)"
-        >
+          [disabled]="isMockupUploading(mockupGroup, mockupSetting)"
+          (click)="beginMockupReplace(mockupGroup, mockupFileInput, mockupSetting, $event)"
+          >
           {{ 'management.product-create.mockup-replace' | translate }}
         </button>
       </div>

@@ -25,19 +25,23 @@ export interface PhExtraSettingMode {
 export interface PhCorner {
   type: CornerType;
   radius: number | null;
+  mockup?: PhMockup;
 }
 
 export interface PhBleed {
   size: number | null;
+  mockup?: PhMockup;
 }
 
 export interface PhDuplex {
   size: number | null;
+  mockup?: PhMockup;
 }
 
 export interface PhFolding {
   count: number;
   offset: number | null;
+  mockup?: PhMockup;
 }
 
 /** Extra settings attached to a size, material, or color tree node. */
@@ -51,18 +55,20 @@ export interface PhTreeExtraSettings {
   bleeds?: PhBleed[];
   duplexes?: PhDuplex[];
   foldings?: PhFolding[];
-  doubleSided?: PhExtraSettingMode;
+  doubleSided?: PhExtraSettingMode & { mockup?: PhMockup };
 }
 
 export interface PhColor extends PhTreeExtraSettings {
   color: string;
   label: PhProductLabel;
+  mockup?: PhMockup;
 }
 
 export interface PhMaterial extends PhTreeExtraSettings {
   weight?: number | null;
   label: PhProductLabel;
   colors: PhColor[];
+  mockup?: PhMockup;
 }
 
 export interface PhDynamicMaterial extends PhMaterial {
