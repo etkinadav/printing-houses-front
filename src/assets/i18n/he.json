@@ -746,6 +746,7 @@
     "printing-table.stop-uploading": "הפסק העלאת קבצים",
     "printing-table.send-files-without-rasterize": "בטל שיטוח קבצים (Rasterize)",
     "printing-table.preview": "תצוגה מקדימה",
+    "printing-table.mockup": "הדמיה",
     "printing-table.preview.not-avalble": "יש לבחור סוג נייר בכדי לצפות בתצוגה המקדימה של הקובץ.",
     "printing-table.preview.chainge-properties.plotter": "בכדי לשנות את המידות יש ללחוץ על כפתור 'שינוי גודל' ב'הגדרות הדפסה'",
     "printing-table.preview.chainge-properties.express": "בכדי לשנות את המידות יש בחור בין 'התאם לדף' ל 'מקורי' ב'הגדרות הדפסה'",

@@ -1256,6 +1256,10 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
   }
 
+  onMockupClick(event?: Event): void {
+    event?.stopPropagation();
+  }
+
   onContinue(): void {
     // Placeholder — next checkout step will be wired later.
   }
