@@ -53,6 +53,24 @@
     [style.width.px]="cropGuideSvg?.widthPx ?? null"
     [style.height.px]="cropGuideSvg?.heightPx ?? null">
   <div
+    *ngIf="showAxisAlignedSheetFillLayer"
+    class="ph-print-mockup-print-image-layer ph-print-mockup-sheet-fill-layer"
+    [style.clip-path]="printSlotClipPathCss">
+    <div class="ph-print-mockup-sheet-fill" [ngStyle]="sheetFillStyles"></div>
+  </div>
+  <div
+    *ngIf="showPerspectiveSheetFillLayer && printImageWarp as fillWarp"
+    class="ph-print-mockup-print-image-layer ph-print-mockup-print-image-layer--warp ph-print-mockup-sheet-fill-layer"
+    [style.clip-path]="printSlotClipPathCss">
+    <div
+      class="ph-print-mockup-print-image-warp"
+      [style.width.px]="fillWarp.scaledWidthPx"
+      [style.height.px]="fillWarp.scaledHeightPx"
+      [style.transform]="fillWarp.transform">
+      <div class="ph-print-mockup-sheet-fill" [ngStyle]="sheetFillStyles"></div>
+    </div>
+  </div>
+  <div
     *ngIf="showAxisAlignedPrintImageLayer"
     class="ph-print-mockup-print-image-layer"
     [style.clip-path]="printSlotClipPathCss">

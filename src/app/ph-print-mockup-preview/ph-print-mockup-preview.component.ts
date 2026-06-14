@@ -227,6 +227,31 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     );
   }
 
+  get showSheetFillLayer(): boolean {
+    return !!(this.cropGuideSvg && this.printSlotClipPathCss);
+  }
+
+  get showAxisAlignedSheetFillLayer(): boolean {
+    return this.showSheetFillLayer && !this.printImageWarp?.transform;
+  }
+
+  get showPerspectiveSheetFillLayer(): boolean {
+    return !!(this.showSheetFillLayer && this.printImageWarp?.transform);
+  }
+
+  /** Stretch texture to the warp canvas like the print image (object-fit: fill). */
+  get sheetFillStyles(): Record<string, string> {
+    const styles = { ...this.sheetBackgroundStyles };
+    if (styles['backgroundImage']) {
+      return {
+        ...styles,
+        backgroundSize: '100% 100%',
+        backgroundPosition: '0 0',
+      };
+    }
+    return styles;
+  }
+
   get showAxisAlignedPrintImageLayer(): boolean {
     return this.showPrintImageLayer && !this.printImageWarp?.transform;
   }
