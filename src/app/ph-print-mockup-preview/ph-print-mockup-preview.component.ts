@@ -19,6 +19,15 @@ import {
   MockupPrintOverlayQuad,
   MockupPrintOverlayRect,
 } from '../ph-printing-files/ph-print-mockup.util';
+import {
+  buildMockupCropGuideSvgModel,
+  buildMockupQuadCropGuideSvgModel,
+  computeMockupCoverCrop,
+  mockupCoverCropHasExtensions,
+  MockupCropGuideSvgModel,
+  MockupQuadCornersPx,
+} from '../ph-printing-files/ph-print-mockup-crop.util';
+import { computePhPrintPreviewLayout } from '../ph-printing-files/ph-print-preview-layout.util';
 
 @Component({
   selector: 'app-ph-print-mockup-preview',
@@ -28,6 +37,8 @@ import {
 export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() mockup: PhMockup | null = null;
   @Input() printImageUrl: string | null = null;
+  @Input() printImageWidthPx: number | null = null;
+  @Input() printImageHeightPx: number | null = null;
   @Input() baseWidthCm = 0;
   @Input() baseHeightCm = 0;
   @Input() marginCm = 0;
@@ -52,10 +63,15 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   layoutContainerHeightPx = 0;
   printSlotWidthPx = 0;
   printSlotHeightPx = 0;
+  cropGuideSvg: MockupCropGuideSvgModel | null = null;
 
   private resizeObserver?: ResizeObserver;
   private measureRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private measureRetryCount = 0;
+  private imageMeasureRetryCount = 0;
+  private resolvedImageWidthPx = 0;
+  private resolvedImageHeightPx = 0;
+  private printImageProbe?: HTMLImageElement;
 
   constructor(
     private hostRef: ElementRef<HTMLElement>,
@@ -63,6 +79,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   ) {}
 
   ngAfterViewInit(): void {
+    this.syncPrintImageDimensions();
     if (typeof ResizeObserver === 'undefined') {
       this.scheduleMeasureRefresh();
       return;
@@ -98,6 +115,26 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.mockupLoading = !!this.mockupUrl;
       this.scheduleMeasureRefresh();
     }
+
+    if (
+      changes['printImageUrl'] ||
+      changes['printImageWidthPx'] ||
+      changes['printImageHeightPx']
+    ) {
+      this.syncPrintImageDimensions();
+    }
+
+    if (
+      changes['baseWidthCm'] ||
+      changes['baseHeightCm'] ||
+      changes['marginCm'] ||
+      changes['cornerType'] ||
+      changes['cornerRadiusCm'] ||
+      changes['foldingCount'] ||
+      changes['foldingOffsetCm']
+    ) {
+      this.scheduleMeasureRefresh();
+    }
   }
 
   ngOnDestroy(): void {
@@ -105,6 +142,63 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     if (this.measureRetryTimer) {
       clearTimeout(this.measureRetryTimer);
     }
+    this.printImageProbe = undefined;
+  }
+
+  private syncPrintImageDimensions(): void {
+    const inputWidthPx = Number(this.printImageWidthPx) || 0;
+    const inputHeightPx = Number(this.printImageHeightPx) || 0;
+    if (inputWidthPx > 0 && inputHeightPx > 0) {
+      this.resolvedImageWidthPx = inputWidthPx;
+      this.resolvedImageHeightPx = inputHeightPx;
+      this.scheduleMeasureRefresh();
+      return;
+    }
+
+    const imageUrl = this.printImageUrl?.trim() ?? '';
+    if (!imageUrl) {
+      this.resolvedImageWidthPx = 0;
+      this.resolvedImageHeightPx = 0;
+      this.scheduleMeasureRefresh();
+      return;
+    }
+
+    const probe = new Image();
+    this.printImageProbe = probe;
+    probe.onload = () => {
+      if (this.printImageProbe !== probe) {
+        return;
+      }
+      this.resolvedImageWidthPx = probe.naturalWidth;
+      this.resolvedImageHeightPx = probe.naturalHeight;
+      this.scheduleMeasureRefresh();
+      this.cdr.markForCheck();
+    };
+    probe.onerror = () => {
+      if (this.printImageProbe !== probe) {
+        return;
+      }
+      this.resolvedImageWidthPx = 0;
+      this.resolvedImageHeightPx = 0;
+      this.scheduleMeasureRefresh();
+      this.cdr.markForCheck();
+    };
+    probe.src = imageUrl;
+  }
+
+  private getImageDimensionsForCrop(): { widthPx: number; heightPx: number } | null {
+    const widthPx =
+      Number(this.printImageWidthPx) ||
+      this.resolvedImageWidthPx ||
+      0;
+    const heightPx =
+      Number(this.printImageHeightPx) ||
+      this.resolvedImageHeightPx ||
+      0;
+    if (widthPx <= 0 || heightPx <= 0) {
+      return null;
+    }
+    return { widthPx, heightPx };
   }
 
   onMockupImageLoad(): void {
@@ -114,13 +208,43 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   }
 
   quadSlotGuidePoints(quad: MockupPrintOverlayQuad): string {
+    return this.quadSlotGuidePointsInViewBox(quad, 100, 100);
+  }
+
+  quadSlotGuidePointsPx(quad: MockupPrintOverlayQuad): string {
+    return this.quadSlotGuidePointsInViewBox(
+      quad,
+      this.printSlotWidthPx,
+      this.printSlotHeightPx,
+    );
+  }
+
+  private quadSlotGuidePointsInViewBox(
+    quad: MockupPrintOverlayQuad,
+    viewWidth: number,
+    viewHeight: number,
+  ): string {
     const box = quad.box;
     const toLocal = (point: { x: number; y: number }): string => {
-      const x = box.width > 0 ? ((point.x - box.x) / box.width) * 100 : 0;
-      const y = box.height > 0 ? ((point.y - box.y) / box.height) * 100 : 0;
+      const x = box.width > 0 ? ((point.x - box.x) / box.width) * viewWidth : 0;
+      const y = box.height > 0 ? ((point.y - box.y) / box.height) * viewHeight : 0;
       return `${x},${y}`;
     };
     return [quad.nw, quad.ne, quad.se, quad.sw].map(toLocal).join(' ');
+  }
+
+  private quadCornersPx(quad: MockupPrintOverlayQuad): MockupQuadCornersPx {
+    const box = quad.box;
+    const toLocal = (point: { x: number; y: number }): { x: number; y: number } => ({
+      x: box.width > 0 ? ((point.x - box.x) / box.width) * this.printSlotWidthPx : 0,
+      y: box.height > 0 ? ((point.y - box.y) / box.height) * this.printSlotHeightPx : 0,
+    });
+    return {
+      nw: toLocal(quad.nw),
+      ne: toLocal(quad.ne),
+      se: toLocal(quad.se),
+      sw: toLocal(quad.sw),
+    };
   }
 
   private observeMockupFrame(): void {
@@ -191,6 +315,82 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     this.layoutContainerHeightPx = nextLayoutH;
     this.printSlotWidthPx = Math.round(nextSlotW);
     this.printSlotHeightPx = Math.round(nextSlotH);
+    this.refreshCropGuides();
     this.cdr.detectChanges();
+  }
+
+  private refreshCropGuides(): void {
+    const slotW = this.printSlotWidthPx;
+    const slotH = this.printSlotHeightPx;
+    if (
+      slotW <= 0 ||
+      slotH <= 0 ||
+      this.layoutContainerWidthPx <= 0 ||
+      this.layoutContainerHeightPx <= 0
+    ) {
+      this.cropGuideSvg = null;
+      return;
+    }
+
+    const layout = computePhPrintPreviewLayout({
+      containerWidthPx: this.layoutContainerWidthPx,
+      containerHeightPx: this.layoutContainerHeightPx,
+      baseWidthCm: this.baseWidthCm,
+      baseHeightCm: this.baseHeightCm,
+      marginCm: this.marginCm,
+      cornerType: this.cornerType,
+      cornerRadiusCm: this.cornerRadiusCm,
+      foldingCount: this.foldingCount,
+      foldingOffsetCm: this.foldingOffsetCm,
+      skipDimGutters: false,
+      minContainerPx: 1,
+    });
+
+    if (!layout) {
+      this.cropGuideSvg = null;
+      return;
+    }
+
+    const imageDims = this.getImageDimensionsForCrop();
+    if (!imageDims) {
+      this.cropGuideSvg = null;
+      if (this.printImageUrl?.trim() && this.imageMeasureRetryCount < 12) {
+        this.imageMeasureRetryCount += 1;
+        this.measureRetryTimer = setTimeout(() => {
+          this.measureRetryTimer = null;
+          this.syncPrintImageDimensions();
+          this.refreshCropGuides();
+          this.cdr.detectChanges();
+        }, 100 * this.imageMeasureRetryCount);
+      }
+      return;
+    }
+
+    this.imageMeasureRetryCount = 0;
+
+    const crop = computeMockupCoverCrop(
+      imageDims.widthPx,
+      imageDims.heightPx,
+      layout.sheetWidthPx,
+      layout.sheetHeightPx,
+    );
+    if (!crop) {
+      this.cropGuideSvg = null;
+      return;
+    }
+
+    if (!mockupCoverCropHasExtensions(crop)) {
+      this.cropGuideSvg = null;
+      return;
+    }
+
+    this.cropGuideSvg = this.quadOverlay
+      ? buildMockupQuadCropGuideSvgModel(
+          this.quadCornersPx(this.quadOverlay),
+          crop,
+          slotW,
+          slotH,
+        )
+      : buildMockupCropGuideSvgModel(crop, slotW, slotH);
   }
 }

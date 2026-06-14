@@ -27,21 +27,7 @@
         [style.top.%]="rect.y * 100"
         [style.width.%]="rect.width * 100"
         [style.height.%]="rect.height * 100">
-        <svg
-          class="ph-print-mockup-print-area-guide"
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          aria-hidden="true">
-          <rect
-            x="1"
-            y="1"
-            width="98"
-            height="98"
-            fill="none"
-            stroke-width="2"
-            stroke-dasharray="8 6"
-            vector-effect="non-scaling-stroke" />
-        </svg>
+        <ng-container *ngTemplateOutlet="printAreaGuides; context: { quad: null }"></ng-container>
       </div>
 
       <div
@@ -51,21 +37,149 @@
         [style.left.%]="quad.box.x * 100"
         [style.top.%]="quad.box.y * 100"
         [style.width.%]="quad.box.width * 100"
-        [style.height.%]="quad.box.height * 100"
-        [style.clip-path]="quad.clipPath">
-        <svg
-          class="ph-print-mockup-print-area-guide"
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          aria-hidden="true">
-          <polygon
-            [attr.points]="quadSlotGuidePoints(quad)"
-            fill="none"
-            stroke-width="2"
-            stroke-dasharray="8 6"
-            vector-effect="non-scaling-stroke" />
-        </svg>
+        [style.height.%]="quad.box.height * 100">
+        <ng-container *ngTemplateOutlet="printAreaGuides; context: { quad: quad }"></ng-container>
       </div>
     </div>
   </div>
 </div>
+
+<ng-template #printAreaGuides let-quad="quad">
+  <div
+    class="ph-print-mockup-print-area-guides"
+    [class.ph-print-mockup-print-area-guides--expanded]="!!cropGuideSvg"
+    [style.left.px]="cropGuideSvg?.offsetLeftPx ?? null"
+    [style.top.px]="cropGuideSvg?.offsetTopPx ?? null"
+    [style.width.px]="cropGuideSvg?.widthPx ?? null"
+    [style.height.px]="cropGuideSvg?.heightPx ?? null">
+  <svg
+    *ngIf="cropGuideSvg as guide; else simplePrintAreaGuide"
+    class="ph-print-mockup-print-area-guide"
+    [attr.viewBox]="guide.viewBox"
+    preserveAspectRatio="none"
+    aria-hidden="true">
+    <rect
+      *ngIf="guide.topRect as topRect"
+      class="ph-print-mockup-print-area-guide__extension"
+      [attr.x]="topRect.x"
+      [attr.y]="topRect.y"
+      [attr.width]="topRect.width"
+      [attr.height]="topRect.height"
+      fill="none"
+      stroke-width="2"
+      stroke-dasharray="8 6"
+      vector-effect="non-scaling-stroke" />
+    <polygon
+      *ngIf="guide.topPolygonPoints as topPoints"
+      class="ph-print-mockup-print-area-guide__extension"
+      [attr.points]="topPoints"
+      fill="none"
+      stroke-width="2"
+      stroke-dasharray="8 6"
+      vector-effect="non-scaling-stroke" />
+    <rect
+      *ngIf="guide.bottomRect as bottomRect"
+      class="ph-print-mockup-print-area-guide__extension"
+      [attr.x]="bottomRect.x"
+      [attr.y]="bottomRect.y"
+      [attr.width]="bottomRect.width"
+      [attr.height]="bottomRect.height"
+      fill="none"
+      stroke-width="2"
+      stroke-dasharray="8 6"
+      vector-effect="non-scaling-stroke" />
+    <polygon
+      *ngIf="guide.bottomPolygonPoints as bottomPoints"
+      class="ph-print-mockup-print-area-guide__extension"
+      [attr.points]="bottomPoints"
+      fill="none"
+      stroke-width="2"
+      stroke-dasharray="8 6"
+      vector-effect="non-scaling-stroke" />
+    <rect
+      *ngIf="guide.leftRect as leftRect"
+      class="ph-print-mockup-print-area-guide__extension"
+      [attr.x]="leftRect.x"
+      [attr.y]="leftRect.y"
+      [attr.width]="leftRect.width"
+      [attr.height]="leftRect.height"
+      fill="none"
+      stroke-width="2"
+      stroke-dasharray="8 6"
+      vector-effect="non-scaling-stroke" />
+    <polygon
+      *ngIf="guide.leftPolygonPoints as leftPoints"
+      class="ph-print-mockup-print-area-guide__extension"
+      [attr.points]="leftPoints"
+      fill="none"
+      stroke-width="2"
+      stroke-dasharray="8 6"
+      vector-effect="non-scaling-stroke" />
+    <rect
+      *ngIf="guide.rightRect as rightRect"
+      class="ph-print-mockup-print-area-guide__extension"
+      [attr.x]="rightRect.x"
+      [attr.y]="rightRect.y"
+      [attr.width]="rightRect.width"
+      [attr.height]="rightRect.height"
+      fill="none"
+      stroke-width="2"
+      stroke-dasharray="8 6"
+      vector-effect="non-scaling-stroke" />
+    <polygon
+      *ngIf="guide.rightPolygonPoints as rightPoints"
+      class="ph-print-mockup-print-area-guide__extension"
+      [attr.points]="rightPoints"
+      fill="none"
+      stroke-width="2"
+      stroke-dasharray="8 6"
+      vector-effect="non-scaling-stroke" />
+    <rect
+      *ngIf="!quad"
+      class="ph-print-mockup-print-area-guide__slot"
+      [attr.x]="guide.slotRect.x"
+      [attr.y]="guide.slotRect.y"
+      [attr.width]="guide.slotRect.width"
+      [attr.height]="guide.slotRect.height"
+      fill="none"
+      stroke-width="2"
+      stroke-dasharray="8 6"
+      vector-effect="non-scaling-stroke" />
+    <polygon
+      *ngIf="quad && guide.slotPolygonPoints as slotPoints"
+      class="ph-print-mockup-print-area-guide__slot"
+      [attr.points]="slotPoints"
+      fill="none"
+      stroke-width="2"
+      stroke-dasharray="8 6"
+      vector-effect="non-scaling-stroke" />
+  </svg>
+  <ng-template #simplePrintAreaGuide>
+    <svg
+      class="ph-print-mockup-print-area-guide"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      aria-hidden="true">
+      <rect
+        *ngIf="!quad"
+        class="ph-print-mockup-print-area-guide__slot"
+        x="1"
+        y="1"
+        width="98"
+        height="98"
+        fill="none"
+        stroke-width="2"
+        stroke-dasharray="8 6"
+        vector-effect="non-scaling-stroke" />
+      <polygon
+        *ngIf="quad"
+        class="ph-print-mockup-print-area-guide__slot"
+        [attr.points]="quadSlotGuidePoints(quad)"
+        fill="none"
+        stroke-width="2"
+        stroke-dasharray="8 6"
+        vector-effect="non-scaling-stroke" />
+    </svg>
+  </ng-template>
+  </div>
+</ng-template>

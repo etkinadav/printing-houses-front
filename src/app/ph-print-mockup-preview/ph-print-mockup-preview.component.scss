@@ -76,6 +76,8 @@
 
   line-height: 0;
 
+  overflow: visible;
+
 }
 
 
@@ -126,6 +128,28 @@
 
 
 
+.ph-print-mockup-print-area-guides {
+
+  position: absolute;
+
+  inset: 0;
+
+  overflow: visible;
+
+  pointer-events: none;
+
+}
+
+
+
+.ph-print-mockup-print-area-guides--expanded {
+
+  inset: auto;
+
+}
+
+
+
 .ph-print-mockup-print-area-guide {
 
   position: absolute;
@@ -139,6 +163,15 @@
   pointer-events: none;
 
   z-index: 2;
+
+  overflow: visible;
+
+}
+
+
+
+.ph-print-mockup-print-area-guide__slot,
+.ph-print-mockup-print-area-guide__extension {
 
   stroke: var(--zx-green);
 

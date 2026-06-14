@@ -1323,6 +1323,8 @@
           class="w-100 h-100"
           [mockup]="resolvedPrintMockup"
           [printImageUrl]="previewFrontThumbnailUrl"
+          [printImageWidthPx]="selectedImage?.imageWidth ?? null"
+          [printImageHeightPx]="selectedImage?.imageHeight ?? null"
           [baseWidthCm]="previewBaseWidthCm"
           [baseHeightCm]="previewBaseHeightCm"
           [marginCm]="previewMarginCm"
