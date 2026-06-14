@@ -55,7 +55,7 @@
   <div
     *ngIf="showAxisAlignedPrintImageLayer"
     class="ph-print-mockup-print-image-layer"
-    [style.clip-path]="printOuterClipPathCss">
+    [style.clip-path]="printSlotClipPathCss">
     <img
       class="ph-print-mockup-print-image-stretch"
       [src]="printImageUrl"
@@ -66,7 +66,8 @@
   </div>
   <div
     *ngIf="showPerspectivePrintImageLayer && printImageWarp as warp"
-    class="ph-print-mockup-print-image-layer ph-print-mockup-print-image-layer--warp">
+    class="ph-print-mockup-print-image-layer ph-print-mockup-print-image-layer--warp"
+    [style.clip-path]="printSlotClipPathCss">
     <div
       class="ph-print-mockup-print-image-warp"
       [style.width.px]="warp.scaledWidthPx"

@@ -154,6 +154,35 @@ export function buildMockupOuterClipPathCss(
   return null;
 }
 
+/** CSS clip-path for the green print slot (image visible only inside the slot). */
+export function buildMockupSlotClipPathCss(
+  guide: Pick<
+    MockupCropGuideSvgModel,
+    'slotPolygonPoints' | 'slotRect'
+  >,
+): string | null {
+  if (guide.slotPolygonPoints) {
+    const cssPoints = guide.slotPolygonPoints
+      .trim()
+      .split(/\s+/)
+      .map((pair) => {
+        const [x, y] = pair.split(',');
+        return `${x}px ${y}px`;
+      })
+      .join(', ');
+    return `polygon(${cssPoints})`;
+  }
+
+  if (guide.slotRect) {
+    const r = guide.slotRect;
+    const x2 = r.x + r.width;
+    const y2 = r.y + r.height;
+    return `polygon(${r.x}px ${r.y}px, ${x2}px ${r.y}px, ${x2}px ${y2}px, ${r.x}px ${y2}px)`;
+  }
+
+  return null;
+}
+
 interface GuideCanvasLayout {
   paddingLeftPx: number;
   paddingTopPx: number;

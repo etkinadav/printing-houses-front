@@ -21,7 +21,7 @@ import {
 } from '../ph-printing-files/ph-print-mockup.util';
 import {
   buildMockupCropGuideSvgModel,
-  buildMockupOuterClipPathCss,
+  buildMockupSlotClipPathCss,
   buildMockupPrintImageWarp,
   buildMockupQuadCropGuideSvgModel,
   computeMockupCoverCrop,
@@ -70,7 +70,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   printSlotHeightPx = 0;
   cropGuideSvg: MockupCropGuideSvgModel | null = null;
   printImageWarp: MockupPrintImageWarpModel | null = null;
-  printOuterClipPathCss: string | null = null;
+  printSlotClipPathCss: string | null = null;
   /** Last pipeline snapshot — inspect in DevTools via `ng.getComponent($0).mockupPrintDebug` */
   mockupPrintDebug: Record<string, unknown> = {};
 
@@ -223,7 +223,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     return !!(
       this.cropGuideSvg &&
       this.printImageUrl?.trim() &&
-      this.printOuterClipPathCss
+      this.printSlotClipPathCss
     );
   }
 
@@ -372,7 +372,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     ) {
       this.cropGuideSvg = null;
       this.printImageWarp = null;
-      this.printOuterClipPathCss = null;
+      this.printSlotClipPathCss = null;
       this.debugMockup('skip:invalid-measurements', {
         slotW,
         slotH,
@@ -399,7 +399,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     if (!layout) {
       this.cropGuideSvg = null;
       this.printImageWarp = null;
-      this.printOuterClipPathCss = null;
+      this.printSlotClipPathCss = null;
       this.debugMockup('skip:no-layout', { slotW, slotH });
       return;
     }
@@ -408,7 +408,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     if (!imageDims) {
       this.cropGuideSvg = null;
       this.printImageWarp = null;
-      this.printOuterClipPathCss = null;
+      this.printSlotClipPathCss = null;
       this.debugMockup('skip:no-image-dimensions', {
         printImageUrl: this.printImageUrl?.trim() ?? '',
         printImageWidthPx: this.printImageWidthPx,
@@ -440,7 +440,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     if (!crop) {
       this.cropGuideSvg = null;
       this.printImageWarp = null;
-      this.printOuterClipPathCss = null;
+      this.printSlotClipPathCss = null;
       this.debugMockup('skip:no-crop', { imageDims, sheet: layout });
       return;
     }
@@ -448,7 +448,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     if (!mockupCoverCropHasExtensions(crop)) {
       this.cropGuideSvg = null;
       this.printImageWarp = null;
-      this.printOuterClipPathCss = null;
+      this.printSlotClipPathCss = null;
       this.debugMockup('skip:no-crop-extensions', { crop });
       return;
     }
@@ -462,8 +462,8 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
         )
       : buildMockupCropGuideSvgModel(crop, slotW, slotH);
 
-    this.printOuterClipPathCss = this.cropGuideSvg
-      ? buildMockupOuterClipPathCss(this.cropGuideSvg)
+    this.printSlotClipPathCss = this.cropGuideSvg
+      ? buildMockupSlotClipPathCss(this.cropGuideSvg)
       : null;
 
     this.refreshPrintImageWarp(
@@ -485,7 +485,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       printImageUrl: this.printImageUrl?.trim() ?? '',
       cropGuideSvg: this.cropGuideSvg,
       printImageWarp: this.printImageWarp,
-      printOuterClipPathCss: this.printOuterClipPathCss,
+      printSlotClipPathCss: this.printSlotClipPathCss,
       showAxisAlignedPrintImageLayer: this.showAxisAlignedPrintImageLayer,
       showPerspectivePrintImageLayer: this.showPerspectivePrintImageLayer,
     });
