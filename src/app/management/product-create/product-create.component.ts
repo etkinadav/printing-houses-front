@@ -1230,13 +1230,36 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     }
 
     const before = this.snapshotMockupCornerParams(state.rectCornerHandles, drag.cornerHandle);
-    const next = cloneMockupRectCorners(state.rectCornerHandles);
+    const isBulgeHandle = drag.cornerHandle.endsWith('-bulge');
+    const baseHandles =
+      isBulgeHandle && drag.origCornerHandles
+        ? drag.origCornerHandles
+        : state.rectCornerHandles;
+    const next = cloneMockupRectCorners(baseHandles);
+    const bulgeDragOrigin =
+      isBulgeHandle && drag.origCornerHandles
+        ? {
+            startX: drag.startX,
+            startY: drag.startY,
+            origCorners: drag.origCornerHandles,
+            ...(state.rect
+              ? (() => {
+                  const startLocal = this.mockupPointInRectLocal(
+                    { x: drag.startX, y: drag.startY },
+                    state.rect,
+                  );
+                  return { startLocalX: startLocal.x, startLocalY: startLocal.y };
+                })()
+              : {}),
+          }
+        : undefined;
     if (state.quad) {
       applyMockupQuadCornerHandleDrag(
         drag.cornerHandle,
         point,
         state.quad,
         next,
+        bulgeDragOrigin,
       );
     } else if (state.rect) {
       const local = this.mockupPointInRectLocal(point, state.rect);
@@ -1245,6 +1268,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         local.x,
         local.y,
         next,
+        bulgeDragOrigin,
       );
     } else {
       this.logMockupCornerDrag('apply corner drag ABORT: no quad/rect');

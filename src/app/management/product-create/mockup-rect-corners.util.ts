@@ -28,6 +28,16 @@ export interface MockupRectCornerParams {
 
 export type MockupRectCornersParams = Record<MockupRectCornerId, MockupRectCornerParams>;
 
+export const MOCKUP_BULGE_VISUAL_INWARD_FRAC = 0.1;
+
+export interface MockupBulgeDragOrigin {
+  startX: number;
+  startY: number;
+  origCorners: MockupRectCornersParams;
+  startLocalX?: number;
+  startLocalY?: number;
+}
+
 export interface MockupRectCornerHandleView {
   id: MockupRectCornerHandleId;
   x: number;
@@ -103,12 +113,101 @@ function cornerPoint(quad: MockupQuadPoints, corner: MockupRectCornerId): Mockup
   return quad[corner];
 }
 
-function bulgeControlPoint(
+function bulgeRadiusControlPoint(
+  _quad: MockupQuadPoints,
+  _corner: MockupRectCornerId,
+  params: MockupRectCornerParams,
+): MockupPoint2 {
+  return { x: params.bulgeH, y: params.bulgeV };
+}
+
+/** 10% inward along both edges meeting at the green corner (image coords). */
+function quadBulgeVisualInwardOffset(
+  quad: MockupQuadPoints,
+  corner: MockupRectCornerId,
+): MockupPoint2 {
+  const current = cornerPoint(quad, corner);
+  const prev = cornerPoint(quad, prevCorner(corner));
+  const next = cornerPoint(quad, nextCorner(corner));
+  const t = MOCKUP_BULGE_VISUAL_INWARD_FRAC;
+  return {
+    x: t * (next.x - current.x + prev.x - current.x),
+    y: t * (next.y - current.y + prev.y - current.y),
+  };
+}
+
+function quadBulgeHandleDisplayPoint(
   quad: MockupQuadPoints,
   corner: MockupRectCornerId,
   params: MockupRectCornerParams,
 ): MockupPoint2 {
-  return { x: params.bulgeH, y: params.bulgeV };
+  const radius = bulgeRadiusControlPoint(quad, corner, params);
+  const offset = quadBulgeVisualInwardOffset(quad, corner);
+  return { x: radius.x + offset.x, y: radius.y + offset.y };
+}
+
+function rectBulgeVisualInwardOffset(corner: MockupRectCornerId): MockupPoint2 {
+  const t = MOCKUP_BULGE_VISUAL_INWARD_FRAC;
+  switch (corner) {
+    case 'nw':
+      return { x: t, y: t };
+    case 'ne':
+      return { x: -t, y: t };
+    case 'se':
+      return { x: -t, y: -t };
+    case 'sw':
+      return { x: t, y: -t };
+  }
+}
+
+function rectBulgeLogicalLocal(
+  corner: MockupRectCornerId,
+  params: MockupRectCornerParams,
+): MockupPoint2 {
+  switch (corner) {
+    case 'nw':
+      return { x: params.bulgeH, y: params.bulgeV };
+    case 'ne':
+      return { x: 1 - params.bulgeH, y: params.bulgeV };
+    case 'se':
+      return { x: 1 - params.bulgeH, y: 1 - params.bulgeV };
+    case 'sw':
+      return { x: params.bulgeH, y: 1 - params.bulgeV };
+  }
+}
+
+function setRectBulgeFromLogicalLocal(
+  corner: MockupRectCornerId,
+  params: MockupRectCornerParams,
+  local: MockupPoint2,
+): void {
+  switch (corner) {
+    case 'nw':
+      params.bulgeH = local.x;
+      params.bulgeV = local.y;
+      break;
+    case 'ne':
+      params.bulgeH = 1 - local.x;
+      params.bulgeV = local.y;
+      break;
+    case 'se':
+      params.bulgeH = 1 - local.x;
+      params.bulgeV = 1 - local.y;
+      break;
+    case 'sw':
+      params.bulgeH = local.x;
+      params.bulgeV = 1 - local.y;
+      break;
+  }
+}
+
+function rectBulgeHandleDisplayLocal(
+  corner: MockupRectCornerId,
+  params: MockupRectCornerParams,
+): MockupPoint2 {
+  const logical = rectBulgeLogicalLocal(corner, params);
+  const offset = rectBulgeVisualInwardOffset(corner);
+  return { x: logical.x + offset.x, y: logical.y + offset.y };
 }
 
 /** Quad bulge handles start at the green corner; bulgeH/V hold the radius control (image coords). */
@@ -140,7 +239,7 @@ function appendQuadCornerSegment(
     return;
   }
 
-  const control = bulgeControlPoint(quad, corner, params);
+  const control = bulgeRadiusControlPoint(quad, corner, params);
   parts.push(`Q ${pointStr(control)} ${pointStr(end)}`);
 }
 
@@ -248,10 +347,10 @@ export function getMockupQuadCornerHandleViews(
 
   if (cornerType === 'rounded') {
     views.push(
-      { id: 'nw-bulge', ...bulgeControlPoint(quad, 'nw', nw), kind: 'bulge' },
-      { id: 'ne-bulge', ...bulgeControlPoint(quad, 'ne', ne), kind: 'bulge' },
-      { id: 'se-bulge', ...bulgeControlPoint(quad, 'se', se), kind: 'bulge' },
-      { id: 'sw-bulge', ...bulgeControlPoint(quad, 'sw', sw), kind: 'bulge' },
+      { id: 'nw-bulge', ...quadBulgeHandleDisplayPoint(quad, 'nw', nw), kind: 'bulge' },
+      { id: 'ne-bulge', ...quadBulgeHandleDisplayPoint(quad, 'ne', ne), kind: 'bulge' },
+      { id: 'se-bulge', ...quadBulgeHandleDisplayPoint(quad, 'se', se), kind: 'bulge' },
+      { id: 'sw-bulge', ...quadBulgeHandleDisplayPoint(quad, 'sw', sw), kind: 'bulge' },
     );
   }
 
@@ -276,10 +375,10 @@ export function getMockupRectCornerHandleViews(
 
   if (cornerType === 'rounded') {
     views.push(
-      { id: 'nw-bulge', x: nw.bulgeH, y: nw.bulgeV, kind: 'bulge' },
-      { id: 'ne-bulge', x: 1 - ne.bulgeH, y: ne.bulgeV, kind: 'bulge' },
-      { id: 'se-bulge', x: 1 - se.bulgeH, y: 1 - se.bulgeV, kind: 'bulge' },
-      { id: 'sw-bulge', x: sw.bulgeH, y: 1 - sw.bulgeV, kind: 'bulge' },
+      { id: 'nw-bulge', ...rectBulgeHandleDisplayLocal('nw', nw), kind: 'bulge' },
+      { id: 'ne-bulge', ...rectBulgeHandleDisplayLocal('ne', ne), kind: 'bulge' },
+      { id: 'se-bulge', ...rectBulgeHandleDisplayLocal('se', se), kind: 'bulge' },
+      { id: 'sw-bulge', ...rectBulgeHandleDisplayLocal('sw', sw), kind: 'bulge' },
     );
   }
 
@@ -312,14 +411,55 @@ function clampCoord(value: number): number {
   return Math.min(0.99, Math.max(0.01, value));
 }
 
-function applyBulgeHandleDrag(
+function applyQuadBulgeHandleDrag(
   imagePoint: MockupPoint2,
-  corners: MockupRectCornersParams,
+  quad: MockupQuadPoints,
   corner: MockupRectCornerId,
+  corners: MockupRectCornersParams,
+  dragOrigin?: MockupBulgeDragOrigin,
 ): void {
   const params = corners[corner];
-  params.bulgeH = clampCoord(imagePoint.x);
-  params.bulgeV = clampCoord(imagePoint.y);
+  const offset = quadBulgeVisualInwardOffset(quad, corner);
+
+  if (dragOrigin) {
+    const orig = dragOrigin.origCorners[corner];
+    params.bulgeH = clampCoord(
+      orig.bulgeH + (imagePoint.x - dragOrigin.startX),
+    );
+    params.bulgeV = clampCoord(
+      orig.bulgeV + (imagePoint.y - dragOrigin.startY),
+    );
+    return;
+  }
+
+  params.bulgeH = clampCoord(imagePoint.x - offset.x);
+  params.bulgeV = clampCoord(imagePoint.y - offset.y);
+}
+
+function applyRectBulgeHandleDrag(
+  localX: number,
+  localY: number,
+  corner: MockupRectCornerId,
+  corners: MockupRectCornersParams,
+  dragOrigin?: MockupBulgeDragOrigin,
+): void {
+  const params = corners[corner];
+  const offset = rectBulgeVisualInwardOffset(corner);
+
+  if (dragOrigin?.startLocalX != null && dragOrigin.startLocalY != null) {
+    const orig = dragOrigin.origCorners[corner];
+    const origLogical = rectBulgeLogicalLocal(corner, orig);
+    setRectBulgeFromLogicalLocal(corner, params, {
+      x: clampCoord(origLogical.x + (localX - dragOrigin.startLocalX)),
+      y: clampCoord(origLogical.y + (localY - dragOrigin.startLocalY)),
+    });
+    return;
+  }
+
+  setRectBulgeFromLogicalLocal(corner, params, {
+    x: clampCoord(localX - offset.x),
+    y: clampCoord(localY - offset.y),
+  });
 }
 
 function setEdgeHandleFromSegment(
@@ -336,6 +476,7 @@ export function applyMockupQuadCornerHandleDrag(
   imagePoint: MockupPoint2,
   quad: MockupQuadPoints,
   corners: MockupRectCornersParams,
+  bulgeDragOrigin?: MockupBulgeDragOrigin,
 ): void {
   switch (handleId) {
     case 'nw-h':
@@ -355,7 +496,7 @@ export function applyMockupQuadCornerHandleDrag(
       );
       break;
     case 'nw-bulge':
-      applyBulgeHandleDrag(imagePoint, corners, 'nw');
+      applyQuadBulgeHandleDrag(imagePoint, quad, 'nw', corners, bulgeDragOrigin);
       break;
     case 'ne-h':
       setEdgeHandleFromSegment(
@@ -374,7 +515,7 @@ export function applyMockupQuadCornerHandleDrag(
       );
       break;
     case 'ne-bulge':
-      applyBulgeHandleDrag(imagePoint, corners, 'ne');
+      applyQuadBulgeHandleDrag(imagePoint, quad, 'ne', corners, bulgeDragOrigin);
       break;
     case 'se-h':
       setEdgeHandleFromSegment(
@@ -393,7 +534,7 @@ export function applyMockupQuadCornerHandleDrag(
       );
       break;
     case 'se-bulge':
-      applyBulgeHandleDrag(imagePoint, corners, 'se');
+      applyQuadBulgeHandleDrag(imagePoint, quad, 'se', corners, bulgeDragOrigin);
       break;
     case 'sw-h':
       setEdgeHandleFromSegment(
@@ -412,7 +553,7 @@ export function applyMockupQuadCornerHandleDrag(
       );
       break;
     case 'sw-bulge':
-      applyBulgeHandleDrag(imagePoint, corners, 'sw');
+      applyQuadBulgeHandleDrag(imagePoint, quad, 'sw', corners, bulgeDragOrigin);
       break;
   }
 }
@@ -422,6 +563,7 @@ export function applyMockupRectCornerHandleDrag(
   localX: number,
   localY: number,
   corners: MockupRectCornersParams,
+  bulgeDragOrigin?: MockupBulgeDragOrigin,
 ): void {
   switch (handleId) {
     case 'nw-h':
@@ -431,8 +573,7 @@ export function applyMockupRectCornerHandleDrag(
       corners.nw.v = clampEdge(localY);
       break;
     case 'nw-bulge':
-      corners.nw.bulgeH = clampCoord(localX);
-      corners.nw.bulgeV = clampCoord(localY);
+      applyRectBulgeHandleDrag(localX, localY, 'nw', corners, bulgeDragOrigin);
       break;
     case 'ne-h':
       corners.ne.v = clampEdge(1 - localX);
@@ -441,8 +582,7 @@ export function applyMockupRectCornerHandleDrag(
       corners.ne.h = clampEdge(localY);
       break;
     case 'ne-bulge':
-      corners.ne.bulgeH = clampCoord(1 - localX);
-      corners.ne.bulgeV = clampCoord(localY);
+      applyRectBulgeHandleDrag(localX, localY, 'ne', corners, bulgeDragOrigin);
       break;
     case 'se-h':
       corners.se.v = clampEdge(1 - localX);
@@ -451,8 +591,7 @@ export function applyMockupRectCornerHandleDrag(
       corners.se.h = clampEdge(1 - localY);
       break;
     case 'se-bulge':
-      corners.se.bulgeH = clampCoord(1 - localX);
-      corners.se.bulgeV = clampCoord(1 - localY);
+      applyRectBulgeHandleDrag(localX, localY, 'se', corners, bulgeDragOrigin);
       break;
     case 'sw-h':
       corners.sw.h = clampEdge(localX);
@@ -461,8 +600,7 @@ export function applyMockupRectCornerHandleDrag(
       corners.sw.v = clampEdge(1 - localY);
       break;
     case 'sw-bulge':
-      corners.sw.bulgeH = clampCoord(localX);
-      corners.sw.bulgeV = clampCoord(1 - localY);
+      applyRectBulgeHandleDrag(localX, localY, 'sw', corners, bulgeDragOrigin);
       break;
   }
 }
