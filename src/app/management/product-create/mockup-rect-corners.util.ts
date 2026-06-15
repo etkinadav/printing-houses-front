@@ -103,40 +103,24 @@ function cornerPoint(quad: MockupQuadPoints, corner: MockupRectCornerId): Mockup
   return quad[corner];
 }
 
-function quadCentroid(quad: MockupQuadPoints): MockupPoint2 {
-  return {
-    x: (quad.nw.x + quad.ne.x + quad.se.x + quad.sw.x) / 4,
-    y: (quad.nw.y + quad.ne.y + quad.se.y + quad.sw.y) / 4,
-  };
-}
-
 function bulgeControlPoint(
-  _quad: MockupQuadPoints,
-  _corner: MockupRectCornerId,
+  quad: MockupQuadPoints,
+  corner: MockupRectCornerId,
   params: MockupRectCornerParams,
 ): MockupPoint2 {
   return { x: params.bulgeH, y: params.bulgeV };
 }
 
-/** Quad bulge handles use absolute image-normalized coordinates. */
+/** Quad bulge handles start at the green corner; bulgeH/V hold the radius control (image coords). */
 export function syncQuadBulgeControlPoints(
   quad: MockupQuadPoints,
   corners: MockupRectCornersParams,
 ): void {
   for (const corner of ['nw', 'ne', 'sw', 'se'] as MockupRectCornerId[]) {
-    const params = corners[corner];
     const current = cornerPoint(quad, corner);
-    const prev = cornerPoint(quad, prevCorner(corner));
-    const next = cornerPoint(quad, nextCorner(corner));
-    const cutStart = lerpPoint(prev, current, 1 - params.v);
-    const cutEnd = lerpPoint(current, next, params.h);
-    const mid = lerpPoint(cutStart, cutEnd, 0.5);
-    const centroid = quadCentroid(quad);
-    const bulge =
-      (DEFAULT_MOCKUP_RECT_CORNER.bulgeH + DEFAULT_MOCKUP_RECT_CORNER.bulgeV) / 2;
-    const control = lerpPoint(mid, centroid, bulge * 1.6);
-    params.bulgeH = control.x;
-    params.bulgeV = control.y;
+    const params = corners[corner];
+    params.bulgeH = current.x;
+    params.bulgeV = current.y;
   }
 }
 

@@ -908,8 +908,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     if (enabled) {
       this.ensureMockupRectCornerHandles(group, settingKey);
       const state = this.getMockupState(group, settingKey);
-      if (state.quad && state.rectCornerHandles && state.rectCornerHandles.nw.bulgeH <= 0.2) {
+      if (state.quad && state.rectCornerHandles) {
         syncQuadBulgeControlPoints(state.quad, state.rectCornerHandles);
+        state.previewRevision += 1;
       }
     }
     this.cdr.detectChanges();
