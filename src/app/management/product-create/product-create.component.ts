@@ -681,9 +681,13 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     }
     this.commitMockupPreviewState(group, settingKey);
     this.refreshMockupValidationState();
+    this.getMockupState(group, settingKey).imageLoading = true;
     this.exitMockupFullscreen();
     this.cdr.detectChanges();
-    requestAnimationFrame(() => this.cdr.detectChanges());
+    requestAnimationFrame(() => {
+      this.cdr.detectChanges();
+      this.settleMockupPreviewImageLoading(group, settingKey);
+    });
   }
 
   getMockupPreviewRevision(
@@ -721,6 +725,40 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       if (this.isMockupFullscreen(group, settingKey)) {
         this.mockupFullscreenImageLoading = false;
       }
+    };
+    img.onload = finish;
+    img.onerror = finish;
+    img.src = url;
+    if (img.complete) {
+      finish();
+    }
+  }
+
+  /** Clears inline preview spinner when the image is cached and (load) may not fire. */
+  private settleMockupPreviewImageLoading(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): void {
+    const state = this.getMockupState(group, settingKey);
+    if (!state.imageLoading) {
+      return;
+    }
+
+    const url = this.getMockupUrl(group, settingKey)?.trim();
+    if (!url) {
+      state.imageLoading = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const img = new Image();
+    const finish = (): void => {
+      if (!state.imageLoading) {
+        return;
+      }
+      state.imageLoading = false;
+      state.previewRevision += 1;
+      this.cdr.detectChanges();
     };
     img.onload = finish;
     img.onerror = finish;
