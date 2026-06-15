@@ -2079,27 +2079,100 @@
 }
 
 .mockup-fullscreen-overlay__hint {
-  position: absolute;
-  left: 50%;
-  bottom: 56px;
-  z-index: 3;
-  transform: translateX(-50%);
-  max-width: min(96vw, 640px);
   margin: 0;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: rgba(18, 18, 18, 0.72);
   color: rgba(255, 255, 255, 0.92);
   text-align: center;
   pointer-events: none;
 }
 
-.mockup-fullscreen-overlay__save {
+.mockup-fullscreen-overlay__footer {
   position: absolute;
   left: 50%;
   bottom: 12px;
   z-index: 3;
   transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: min(96vw, 720px);
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: rgba(18, 18, 18, 0.82);
+  pointer-events: auto;
+}
+
+.mockup-fullscreen-overlay__settings {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  left: auto;
+  z-index: 3;
+}
+
+.zx-rtl .mockup-fullscreen-overlay__settings,
+:dir(rtl) .mockup-fullscreen-overlay__settings {
+  right: 12px;
+  left: auto;
+}
+
+.mockup-fullscreen-overlay__settings-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--zx-dark, #262626);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  transition: background-color 150ms;
+}
+
+.mockup-fullscreen-overlay__settings-btn:hover {
+  background: rgba(255, 255, 255, 1);
+}
+
+.mockup-fullscreen-overlay__settings-btn .mat-icon {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  line-height: 18px;
+}
+
+:host ::ng-deep .mockup-fullscreen-settings-menu .mat-mdc-menu-content {
+  padding: 0;
+}
+
+.mockup-fullscreen-settings-menu__body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 220px;
+  padding: 12px 14px;
+}
+
+.mockup-fullscreen-settings-menu__corner-type {
+  width: 100%;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+:host ::ng-deep .mockup-fullscreen-settings-menu__corner-type .mat-button-toggle {
+  flex: 1 1 0;
+}
+
+:host ::ng-deep .mockup-fullscreen-settings-menu__corner-type .mat-button-toggle-label-content {
+  line-height: 32px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.mockup-fullscreen-overlay__save {
   min-width: 120px;
 }
 

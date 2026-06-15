@@ -126,6 +126,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   private mockupPenOutsidePointerHandler: ((event: PointerEvent) => void) | null = null;
   mockupFullscreenTarget: { group: AbstractControl; scope: MockupScope } | null = null;
   mockupFullscreenImageLoading = false;
+  mockupFullscreenCornersEnabled = false;
+  mockupFullscreenCornerType: CornerType = 'rounded';
   private readonly mockupDefaultRectSize = 0.22;
   private readonly mockupMinRectSize = 0.04;
   readonly mockupQuadCorners: MockupCorner[] = ['nw', 'ne', 'sw', 'se'];
@@ -613,6 +615,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       group,
       scope: this.resolveMockupScope(settingKey),
     };
+    this.resetMockupFullscreenCornerOptions();
     this.mockupFullscreenImageLoading = true;
     this.preloadMockupFullscreenImage(group, settingKey);
     this.activateMockupPen(group, settingKey);
@@ -663,6 +666,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     const { group, scope } = this.mockupFullscreenTarget;
     this.mockupFullscreenTarget = null;
     this.mockupFullscreenImageLoading = false;
+    this.resetMockupFullscreenCornerOptions();
     document.body.classList.remove('mockup-fullscreen-open');
     this.deactivateMockupPen(group, scope === 'node' ? null : scope);
     this.getMockupState(group, scope === 'node' ? null : scope).previewRevision += 1;
@@ -770,6 +774,25 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
   mockupSettingKeyFromScope(scope: MockupScope): ExtraSettingKey | null {
     return scope === 'node' ? null : scope;
+  }
+
+  onMockupFullscreenCornersEnabledChange(enabled: boolean): void {
+    this.mockupFullscreenCornersEnabled = enabled;
+  }
+
+  onMockupFullscreenCornerTypeChange(type: CornerType | null): void {
+    if (type === 'rounded' || type === 'chamfer') {
+      this.mockupFullscreenCornerType = type;
+    }
+  }
+
+  getMockupFullscreenCornerMode(): 'none' | CornerType {
+    return this.mockupFullscreenCornersEnabled ? this.mockupFullscreenCornerType : 'none';
+  }
+
+  private resetMockupFullscreenCornerOptions(): void {
+    this.mockupFullscreenCornersEnabled = false;
+    this.mockupFullscreenCornerType = 'rounded';
   }
 
   isMockupFullscreen(group: AbstractControl, settingKey?: ExtraSettingKey | null): boolean {
