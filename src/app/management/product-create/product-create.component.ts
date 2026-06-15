@@ -67,6 +67,7 @@ interface ProductMockupState {
   uploading: boolean;
   progress: number;
   penActive: boolean;
+  imageLoading: boolean;
   rect: MockupRect | null;
   quad: MockupQuad | null;
 }
@@ -122,6 +123,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   private mockupPointerDrag: MockupPointerDrag | null = null;
   private mockupPenOutsideTarget: { group: AbstractControl; scope: MockupScope } | null = null;
   private mockupPenOutsidePointerHandler: ((event: PointerEvent) => void) | null = null;
+  mockupFullscreenTarget: { group: AbstractControl; scope: MockupScope } | null = null;
+  mockupFullscreenImageLoading = false;
   private readonly mockupDefaultRectSize = 0.22;
   private readonly mockupMinRectSize = 0.04;
   readonly mockupQuadCorners: MockupCorner[] = ['nw', 'ne', 'sw', 'se'];
@@ -299,6 +302,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     }
     this.mockupUploadSubs.clear();
     this.detachMockupPenOutsideListener();
+    this.exitMockupFullscreen();
   }
 
   private getControlId(group: AbstractControl): number {
@@ -487,6 +491,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         this.deactivateMockupPen(group, settingKey);
         state.url = mockupUrl;
         state.rect = null;
+        state.imageLoading = true;
         this.finishMockupUpload(scopeKey);
         this.refreshMockupValidationState();
       },
@@ -515,6 +520,24 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
   isMockupPenActive(group: AbstractControl, settingKey?: ExtraSettingKey | null): boolean {
     return this.getMockupState(group, settingKey).penActive;
+  }
+
+  isMockupImageLoading(group: AbstractControl, settingKey?: ExtraSettingKey | null): boolean {
+    return this.getMockupState(group, settingKey).imageLoading;
+  }
+
+  onMockupPreviewImageLoad(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): void {
+    this.getMockupState(group, settingKey).imageLoading = false;
+  }
+
+  onMockupPreviewImageError(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): void {
+    this.getMockupState(group, settingKey).imageLoading = false;
   }
 
   getMockupRect(group: AbstractControl, settingKey?: ExtraSettingKey | null): MockupRect | null {
@@ -560,6 +583,93 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   enableMockupPen(group: AbstractControl, settingKey: ExtraSettingKey | null, event: Event): void {
     event.stopPropagation();
     event.preventDefault();
+    this.activateMockupPen(group, settingKey);
+  }
+
+  enterMockupFullscreen(
+    group: AbstractControl,
+    settingKey: ExtraSettingKey | null,
+    event: Event,
+  ): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.mockupFullscreenTarget = {
+      group,
+      scope: this.resolveMockupScope(settingKey),
+    };
+    this.mockupFullscreenImageLoading = true;
+    this.preloadMockupFullscreenImage(group, settingKey);
+    this.activateMockupPen(group, settingKey);
+    document.body.classList.add('mockup-fullscreen-open');
+  }
+
+  exitMockupFullscreen(): void {
+    if (!this.mockupFullscreenTarget) {
+      document.body.classList.remove('mockup-fullscreen-open');
+      return;
+    }
+    const { group, scope } = this.mockupFullscreenTarget;
+    this.mockupFullscreenTarget = null;
+    this.mockupFullscreenImageLoading = false;
+    document.body.classList.remove('mockup-fullscreen-open');
+    this.deactivateMockupPen(group, scope === 'node' ? null : scope);
+  }
+
+  saveMockupFullscreen(): void {
+    if (!this.mockupFullscreenTarget) {
+      return;
+    }
+    const { group, scope } = this.mockupFullscreenTarget;
+    const settingKey = scope === 'node' ? null : scope;
+    if (!this.isMockupComplete(group, settingKey)) {
+      return;
+    }
+    this.refreshMockupValidationState();
+    this.exitMockupFullscreen();
+  }
+
+  private preloadMockupFullscreenImage(
+    group: AbstractControl,
+    settingKey: ExtraSettingKey | null,
+  ): void {
+    const url = this.getMockupUrl(group, settingKey)?.trim();
+    if (!url) {
+      this.mockupFullscreenImageLoading = false;
+      return;
+    }
+
+    const img = new Image();
+    const finish = (): void => {
+      if (this.isMockupFullscreen(group, settingKey)) {
+        this.mockupFullscreenImageLoading = false;
+      }
+    };
+    img.onload = finish;
+    img.onerror = finish;
+    img.src = url;
+    if (img.complete) {
+      finish();
+    }
+  }
+
+  mockupSettingKeyFromScope(scope: MockupScope): ExtraSettingKey | null {
+    return scope === 'node' ? null : scope;
+  }
+
+  isMockupFullscreen(group: AbstractControl, settingKey?: ExtraSettingKey | null): boolean {
+    if (!this.mockupFullscreenTarget) {
+      return false;
+    }
+    return (
+      this.mockupFullscreenTarget.group === group &&
+      this.mockupFullscreenTarget.scope === this.resolveMockupScope(settingKey)
+    );
+  }
+
+  private activateMockupPen(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): void {
     this.getMockupState(group, settingKey).penActive = true;
     this.mockupPenOutsideTarget = {
       group,
@@ -596,10 +706,13 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         return;
       }
       const el = event.target as HTMLElement;
+      if (el.closest('.mockup-fullscreen-overlay')) {
+        return;
+      }
       if (el.closest('.mockup-upload-preview__frame')) {
         return;
       }
-      if (el.closest('.mockup-upload-preview__define-btn')) {
+      if (el.closest('.mockup-upload-preview__toolbar')) {
         return;
       }
       this.deactivateMockupPen(
@@ -934,6 +1047,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         uploading: false,
         progress: 0,
         penActive: false,
+        imageLoading: !!state.url.trim(),
         rect: state.rect ? { ...state.rect } : null,
         quad: state.quad ? this.cloneMockupQuad(state.quad) : null,
       });
@@ -944,7 +1058,15 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   private createEmptyMockupState(): ProductMockupState {
-    return { url: '', uploading: false, progress: 0, penActive: false, rect: null, quad: null };
+    return {
+      url: '',
+      uploading: false,
+      progress: 0,
+      penActive: false,
+      imageLoading: false,
+      rect: null,
+      quad: null,
+    };
   }
 
   private mockupFrameFromEvent(event: PointerEvent): HTMLElement | null {
@@ -1968,6 +2090,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     state.penActive = false;
     state.uploading = false;
     state.progress = 0;
+    state.imageLoading = true;
 
     if (this.usesMockupQuad(group)) {
       state.quad = this.normalizeMockupQuadFromPrintArea(mockup.printArea);

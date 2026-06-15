@@ -1699,6 +1699,19 @@
   max-width: 320px;
 }
 
+.mockup-upload-preview__frame-wrap--loading {
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mockup-upload-preview__spinner {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+}
+
 .mockup-upload-preview__frame {
   position: relative;
   width: 100%;
@@ -1722,6 +1735,25 @@
   object-fit: contain;
   pointer-events: none;
   user-select: none;
+}
+
+.mockup-upload-preview__img--loading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.mockup-upload-preview__frame-wrap--loading .mockup-upload-preview__frame {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  border: none;
+  pointer-events: none;
 }
 
 .mockup-upload-preview__rect {
@@ -1813,31 +1845,162 @@
   cursor: move;
 }
 
-.mockup-upload-preview__actions {
+.mockup-upload-preview__toolbar {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.zx-rtl .mockup-upload-preview__toolbar {
+  left: 6px;
+  right: auto;
+}
+
+.mockup-upload-preview__overlay-btn {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  gap: 8px;
-  width: 100%;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--zx-dark, #262626);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+  opacity: 0.9;
+  transition: background-color 150ms, opacity 150ms, color 150ms;
 }
 
-.mockup-upload-preview__define-btn,
-.mockup-upload-preview__replace-btn {
-  white-space: nowrap;
+.mockup-upload-preview__overlay-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.98);
+  opacity: 1;
 }
 
-.mockup-upload-preview__define-btn .mat-icon {
+.mockup-upload-preview__overlay-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mockup-upload-preview__overlay-btn--active {
+  color: var(--zx-green, #26a69a);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 0 0 1px var(--zx-green, #26a69a), 0 1px 3px rgba(0, 0, 0, 0.14);
+}
+
+.mockup-upload-preview__overlay-btn .mat-icon {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  line-height: 16px;
+}
+
+.mockup-fullscreen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(18, 18, 18, 0.88);
+}
+
+.mockup-fullscreen-overlay__close {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--zx-dark, #262626);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  transition: background-color 150ms;
+}
+
+.mockup-fullscreen-overlay__close:hover {
+  background: rgba(255, 255, 255, 1);
+}
+
+.mockup-fullscreen-overlay__close .mat-icon {
   width: 18px;
   height: 18px;
   font-size: 18px;
   line-height: 18px;
-  margin-inline-end: 4px;
 }
 
-.mockup-upload-preview__define-btn--active {
-  border-color: var(--zx-green, #26a69a) !important;
-  color: var(--zx-green, #26a69a) !important;
-  background: rgba(38, 166, 154, 0.08);
+.zx-rtl .mockup-fullscreen-overlay__close {
+  left: 12px;
+  right: auto;
+}
+
+.mockup-fullscreen-overlay__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: min(96vw, 1200px);
+  max-height: 96vh;
+  gap: 12px;
+}
+
+.mockup-fullscreen-overlay__frame-wrap {
+  position: relative;
+  width: 100%;
+  min-height: min(85vh, 900px);
+  max-height: calc(96vh - 48px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mockup-fullscreen-overlay__spinner {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+}
+
+:host ::ng-deep .mockup-fullscreen-overlay__spinner circle {
+  stroke: rgba(255, 255, 255, 0.92);
+}
+
+.mockup-fullscreen-overlay__frame {
+  width: min(96vw, 1200px);
+  max-width: 100%;
+  border-radius: 12px;
+}
+
+.mockup-fullscreen-overlay__frame .mockup-upload-preview__img {
+  max-height: min(85vh, 900px);
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.mockup-fullscreen-overlay__hint {
+  color: rgba(255, 255, 255, 0.88);
+  text-align: center;
+}
+
+.mockup-fullscreen-overlay__save {
+  min-width: 120px;
+}
+
+body.mockup-fullscreen-open {
+  overflow: hidden;
 }
 
 .text-white .logo-upload-zone__title {
