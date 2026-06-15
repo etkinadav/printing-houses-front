@@ -33,7 +33,6 @@ import {
   MockupQuadCornersPx,
 } from '../ph-printing-files/ph-print-mockup-crop.util';
 import { computePhPrintPreviewLayout } from '../ph-printing-files/ph-print-preview-layout.util';
-import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-ph-print-mockup-preview',
@@ -72,10 +71,6 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   cropGuideSvg: MockupCropGuideSvgModel | null = null;
   printImageWarp: MockupPrintImageWarpModel | null = null;
   printSlotClipPathCss: string | null = null;
-  /** Last pipeline snapshot — inspect in DevTools via `ng.getComponent($0).mockupPrintDebug` */
-  mockupPrintDebug: Record<string, unknown> = {};
-
-  private readonly mockupDebugEnabled = !environment.production;
 
   private resizeObserver?: ResizeObserver;
   private measureRetryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -261,23 +256,6 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     return !!(this.showPrintImageLayer && this.printImageWarp?.transform);
   }
 
-  onPrintImageLoad(event: Event): void {
-    const img = event.target as HTMLImageElement;
-    this.debugMockup('print-image-loaded', {
-      naturalWidth: img.naturalWidth,
-      naturalHeight: img.naturalHeight,
-      clientWidth: img.clientWidth,
-      clientHeight: img.clientHeight,
-    });
-  }
-
-  onPrintImageError(event: Event): void {
-    const img = event.target as HTMLImageElement;
-    this.debugMockup('print-image-error', {
-      src: img.currentSrc || img.src,
-    });
-  }
-
   quadSlotGuidePoints(quad: MockupPrintOverlayQuad): string {
     return this.quadSlotGuidePointsInViewBox(quad, 100, 100);
   }
@@ -399,12 +377,6 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.cropGuideSvg = null;
       this.printImageWarp = null;
       this.printSlotClipPathCss = null;
-      this.debugMockup('skip:invalid-measurements', {
-        slotW,
-        slotH,
-        layoutContainerWidthPx: this.layoutContainerWidthPx,
-        layoutContainerHeightPx: this.layoutContainerHeightPx,
-      });
       return;
     }
 
@@ -426,7 +398,6 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.cropGuideSvg = null;
       this.printImageWarp = null;
       this.printSlotClipPathCss = null;
-      this.debugMockup('skip:no-layout', { slotW, slotH });
       return;
     }
 
@@ -435,14 +406,6 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.cropGuideSvg = null;
       this.printImageWarp = null;
       this.printSlotClipPathCss = null;
-      this.debugMockup('skip:no-image-dimensions', {
-        printImageUrl: this.printImageUrl?.trim() ?? '',
-        printImageWidthPx: this.printImageWidthPx,
-        printImageHeightPx: this.printImageHeightPx,
-        resolvedImageWidthPx: this.resolvedImageWidthPx,
-        resolvedImageHeightPx: this.resolvedImageHeightPx,
-        imageMeasureRetryCount: this.imageMeasureRetryCount,
-      });
       if (this.printImageUrl?.trim() && this.imageMeasureRetryCount < 12) {
         this.imageMeasureRetryCount += 1;
         this.measureRetryTimer = setTimeout(() => {
@@ -467,7 +430,6 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.cropGuideSvg = null;
       this.printImageWarp = null;
       this.printSlotClipPathCss = null;
-      this.debugMockup('skip:no-crop', { imageDims, sheet: layout });
       return;
     }
 
@@ -475,7 +437,6 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.cropGuideSvg = null;
       this.printImageWarp = null;
       this.printSlotClipPathCss = null;
-      this.debugMockup('skip:no-crop-extensions', { crop });
       return;
     }
 
@@ -507,22 +468,6 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       slotH,
       imageDims,
     );
-
-    this.debugMockup('ready', {
-      overlayKind: this.quadOverlay ? 'quad' : 'rect',
-      slotW,
-      slotH,
-      sheetWidthPx: layout.sheetWidthPx,
-      sheetHeightPx: layout.sheetHeightPx,
-      imageDims,
-      crop,
-      printImageUrl: this.printImageUrl?.trim() ?? '',
-      cropGuideSvg: this.cropGuideSvg,
-      printImageWarp: this.printImageWarp,
-      printSlotClipPathCss: this.printSlotClipPathCss,
-      showAxisAlignedPrintImageLayer: this.showAxisAlignedPrintImageLayer,
-      showPerspectivePrintImageLayer: this.showPerspectivePrintImageLayer,
-    });
   }
 
   private refreshPrintImageWarp(
@@ -537,13 +482,6 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     const outerWarpQuad = guide ? resolveMockupOuterWarpQuad(guide) : null;
     if (!imageUrl || !outerWarpQuad) {
       this.printImageWarp = null;
-      this.debugMockup('skip:warp-missing-input', {
-        imageUrl,
-        outerWarpQuad,
-        guideHasOuterRect: !!guide?.outerRect,
-        guideHasOuterPolygon: !!guide?.outerPolygonPoints,
-        guideHasOuterWarpQuad: !!guide?.outerWarpQuad,
-      });
       return;
     }
 
@@ -552,18 +490,5 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       guide.heightPx,
       outerWarpQuad,
     );
-
-    this.debugMockup('warp-built', {
-      printImageWarp: this.printImageWarp,
-      outerWarpQuad,
-    });
-  }
-
-  private debugMockup(event: string, payload: Record<string, unknown>): void {
-    const entry = { t: Date.now(), event, ...payload };
-    this.mockupPrintDebug = entry;
-    if (this.mockupDebugEnabled) {
-      console.info(`[ph-mockup-preview] ${JSON.stringify(entry)}`);
-    }
   }
 }

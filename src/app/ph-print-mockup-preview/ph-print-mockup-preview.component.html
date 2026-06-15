@@ -78,9 +78,7 @@
       class="ph-print-mockup-print-image-stretch"
       [src]="printImageUrl"
       alt=""
-      draggable="false"
-      (load)="onPrintImageLoad($event)"
-      (error)="onPrintImageError($event)" />
+      draggable="false" />
   </div>
   <div
     *ngIf="showPerspectivePrintImageLayer && printImageWarp as warp"
@@ -95,9 +93,7 @@
         class="ph-print-mockup-print-image-stretch"
         [src]="printImageUrl"
         alt=""
-        draggable="false"
-        (load)="onPrintImageLoad($event)"
-        (error)="onPrintImageError($event)" />
+        draggable="false" />
     </div>
   </div>
   <svg
