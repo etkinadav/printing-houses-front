@@ -172,7 +172,7 @@
 	"management.product-create.mockup-define-print-area": "Define print area",
 	"management.product-create.mockup-fullscreen": "Full screen",
 	"management.product-create.mockup-fullscreen-close": "Exit full screen",
-	"management.product-create.mockup-fullscreen-save": "Save",
+	"management.product-create.mockup-fullscreen-save": "Save print area",
 	"management.product-create.mockup-fullscreen-corners": "Corners",
 	"management.product-create.mockup-replace": "Replace mockup image",
 	"management.product-create.mockup-upload-failed": "Mockup image upload failed",

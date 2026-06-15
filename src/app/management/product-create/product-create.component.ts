@@ -144,6 +144,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   private mockupPenOutsidePointerHandler: ((event: PointerEvent) => void) | null = null;
   private mockupDragDocumentMove: ((event: PointerEvent) => void) | null = null;
   private mockupDragDocumentUp: ((event: PointerEvent) => void) | null = null;
+  private mockupFullscreenFitObserver: ResizeObserver | null = null;
+  private mockupFullscreenFitScheduled = false;
   mockupFullscreenTarget: { group: AbstractControl; scope: MockupScope } | null = null;
   mockupFullscreenImageLoading = false;
   mockupFullscreenCornersEnabled = false;
@@ -620,6 +622,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     const state = this.getMockupState(group, settingKey);
     state.imageLoading = false;
     state.previewRevision += 1;
+    if (this.isMockupFullscreen(group, settingKey)) {
+      this.scheduleMockupFullscreenFit();
+    }
   }
 
   onMockupPreviewImageError(
@@ -777,6 +782,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   exitMockupFullscreen(): void {
+    this.detachMockupFullscreenFitObserver();
     if (!this.mockupFullscreenTarget) {
       document.body.classList.remove('mockup-fullscreen-open');
       return;
@@ -849,6 +855,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     const finish = (): void => {
       if (this.isMockupFullscreen(group, settingKey)) {
         this.mockupFullscreenImageLoading = false;
+        this.cdr.detectChanges();
+        this.scheduleMockupFullscreenFit();
       }
     };
     img.onload = finish;
@@ -857,6 +865,79 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     if (img.complete) {
       finish();
     }
+  }
+
+  private scheduleMockupFullscreenFit(): void {
+    if (this.mockupFullscreenFitScheduled) {
+      return;
+    }
+    this.mockupFullscreenFitScheduled = true;
+    requestAnimationFrame(() => {
+      this.mockupFullscreenFitScheduled = false;
+      this.attachMockupFullscreenFitObserver();
+      this.fitMockupFullscreenPreview();
+      this.cdr.detectChanges();
+    });
+  }
+
+  private attachMockupFullscreenFitObserver(): void {
+    if (this.mockupFullscreenFitObserver || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const frameWrap = document.querySelector(
+      '.mockup-fullscreen-overlay__frame-wrap',
+    ) as HTMLElement | null;
+    if (!frameWrap) {
+      return;
+    }
+    this.mockupFullscreenFitObserver = new ResizeObserver(() => {
+      this.scheduleMockupFullscreenFit();
+    });
+    this.mockupFullscreenFitObserver.observe(frameWrap);
+  }
+
+  private detachMockupFullscreenFitObserver(): void {
+    this.mockupFullscreenFitObserver?.disconnect();
+    this.mockupFullscreenFitObserver = null;
+    this.mockupFullscreenFitScheduled = false;
+  }
+
+  private fitMockupFullscreenPreview(): void {
+    if (!this.mockupFullscreenTarget || this.mockupFullscreenImageLoading) {
+      return;
+    }
+
+    const frameWrap = document.querySelector(
+      '.mockup-fullscreen-overlay__frame-wrap',
+    ) as HTMLElement | null;
+    const img = document.querySelector(
+      '.mockup-fullscreen-overlay__frame .mockup-upload-preview__img',
+    ) as HTMLImageElement | null;
+    const imageWrap = img?.closest(
+      '.mockup-upload-preview__image-wrap',
+    ) as HTMLElement | null;
+
+    if (!frameWrap || !img || !imageWrap || !img.naturalWidth || !img.naturalHeight) {
+      return;
+    }
+    if (img.classList.contains('mockup-upload-preview__img--loading')) {
+      return;
+    }
+
+    const availW = frameWrap.clientWidth;
+    const availH = frameWrap.clientHeight;
+    if (!availW || !availH) {
+      return;
+    }
+
+    const scale = Math.min(availW / img.naturalWidth, availH / img.naturalHeight);
+    const widthPx = img.naturalWidth * scale;
+    const heightPx = img.naturalHeight * scale;
+
+    img.style.width = `${widthPx}px`;
+    img.style.height = `${heightPx}px`;
+    imageWrap.style.width = `${widthPx}px`;
+    imageWrap.style.height = `${heightPx}px`;
   }
 
   /** Clears inline preview spinner when the image is cached and (load) may not fire. */

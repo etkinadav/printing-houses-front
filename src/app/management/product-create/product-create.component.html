@@ -190,48 +190,59 @@
     role="dialog"
     aria-modal="true"
     [attr.aria-label]="'management.product-create.mockup-fullscreen' | translate">
-    <button
-      type="button"
-      class="mockup-fullscreen-overlay__close"
-      (click)="exitMockupFullscreen()"
-      [attr.aria-label]="'management.product-create.mockup-fullscreen-close' | translate">
-      <mat-icon>close</mat-icon>
-    </button>
-    <div class="mockup-fullscreen-overlay__settings">
+    <div class="mockup-fullscreen-overlay__toolbar">
       <button
         type="button"
-        class="mockup-fullscreen-overlay__settings-btn"
-        [matMenuTriggerFor]="mockupFullscreenSettingsMenu"
-        (click)="$event.stopPropagation()"
-        [attr.aria-label]="'management.product-create.extra-settings' | translate">
-        <mat-icon>settings</mat-icon>
+        class="mockup-fullscreen-overlay__close"
+        (click)="exitMockupFullscreen()"
+        [attr.aria-label]="'management.product-create.mockup-fullscreen-close' | translate">
+        <mat-icon>close</mat-icon>
       </button>
-      <mat-menu
-        #mockupFullscreenSettingsMenu="matMenu"
-        class="mockup-fullscreen-settings-menu"
-        [xPosition]="isRTL ? 'before' : 'after'"
-        yPosition="below">
-        <div class="mockup-fullscreen-settings-menu__body" (click)="$event.stopPropagation()">
-          <mat-checkbox
-            class="mockup-fullscreen-settings-menu__corners-check"
-            [checked]="mockupFullscreenCornersEnabled"
-            (change)="onMockupFullscreenCornersEnabledChange($event.checked)">
-            {{ 'management.product-create.mockup-fullscreen-corners' | translate }}
-          </mat-checkbox>
-          <mat-button-toggle-group
-            *ngIf="mockupFullscreenCornersEnabled"
-            class="mockup-fullscreen-settings-menu__corner-type"
-            [value]="mockupFullscreenCornerType"
-            (change)="onMockupFullscreenCornerTypeChange($event.value)">
-            <mat-button-toggle value="rounded">
-              {{ 'management.product-create.corner-type.rounded' | translate }}
-            </mat-button-toggle>
-            <mat-button-toggle value="chamfer">
-              {{ 'management.product-create.corner-type.chamfer' | translate }}
-            </mat-button-toggle>
-          </mat-button-toggle-group>
-        </div>
-      </mat-menu>
+      <div class="mockup-fullscreen-overlay__settings">
+        <button
+          type="button"
+          class="mockup-fullscreen-overlay__settings-btn"
+          [matMenuTriggerFor]="mockupFullscreenSettingsMenu"
+          (click)="$event.stopPropagation()"
+          [attr.aria-label]="'management.product-create.extra-settings' | translate">
+          <mat-icon>settings</mat-icon>
+        </button>
+        <mat-menu
+          #mockupFullscreenSettingsMenu="matMenu"
+          class="mockup-fullscreen-settings-menu"
+          [xPosition]="isRTL ? 'before' : 'after'"
+          yPosition="below">
+          <div class="mockup-fullscreen-settings-menu__body" (click)="$event.stopPropagation()">
+            <mat-checkbox
+              class="mockup-fullscreen-settings-menu__corners-check"
+              [checked]="mockupFullscreenCornersEnabled"
+              (change)="onMockupFullscreenCornersEnabledChange($event.checked)">
+              {{ 'management.product-create.mockup-fullscreen-corners' | translate }}
+            </mat-checkbox>
+            <mat-button-toggle-group
+              *ngIf="mockupFullscreenCornersEnabled"
+              class="mockup-fullscreen-settings-menu__corner-type"
+              [value]="mockupFullscreenCornerType"
+              (change)="onMockupFullscreenCornerTypeChange($event.value)">
+              <mat-button-toggle value="rounded">
+                {{ 'management.product-create.corner-type.rounded' | translate }}
+              </mat-button-toggle>
+              <mat-button-toggle value="chamfer">
+                {{ 'management.product-create.corner-type.chamfer' | translate }}
+              </mat-button-toggle>
+            </mat-button-toggle-group>
+          </div>
+        </mat-menu>
+      </div>
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        class="mockup-fullscreen-overlay__save tree-add-btn text-white rounded-pill"
+        [disabled]="mockupFullscreenImageLoading || !isMockupComplete(fsTarget.group, mockupSettingKeyFromScope(fsTarget.scope))"
+        (click)="saveMockupFullscreen()">
+        {{ 'management.product-create.mockup-fullscreen-save' | translate }}
+      </button>
     </div>
     <div class="mockup-fullscreen-overlay__content">
       <div class="mockup-fullscreen-overlay__frame-wrap">
@@ -252,20 +263,6 @@
             ">
           </ng-container>
         </ng-container>
-      </div>
-      <div class="mockup-fullscreen-overlay__footer">
-        <p class="mockup-fullscreen-overlay__hint zx-text-small mb-0">
-          {{ 'management.product-create.mockup-define-print-area' | translate }}
-        </p>
-        <button
-          mat-raised-button
-          color="primary"
-          type="button"
-          class="mockup-fullscreen-overlay__save tree-add-btn text-white rounded-pill"
-          [disabled]="mockupFullscreenImageLoading || !isMockupComplete(fsTarget.group, mockupSettingKeyFromScope(fsTarget.scope))"
-          (click)="saveMockupFullscreen()">
-          {{ 'management.product-create.mockup-fullscreen-save' | translate }}
-        </button>
       </div>
     </div>
   </div>
