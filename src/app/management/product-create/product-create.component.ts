@@ -41,6 +41,7 @@ import {
   PhMockupPoint,
   PhMockupPrintArea,
   PhMockupPrintAreaQuad,
+  PhMockupPrintCorners,
   PhProduct,
   PhProductLabel,
   PhProductProperties,
@@ -56,6 +57,8 @@ import {
   createDefaultMockupRectCorners,
   getMockupQuadCornerHandleViews,
   getMockupRectCornerHandleViews,
+  mockupRectCornersToPhPrintCorners,
+  phPrintCornersToMockupRectCorners,
   MockupRectCornerHandleId,
   MockupRectCornersParams,
   syncQuadBulgeControlPoints,
@@ -85,6 +88,8 @@ interface ProductMockupState {
   rect: MockupRect | null;
   quad: MockupQuad | null;
   rectCornerHandles: MockupRectCornersParams | null;
+  printCornersEnabled: boolean;
+  printCornerType: CornerType;
 }
 
 type MockupCorner = 'nw' | 'ne' | 'sw' | 'se';
@@ -490,6 +495,10 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     const state = this.getMockupState(group, settingKey);
     state.url = '';
     state.rect = null;
+    state.quad = null;
+    state.rectCornerHandles = null;
+    state.printCornersEnabled = false;
+    state.printCornerType = 'rounded';
     this.refreshMockupValidationState();
 
     setTimeout(() => {
@@ -551,6 +560,10 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         this.deactivateMockupPen(group, settingKey);
         state.url = mockupUrl;
         state.rect = null;
+        state.quad = null;
+        state.rectCornerHandles = null;
+        state.printCornersEnabled = false;
+        state.printCornerType = 'rounded';
         state.imageLoading = true;
         this.finishMockupUpload(scopeKey);
         this.refreshMockupValidationState();
@@ -685,7 +698,12 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       group,
       scope: this.resolveMockupScope(settingKey),
     };
-    this.resetMockupFullscreenCornerOptions();
+    const state = this.getMockupState(group, settingKey);
+    this.mockupFullscreenCornersEnabled = state.printCornersEnabled;
+    this.mockupFullscreenCornerType = state.printCornerType;
+    if (state.printCornersEnabled) {
+      this.ensureMockupRectCornerHandles(group, settingKey);
+    }
     this.mockupFullscreenImageLoading = true;
     this.preloadMockupFullscreenImage(group, settingKey);
     this.activateMockupPen(group, settingKey);
@@ -830,6 +848,18 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     settingKey?: ExtraSettingKey | null,
   ): void {
     const state = this.getMockupState(group, settingKey);
+    state.printCornersEnabled = this.mockupFullscreenCornersEnabled;
+    if (this.mockupFullscreenCornersEnabled) {
+      state.printCornerType = this.mockupFullscreenCornerType;
+      if (!state.rectCornerHandles) {
+        state.rectCornerHandles = createDefaultMockupRectCorners();
+        if (state.quad) {
+          syncQuadBulgeControlPoints(state.quad, state.rectCornerHandles);
+        }
+      }
+    } else {
+      state.rectCornerHandles = null;
+    }
     if (state.quad) {
       state.quad = this.cloneMockupQuad(state.quad);
     } else if (state.rect) {
@@ -1025,11 +1055,53 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     return !!this.getMockupRect(group, settingKey) || !!this.getMockupQuad(group, settingKey);
   }
 
+  isMockupPrintCornersPreview(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): boolean {
+    if (this.isMockupPrintCornersEditing(group, settingKey)) {
+      return false;
+    }
+    const state = this.getMockupState(group, settingKey);
+    if (!state.printCornersEnabled || !state.rectCornerHandles) {
+      return false;
+    }
+    return !!this.getMockupRect(group, settingKey) || !!this.getMockupQuad(group, settingKey);
+  }
+
+  isMockupPrintCornersOutlineVisible(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): boolean {
+    return (
+      this.isMockupPrintCornersEditing(group, settingKey) ||
+      this.isMockupPrintCornersPreview(group, settingKey)
+    );
+  }
+
+  isMockupCornerHandlesVisible(
+    group: AbstractControl,
+    settingKey: ExtraSettingKey | null | undefined,
+    interactive: boolean | undefined,
+  ): boolean {
+    return !!interactive && this.isMockupShapeEditingActive(group, settingKey ?? null);
+  }
+
+  private getMockupPrintCornerType(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): CornerType {
+    if (this.isMockupPrintCornersEditing(group, settingKey)) {
+      return this.mockupFullscreenCornerType;
+    }
+    return this.getMockupState(group, settingKey).printCornerType;
+  }
+
   getMockupQuadCornerOutlinePath(
     group: AbstractControl,
     settingKey?: ExtraSettingKey | null,
   ): string | null {
-    if (!this.isMockupPrintCornersEditing(group, settingKey)) {
+    if (!this.isMockupPrintCornersOutlineVisible(group, settingKey)) {
       return null;
     }
     const quad = this.getMockupQuad(group, settingKey);
@@ -1037,21 +1109,28 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     if (!quad || !handles) {
       return null;
     }
-    return buildMockupQuadCornerOutlinePathD(quad, handles, this.mockupFullscreenCornerType);
+    return buildMockupQuadCornerOutlinePathD(
+      quad,
+      handles,
+      this.getMockupPrintCornerType(group, settingKey),
+    );
   }
 
   getMockupRectCornerOutlinePath(
     group: AbstractControl,
     settingKey?: ExtraSettingKey | null,
   ): string | null {
-    if (!this.isMockupPrintCornersEditing(group, settingKey)) {
+    if (!this.isMockupPrintCornersOutlineVisible(group, settingKey)) {
       return null;
     }
     const handles = this.getMockupRectCornerHandles(group, settingKey);
     if (!handles) {
       return null;
     }
-    return buildMockupRectCornerOutlinePathD(handles, this.mockupFullscreenCornerType);
+    return buildMockupRectCornerOutlinePathD(
+      handles,
+      this.getMockupPrintCornerType(group, settingKey),
+    );
   }
 
   getMockupRectCornerHandleViewsForTemplate(
@@ -1877,6 +1956,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         rectCornerHandles: state.rectCornerHandles
           ? cloneMockupRectCorners(state.rectCornerHandles)
           : null,
+        printCornersEnabled: state.printCornersEnabled,
+        printCornerType: state.printCornerType,
       });
       if (this.optionalMockupEnabled.has(key)) {
         this.optionalMockupEnabled.add(newKey);
@@ -1895,6 +1976,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       rect: null,
       quad: null,
       rectCornerHandles: null,
+      printCornersEnabled: false,
+      printCornerType: 'rounded',
     };
   }
 
@@ -2925,6 +3008,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     settingKey?: ExtraSettingKey | null,
   ): PhMockup {
     const state = this.getMockupState(group, settingKey);
+    const printCorners = this.readMockupPrintCornersForSave(state);
     if (this.usesMockupQuad(group)) {
       const quad = state.quad!;
       return {
@@ -2936,6 +3020,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
           sw: { ...quad.sw },
           se: { ...quad.se },
         },
+        ...(printCorners ? { printCorners } : {}),
       };
     }
 
@@ -2948,7 +3033,42 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         width: rect.width,
         height: rect.height,
       },
+      ...(printCorners ? { printCorners } : {}),
     };
+  }
+
+  private readMockupPrintCornersForSave(
+    state: ProductMockupState,
+  ): PhMockupPrintCorners | undefined {
+    if (!state.printCornersEnabled || !state.rectCornerHandles) {
+      return undefined;
+    }
+    return mockupRectCornersToPhPrintCorners(
+      state.rectCornerHandles,
+      state.printCornerType,
+    );
+  }
+
+  private applyMockupPrintCornersToState(
+    state: ProductMockupState,
+    printCorners?: PhMockupPrintCorners,
+  ): void {
+    if (
+      printCorners?.enabled &&
+      (printCorners.type === 'rounded' || printCorners.type === 'chamfer')
+    ) {
+      state.printCornersEnabled = true;
+      state.printCornerType = printCorners.type;
+      state.rectCornerHandles = phPrintCornersToMockupRectCorners(printCorners);
+      if (state.quad) {
+        syncQuadBulgeControlPoints(state.quad, state.rectCornerHandles);
+      }
+      return;
+    }
+
+    state.printCornersEnabled = false;
+    state.printCornerType = 'rounded';
+    state.rectCornerHandles = null;
   }
 
   private readOptionalMockupForSave(group: AbstractControl): PhMockup | undefined {
@@ -2990,6 +3110,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       }
       state.quad = null;
     }
+
+    this.applyMockupPrintCornersToState(state, mockup.printCorners);
+    state.previewRevision += 1;
 
     if (settingKey !== null || this.isOptionalMockupOwner(group)) {
       this.optionalMockupEnabled.add(this.mockupScopeKey(group, scope));

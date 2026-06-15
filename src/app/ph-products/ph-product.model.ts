@@ -106,9 +106,28 @@ export interface PhMockupPrintAreaQuad {
 
 export type PhMockupPrintArea = PhMockupPrintAreaRect | PhMockupPrintAreaQuad;
 
+/** Per-corner shape params for mockup print area (fractions relative to local print bounds). */
+export interface PhMockupPrintCornerParams {
+  h: number;
+  v: number;
+  bulgeH: number;
+  bulgeV: number;
+}
+
+/** Optional shaped corners on a mockup print area preview. */
+export interface PhMockupPrintCorners {
+  enabled: boolean;
+  type: CornerType;
+  nw: PhMockupPrintCornerParams;
+  ne: PhMockupPrintCornerParams;
+  sw: PhMockupPrintCornerParams;
+  se: PhMockupPrintCornerParams;
+}
+
 export interface PhMockup {
   url: string;
   printArea: PhMockupPrintArea;
+  printCorners?: PhMockupPrintCorners;
 }
 
 export interface PhSize extends PhTreeExtraSettings {

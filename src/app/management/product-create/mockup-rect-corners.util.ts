@@ -1,4 +1,4 @@
-import { CornerType } from '../../ph-products/ph-product.model';
+import { CornerType, PhMockupPrintCorners } from '../../ph-products/ph-product.model';
 
 export type MockupRectCornerId = 'nw' | 'ne' | 'sw' | 'se';
 
@@ -603,4 +603,29 @@ export function applyMockupRectCornerHandleDrag(
       applyRectBulgeHandleDrag(localX, localY, 'sw', corners, bulgeDragOrigin);
       break;
   }
+}
+
+export function mockupRectCornersToPhPrintCorners(
+  handles: MockupRectCornersParams,
+  type: CornerType,
+): PhMockupPrintCorners {
+  return {
+    enabled: true,
+    type,
+    nw: { ...handles.nw },
+    ne: { ...handles.ne },
+    sw: { ...handles.sw },
+    se: { ...handles.se },
+  };
+}
+
+export function phPrintCornersToMockupRectCorners(
+  printCorners: PhMockupPrintCorners,
+): MockupRectCornersParams {
+  return {
+    nw: { ...printCorners.nw },
+    ne: { ...printCorners.ne },
+    sw: { ...printCorners.sw },
+    se: { ...printCorners.se },
+  };
 }
