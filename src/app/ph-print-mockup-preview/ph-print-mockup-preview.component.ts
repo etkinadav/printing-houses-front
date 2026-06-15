@@ -22,6 +22,9 @@ import {
 import {
   buildMockupCropGuideSvgModel,
   buildMockupSlotClipPathCss,
+  buildMockupPrintCornersSlotClipPathCss,
+  buildMockupPrintCornersSlotOutlinePathD,
+  buildMockupPrintCornersSimpleSlotOutlinePathD,
   computeMockupSlotCornerRadiusPx,
   buildMockupPrintImageWarp,
   buildMockupQuadCropGuideSvgModel,
@@ -71,6 +74,8 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   cropGuideSvg: MockupCropGuideSvgModel | null = null;
   printImageWarp: MockupPrintImageWarpModel | null = null;
   printSlotClipPathCss: string | null = null;
+  mockupSlotShapedOutlinePathD: string | null = null;
+  mockupSimpleSlotShapedOutlinePathD: string | null = null;
 
   private resizeObserver?: ResizeObserver;
   private measureRetryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -120,6 +125,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
           ? this.printOverlay
           : null;
       this.mockupLoading = !!this.mockupUrl;
+      this.refreshMockupSimpleSlotOutline();
       this.scheduleMeasureRefresh();
     }
 
@@ -212,7 +218,20 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   onMockupImageLoad(): void {
     this.mockupLoading = false;
     this.observeMockupFrame();
+    this.refreshMockupSimpleSlotOutline();
     this.scheduleMeasureRefresh();
+  }
+
+  private refreshMockupSimpleSlotOutline(): void {
+    if (!this.hasMockupPrintCorners || this.cropGuideSvg) {
+      this.mockupSimpleSlotShapedOutlinePathD = null;
+      return;
+    }
+
+    this.mockupSimpleSlotShapedOutlinePathD = buildMockupPrintCornersSimpleSlotOutlinePathD(
+      this.mockup!.printCorners!,
+      this.quadOverlay,
+    );
   }
 
   get showPrintImageLayer(): boolean {
@@ -220,6 +239,14 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.cropGuideSvg &&
       this.printImageUrl?.trim() &&
       this.printSlotClipPathCss
+    );
+  }
+
+  get hasMockupPrintCorners(): boolean {
+    const corners = this.mockup?.printCorners;
+    return !!(
+      corners?.enabled &&
+      (corners.type === 'rounded' || corners.type === 'chamfer')
     );
   }
 
@@ -377,6 +404,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.cropGuideSvg = null;
       this.printImageWarp = null;
       this.printSlotClipPathCss = null;
+      this.mockupSlotShapedOutlinePathD = null;
       return;
     }
 
@@ -398,6 +426,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.cropGuideSvg = null;
       this.printImageWarp = null;
       this.printSlotClipPathCss = null;
+      this.mockupSlotShapedOutlinePathD = null;
       return;
     }
 
@@ -406,6 +435,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.cropGuideSvg = null;
       this.printImageWarp = null;
       this.printSlotClipPathCss = null;
+      this.mockupSlotShapedOutlinePathD = null;
       if (this.printImageUrl?.trim() && this.imageMeasureRetryCount < 12) {
         this.imageMeasureRetryCount += 1;
         this.measureRetryTimer = setTimeout(() => {
@@ -430,6 +460,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.cropGuideSvg = null;
       this.printImageWarp = null;
       this.printSlotClipPathCss = null;
+      this.mockupSlotShapedOutlinePathD = null;
       return;
     }
 
@@ -437,6 +468,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.cropGuideSvg = null;
       this.printImageWarp = null;
       this.printSlotClipPathCss = null;
+      this.mockupSlotShapedOutlinePathD = null;
       return;
     }
 
@@ -449,17 +481,35 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
         )
       : buildMockupCropGuideSvgModel(crop, slotW, slotH);
 
-    this.printSlotClipPathCss = this.cropGuideSvg
-      ? buildMockupSlotClipPathCss(
-          this.cropGuideSvg,
-          this.cornerType,
-          computeMockupSlotCornerRadiusPx(
-            slotW,
-            layout.cornerRadiusPx,
-            layout.baseWidthPx,
-          ),
-        )
+    const mockupPrintCorners = this.hasMockupPrintCorners
+      ? this.mockup!.printCorners!
       : null;
+
+    if (mockupPrintCorners && this.cropGuideSvg) {
+      this.printSlotClipPathCss = buildMockupPrintCornersSlotClipPathCss(
+        this.cropGuideSvg,
+        mockupPrintCorners,
+        this.quadOverlay,
+      );
+      this.mockupSlotShapedOutlinePathD = buildMockupPrintCornersSlotOutlinePathD(
+        this.cropGuideSvg,
+        mockupPrintCorners,
+        this.quadOverlay,
+      );
+    } else {
+      this.mockupSlotShapedOutlinePathD = null;
+      this.printSlotClipPathCss = this.cropGuideSvg
+        ? buildMockupSlotClipPathCss(
+            this.cropGuideSvg,
+            this.cornerType,
+            computeMockupSlotCornerRadiusPx(
+              slotW,
+              layout.cornerRadiusPx,
+              layout.baseWidthPx,
+            ),
+          )
+        : null;
+    }
 
     this.refreshPrintImageWarp(
       layout.sheetWidthPx,
@@ -468,6 +518,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       slotH,
       imageDims,
     );
+    this.refreshMockupSimpleSlotOutline();
   }
 
   private refreshPrintImageWarp(

@@ -179,7 +179,7 @@
       stroke-dasharray="8 6"
       vector-effect="non-scaling-stroke" />
     <rect
-      *ngIf="!quad"
+      *ngIf="!quad && !mockupSlotShapedOutlinePathD"
       class="ph-print-mockup-print-area-guide__slot"
       [attr.x]="guide.slotRect.x"
       [attr.y]="guide.slotRect.y"
@@ -189,8 +189,16 @@
       stroke-width="2"
       stroke-dasharray="8 6"
       vector-effect="non-scaling-stroke" />
+    <path
+      *ngIf="mockupSlotShapedOutlinePathD"
+      class="ph-print-mockup-print-area-guide__slot"
+      [attr.d]="mockupSlotShapedOutlinePathD"
+      fill="none"
+      stroke-width="2"
+      stroke-dasharray="8 6"
+      vector-effect="non-scaling-stroke" />
     <polygon
-      *ngIf="quad && guide.slotPolygonPoints as slotPoints"
+      *ngIf="quad && !mockupSlotShapedOutlinePathD && guide.slotPolygonPoints as slotPoints"
       class="ph-print-mockup-print-area-guide__slot"
       [attr.points]="slotPoints"
       fill="none"
@@ -222,7 +230,7 @@
       preserveAspectRatio="none"
       aria-hidden="true">
       <rect
-        *ngIf="!quad"
+        *ngIf="!quad && !mockupSimpleSlotShapedOutlinePathD"
         class="ph-print-mockup-print-area-guide__slot"
         x="1"
         y="1"
@@ -232,8 +240,16 @@
         stroke-width="2"
         stroke-dasharray="8 6"
         vector-effect="non-scaling-stroke" />
+      <path
+        *ngIf="mockupSimpleSlotShapedOutlinePathD"
+        class="ph-print-mockup-print-area-guide__slot"
+        [attr.d]="mockupSimpleSlotShapedOutlinePathD"
+        fill="none"
+        stroke-width="2"
+        stroke-dasharray="8 6"
+        vector-effect="non-scaling-stroke" />
       <polygon
-        *ngIf="quad"
+        *ngIf="quad && !mockupSimpleSlotShapedOutlinePathD"
         class="ph-print-mockup-print-area-guide__slot"
         [attr.points]="quadSlotGuidePoints(quad)"
         fill="none"

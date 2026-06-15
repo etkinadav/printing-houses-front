@@ -1,5 +1,11 @@
 import { computeRectToQuadMatrix3d } from './ph-print-mockup-perspective.util';
-import { CornerType } from '../ph-products/ph-product.model';
+import { CornerType, PhMockupPrintCorners } from '../ph-products/ph-product.model';
+import {
+  buildMockupQuadCornerOutlinePathD,
+  buildMockupRectCornerOutlinePathD,
+  phPrintCornersToMockupRectCorners,
+} from '../management/product-create/mockup-rect-corners.util';
+import { MockupPrintOverlayQuad } from './ph-print-mockup.util';
 
 export interface MockupCoverCropModel {
   cropVertical: boolean;
@@ -213,6 +219,149 @@ export function buildMockupSlotClipPathCss(
   }
 
   return null;
+}
+
+function transformCornerOutlinePathD(
+  pathD: string,
+  mapPoint: (point: { x: number; y: number }) => { x: number; y: number },
+): string {
+  const tokens = pathD.trim().split(/\s+/);
+  const out: string[] = [];
+  let index = 0;
+
+  while (index < tokens.length) {
+    const command = tokens[index];
+    if (command === 'Z') {
+      out.push('Z');
+      index += 1;
+      continue;
+    }
+
+    if (command === 'M' || command === 'L') {
+      const point = mapPoint({
+        x: Number(tokens[index + 1]),
+        y: Number(tokens[index + 2]),
+      });
+      out.push(command, String(point.x), String(point.y));
+      index += 3;
+      continue;
+    }
+
+    if (command === 'Q') {
+      const control = mapPoint({
+        x: Number(tokens[index + 1]),
+        y: Number(tokens[index + 2]),
+      });
+      const point = mapPoint({
+        x: Number(tokens[index + 3]),
+        y: Number(tokens[index + 4]),
+      });
+      out.push(
+        'Q',
+        String(control.x),
+        String(control.y),
+        String(point.x),
+        String(point.y),
+      );
+      index += 5;
+      continue;
+    }
+
+    index += 1;
+  }
+
+  return out.join(' ');
+}
+
+function buildMockupPrintCornersOutlinePathD(
+  printCorners: PhMockupPrintCorners,
+  quad: MockupPrintOverlayQuad | null,
+): string {
+  const handles = phPrintCornersToMockupRectCorners(printCorners);
+  if (quad) {
+    return buildMockupQuadCornerOutlinePathD(quad, handles, printCorners.type);
+  }
+  return buildMockupRectCornerOutlinePathD(handles, printCorners.type);
+}
+
+function mapMockupPrintCornerPointToGuideCanvas(
+  point: { x: number; y: number },
+  slotRect: MockupCropGuideRect,
+  quad: MockupPrintOverlayQuad | null,
+): { x: number; y: number } {
+  if (quad) {
+    const box = quad.box;
+    return {
+      x:
+        slotRect.x +
+        (box.width > 0 ? ((point.x - box.x) / box.width) * slotRect.width : 0),
+      y:
+        slotRect.y +
+        (box.height > 0 ? ((point.y - box.y) / box.height) * slotRect.height : 0),
+    };
+  }
+
+  return {
+    x: slotRect.x + point.x * slotRect.width,
+    y: slotRect.y + point.y * slotRect.height,
+  };
+}
+
+/** CSS clip-path for mockup print-area corners saved on the product mockup. */
+export function buildMockupPrintCornersSlotClipPathCss(
+  guide: Pick<MockupCropGuideSvgModel, 'slotRect'>,
+  printCorners: PhMockupPrintCorners,
+  quad: MockupPrintOverlayQuad | null,
+): string | null {
+  if (!printCorners.enabled || !guide.slotRect.width || !guide.slotRect.height) {
+    return null;
+  }
+
+  const pathD = buildMockupPrintCornersOutlinePathD(printCorners, quad);
+  const canvasPath = transformCornerOutlinePathD(pathD, (point) =>
+    mapMockupPrintCornerPointToGuideCanvas(point, guide.slotRect, quad),
+  );
+  return `path('${canvasPath}')`;
+}
+
+/** SVG path for the shaped print slot outline in guide canvas coordinates. */
+export function buildMockupPrintCornersSlotOutlinePathD(
+  guide: Pick<MockupCropGuideSvgModel, 'slotRect'>,
+  printCorners: PhMockupPrintCorners,
+  quad: MockupPrintOverlayQuad | null,
+): string | null {
+  if (!printCorners.enabled || !guide.slotRect.width || !guide.slotRect.height) {
+    return null;
+  }
+
+  const pathD = buildMockupPrintCornersOutlinePathD(printCorners, quad);
+  return transformCornerOutlinePathD(pathD, (point) =>
+    mapMockupPrintCornerPointToGuideCanvas(point, guide.slotRect, quad),
+  );
+}
+
+/** Shaped slot outline in 0–100 local slot coordinates (simple guide, no crop extensions). */
+export function buildMockupPrintCornersSimpleSlotOutlinePathD(
+  printCorners: PhMockupPrintCorners,
+  quad: MockupPrintOverlayQuad | null,
+): string | null {
+  if (!printCorners.enabled) {
+    return null;
+  }
+
+  const pathD = buildMockupPrintCornersOutlinePathD(printCorners, quad);
+  if (quad) {
+    const box = quad.box;
+    return transformCornerOutlinePathD(pathD, (point) => ({
+      x: box.width > 0 ? ((point.x - box.x) / box.width) * 100 : 0,
+      y: box.height > 0 ? ((point.y - box.y) / box.height) * 100 : 0,
+    }));
+  }
+
+  return transformCornerOutlinePathD(pathD, (point) => ({
+    x: point.x * 100,
+    y: point.y * 100,
+  }));
 }
 
 /** Scale preview corner radius to the mockup print slot (same proportion as ph-print-preview). */
