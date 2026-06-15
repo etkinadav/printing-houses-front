@@ -1,5 +1,5 @@
 import { HttpEventType } from '@angular/common/http';
-import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   AbstractControl,
@@ -68,6 +68,7 @@ interface ProductMockupState {
   progress: number;
   penActive: boolean;
   imageLoading: boolean;
+  previewRevision: number;
   rect: MockupRect | null;
   quad: MockupQuad | null;
 }
@@ -173,6 +174,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     private route: ActivatedRoute,
     private router: Router,
     private phUploadValidation: PhUploadValidationService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -526,11 +528,31 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     return this.getMockupState(group, settingKey).imageLoading;
   }
 
+  isMockupCornerEngaged(
+    group: AbstractControl,
+    corner: MockupCorner,
+    settingKey?: ExtraSettingKey | null,
+  ): boolean {
+    if (!this.isMockupPenActive(group, settingKey)) {
+      return false;
+    }
+    const drag = this.mockupPointerDrag;
+    if (!drag || drag.mode !== 'resize' || drag.corner !== corner) {
+      return false;
+    }
+    return (
+      drag.group === group &&
+      drag.scope === this.resolveMockupScope(settingKey)
+    );
+  }
+
   onMockupPreviewImageLoad(
     group: AbstractControl,
     settingKey?: ExtraSettingKey | null,
   ): void {
-    this.getMockupState(group, settingKey).imageLoading = false;
+    const state = this.getMockupState(group, settingKey);
+    state.imageLoading = false;
+    state.previewRevision += 1;
   }
 
   onMockupPreviewImageError(
@@ -580,12 +602,6 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     return this.mockupValidationActive && !this.isMockupComplete(group, settingKey);
   }
 
-  enableMockupPen(group: AbstractControl, settingKey: ExtraSettingKey | null, event: Event): void {
-    event.stopPropagation();
-    event.preventDefault();
-    this.activateMockupPen(group, settingKey);
-  }
-
   enterMockupFullscreen(
     group: AbstractControl,
     settingKey: ExtraSettingKey | null,
@@ -603,6 +619,42 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     document.body.classList.add('mockup-fullscreen-open');
   }
 
+  onMockupFramePointerDown(
+    event: PointerEvent,
+    group: AbstractControl,
+    settingKey: ExtraSettingKey | null | undefined,
+    interactive?: boolean,
+  ): void {
+    if (interactive === false) {
+      return;
+    }
+    this.onMockupPointerDown(event, group, settingKey);
+  }
+
+  onMockupFramePointerMove(
+    event: PointerEvent,
+    group: AbstractControl,
+    settingKey: ExtraSettingKey | null | undefined,
+    interactive?: boolean,
+  ): void {
+    if (interactive === false) {
+      return;
+    }
+    this.onMockupPointerMove(event, group, settingKey);
+  }
+
+  onMockupFramePointerUp(
+    event: PointerEvent,
+    group: AbstractControl,
+    settingKey: ExtraSettingKey | null | undefined,
+    interactive?: boolean,
+  ): void {
+    if (interactive === false) {
+      return;
+    }
+    this.onMockupPointerUp(event, group, settingKey);
+  }
+
   exitMockupFullscreen(): void {
     if (!this.mockupFullscreenTarget) {
       document.body.classList.remove('mockup-fullscreen-open');
@@ -613,6 +665,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     this.mockupFullscreenImageLoading = false;
     document.body.classList.remove('mockup-fullscreen-open');
     this.deactivateMockupPen(group, scope === 'node' ? null : scope);
+    this.getMockupState(group, scope === 'node' ? null : scope).previewRevision += 1;
+    this.cdr.detectChanges();
+    requestAnimationFrame(() => this.cdr.detectChanges());
   }
 
   saveMockupFullscreen(): void {
@@ -624,8 +679,31 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     if (!this.isMockupComplete(group, settingKey)) {
       return;
     }
+    this.commitMockupPreviewState(group, settingKey);
     this.refreshMockupValidationState();
     this.exitMockupFullscreen();
+    this.cdr.detectChanges();
+    requestAnimationFrame(() => this.cdr.detectChanges());
+  }
+
+  getMockupPreviewRevision(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): number {
+    return this.getMockupState(group, settingKey).previewRevision;
+  }
+
+  private commitMockupPreviewState(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): void {
+    const state = this.getMockupState(group, settingKey);
+    if (state.quad) {
+      state.quad = this.cloneMockupQuad(state.quad);
+    } else if (state.rect) {
+      state.rect = { ...state.rect };
+    }
+    state.previewRevision += 1;
   }
 
   private preloadMockupFullscreenImage(
@@ -783,7 +861,11 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     event: PointerEvent,
     group: AbstractControl,
     settingKey?: ExtraSettingKey | null,
+    interactive?: boolean,
   ): void {
+    if (interactive === false) {
+      return;
+    }
     this.onMockupShapePointerDown(event, group, settingKey);
   }
 
@@ -791,7 +873,11 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     event: PointerEvent,
     group: AbstractControl,
     settingKey?: ExtraSettingKey | null,
+    interactive?: boolean,
   ): void {
+    if (interactive === false) {
+      return;
+    }
     this.onMockupShapePointerDown(event, group, settingKey);
   }
 
@@ -837,7 +923,11 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     group: AbstractControl,
     corner: MockupCorner,
     settingKey?: ExtraSettingKey | null,
+    interactive?: boolean,
   ): void {
+    if (interactive === false) {
+      return;
+    }
     const scope = this.resolveMockupScope(settingKey);
     if (!this.isMockupPenActive(group, settingKey)) {
       return;
@@ -1048,6 +1138,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         progress: 0,
         penActive: false,
         imageLoading: !!state.url.trim(),
+        previewRevision: state.previewRevision,
         rect: state.rect ? { ...state.rect } : null,
         quad: state.quad ? this.cloneMockupQuad(state.quad) : null,
       });
@@ -1064,6 +1155,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       progress: 0,
       penActive: false,
       imageLoading: false,
+      previewRevision: 0,
       rect: null,
       quad: null,
     };
@@ -1124,14 +1216,36 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     return this.normalizeMockupRect({ x, y, width, height });
   }
 
+  private mockupImageBoundsFromFrame(frame: HTMLElement): DOMRect | null {
+    const wrap = frame.querySelector('.mockup-upload-preview__image-wrap') as HTMLElement | null;
+    const img = frame.querySelector('img.mockup-upload-preview__img') as HTMLImageElement | null;
+    const target = wrap ?? img;
+    if (!target || img?.classList.contains('mockup-upload-preview__img--loading')) {
+      return null;
+    }
+    const bounds = target.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) {
+      return null;
+    }
+    return bounds;
+  }
+
   private mockupPointFromEvent(
     event: PointerEvent,
     frame: HTMLElement,
   ): { x: number; y: number } | null {
-    const bounds = frame.getBoundingClientRect();
-    if (!bounds.width || !bounds.height) {
-      return null;
+    const bounds = this.mockupImageBoundsFromFrame(frame);
+    if (!bounds) {
+      const frameBounds = frame.getBoundingClientRect();
+      if (!frameBounds.width || !frameBounds.height) {
+        return null;
+      }
+      return {
+        x: this.clampMockupCoord((event.clientX - frameBounds.left) / frameBounds.width, 0, 1),
+        y: this.clampMockupCoord((event.clientY - frameBounds.top) / frameBounds.height, 0, 1),
+      };
     }
+
     return {
       x: this.clampMockupCoord((event.clientX - bounds.left) / bounds.width, 0, 1),
       y: this.clampMockupCoord((event.clientY - bounds.top) / bounds.height, 0, 1),

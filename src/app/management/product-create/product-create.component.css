@@ -1714,6 +1714,9 @@
 
 .mockup-upload-preview__frame {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   border-radius: 12px;
   overflow: hidden;
@@ -1727,12 +1730,16 @@
   cursor: crosshair;
 }
 
+.mockup-upload-preview__frame--readonly {
+  cursor: default;
+}
+
 .mockup-upload-preview__img {
   display: block;
-  width: 100%;
+  width: auto;
   height: auto;
+  max-width: 100%;
   max-height: 280px;
-  object-fit: contain;
   pointer-events: none;
   user-select: none;
 }
@@ -1759,8 +1766,8 @@
 .mockup-upload-preview__rect {
   position: absolute;
   box-sizing: border-box;
-  border: 2px solid var(--zx-green, #26a69a);
-  background: rgba(38, 166, 154, 0.18);
+  border: 1px dashed var(--zx-green, #26a69a);
+  background: rgba(38, 166, 154, 0.08);
   border-radius: 2px;
   pointer-events: none;
 }
@@ -1773,10 +1780,35 @@
   pointer-events: none;
 }
 
-.mockup-upload-preview__quad {
-  fill: rgba(38, 166, 154, 0.18);
+.mockup-upload-preview__image-wrap {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  line-height: 0;
+  vertical-align: top;
+}
+
+.mockup-upload-preview__image-space {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.mockup-upload-preview__frame--pen-active .mockup-upload-preview__image-space {
+  pointer-events: auto;
+}
+
+.mockup-upload-preview__quad-fill {
+  fill: rgba(38, 166, 154, 0.08);
+  stroke: none;
+  pointer-events: none;
+}
+
+.mockup-upload-preview__quad-outline {
+  fill: none;
   stroke: var(--zx-green, #26a69a);
-  stroke-width: 0.008;
+  stroke-width: 1;
+  stroke-dasharray: 6 4;
   vector-effect: non-scaling-stroke;
   pointer-events: none;
 }
@@ -1785,7 +1817,7 @@
   pointer-events: auto;
 }
 
-.mockup-upload-preview__frame--pen-active .mockup-upload-preview__quad {
+.mockup-upload-preview__frame--pen-active .mockup-upload-preview__quad-outline {
   cursor: move;
   pointer-events: auto;
 }
@@ -1797,21 +1829,42 @@
 
 .mockup-upload-preview__corner {
   position: absolute;
-  width: 14px;
-  height: 14px;
+  width: 7px;
+  height: 7px;
   padding: 0;
-  border: 2px solid #fff;
+  border: 1px solid #fff;
   border-radius: 50%;
   background: var(--zx-green, #26a69a);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
-  pointer-events: auto;
+  pointer-events: none;
   z-index: 2;
+}
+
+.mockup-upload-preview__frame--pen-active .mockup-upload-preview__corner {
+  pointer-events: auto;
+  transition: width 150ms ease, height 150ms ease, border-width 150ms ease, box-shadow 150ms ease;
+}
+
+.mockup-upload-preview__frame--pen-active .mockup-upload-preview__corner:hover,
+.mockup-upload-preview__frame--pen-active .mockup-upload-preview__corner:active,
+.mockup-upload-preview__frame--pen-active .mockup-upload-preview__corner--engaged {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.32);
+}
+
+.mockup-upload-preview__frame--pen-active .mockup-upload-preview__corner--engaged {
+  transition: none;
 }
 
 .mockup-upload-preview__corner--nw {
   top: 0;
   left: 0;
   transform: translate(-50%, -50%);
+}
+
+.mockup-upload-preview__frame--pen-active .mockup-upload-preview__corner--nw {
   cursor: nwse-resize;
 }
 
@@ -1819,6 +1872,9 @@
   top: 0;
   right: 0;
   transform: translate(50%, -50%);
+}
+
+.mockup-upload-preview__frame--pen-active .mockup-upload-preview__corner--ne {
   cursor: nesw-resize;
 }
 
@@ -1826,6 +1882,9 @@
   bottom: 0;
   left: 0;
   transform: translate(-50%, 50%);
+}
+
+.mockup-upload-preview__frame--pen-active .mockup-upload-preview__corner--sw {
   cursor: nesw-resize;
 }
 
@@ -1833,6 +1892,9 @@
   bottom: 0;
   right: 0;
   transform: translate(50%, 50%);
+}
+
+.mockup-upload-preview__frame--pen-active .mockup-upload-preview__corner--se {
   cursor: nwse-resize;
 }
 
@@ -1842,6 +1904,9 @@
   bottom: auto;
   left: auto;
   transform: translate(-50%, -50%);
+}
+
+.mockup-upload-preview__frame--pen-active .mockup-upload-preview__corner--absolute {
   cursor: move;
 }
 
@@ -1978,16 +2043,15 @@
 }
 
 .mockup-fullscreen-overlay__frame {
-  width: min(96vw, 1200px);
-  max-width: 100%;
+  max-width: min(96vw, 1200px);
   border-radius: 12px;
 }
 
 .mockup-fullscreen-overlay__frame .mockup-upload-preview__img {
-  max-height: min(85vh, 900px);
   width: auto;
+  height: auto;
   max-width: 100%;
-  margin: 0 auto;
+  max-height: min(85vh, 900px);
 }
 
 .mockup-fullscreen-overlay__hint {

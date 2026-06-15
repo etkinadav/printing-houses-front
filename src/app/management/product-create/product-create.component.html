@@ -210,7 +210,8 @@
               context: {
                 mockupGroup: fsTarget.group,
                 mockupSetting: mockupSettingKeyFromScope(fsTarget.scope),
-                frameClass: 'mockup-fullscreen-overlay__frame'
+                frameClass: 'mockup-fullscreen-overlay__frame',
+                interactive: true
               }
             ">
           </ng-container>
@@ -1024,12 +1025,12 @@
           <button
             type="button"
             class="mockup-upload-preview__overlay-btn mockup-upload-preview__pen-btn"
-            [class.mockup-upload-preview__overlay-btn--active]="isMockupPenActive(mockupGroup, mockupSetting)"
+            [class.mockup-upload-preview__overlay-btn--active]="isMockupFullscreen(mockupGroup, mockupSetting)"
             [disabled]="isMockupUploading(mockupGroup, mockupSetting) || isMockupImageLoading(mockupGroup, mockupSetting)"
-            (click)="enableMockupPen(mockupGroup, mockupSetting, $event)"
+            (click)="enterMockupFullscreen(mockupGroup, mockupSetting, $event)"
             [matTooltip]="'management.product-create.mockup-pen-tooltip' | translate"
             [attr.aria-label]="'management.product-create.mockup-define-print-area' | translate"
-            [attr.aria-pressed]="isMockupPenActive(mockupGroup, mockupSetting)">
+            [attr.aria-expanded]="isMockupFullscreen(mockupGroup, mockupSetting)">
             <mat-icon>edit</mat-icon>
           </button>
           <button
@@ -1041,85 +1042,20 @@
             [attr.aria-label]="'management.product-create.mockup-replace' | translate">
             <mat-icon>delete_outline</mat-icon>
           </button>
-          <button
-            type="button"
-            class="mockup-upload-preview__overlay-btn mockup-upload-preview__fullscreen-btn"
-            [disabled]="isMockupUploading(mockupGroup, mockupSetting) || isMockupImageLoading(mockupGroup, mockupSetting)"
-            (click)="enterMockupFullscreen(mockupGroup, mockupSetting, $event)"
-            [matTooltip]="'management.product-create.mockup-fullscreen' | translate"
-            [attr.aria-label]="'management.product-create.mockup-fullscreen' | translate">
-            <mat-icon>fullscreen</mat-icon>
-          </button>
         </div>
-        <div
-          class="mockup-upload-preview__frame"
-          [class.mockup-upload-preview__frame--pen-active]="isMockupPenActive(mockupGroup, mockupSetting)"
-          (pointerdown)="onMockupPointerDown($event, mockupGroup, mockupSetting)"
-          (pointermove)="onMockupPointerMove($event, mockupGroup, mockupSetting)"
-          (pointerup)="onMockupPointerUp($event, mockupGroup, mockupSetting)"
-          (pointercancel)="onMockupPointerUp($event, mockupGroup, mockupSetting)">
-          <img
-            [src]="getMockupUrl(mockupGroup, mockupSetting)"
-            class="mockup-upload-preview__img"
-            [class.mockup-upload-preview__img--loading]="isMockupImageLoading(mockupGroup, mockupSetting)"
-            alt=""
-            draggable="false"
-            (load)="onMockupPreviewImageLoad(mockupGroup, mockupSetting)"
-            (error)="onMockupPreviewImageError(mockupGroup, mockupSetting)" />
-          <ng-container *ngIf="usesMockupQuad(mockupGroup); else mockupRectOverlay">
-            <ng-container *ngIf="getMockupQuad(mockupGroup, mockupSetting) as mockupQuad; else mockupQuadDrawingRect">
-              <svg
-                class="mockup-upload-preview__overlay"
-                viewBox="0 0 1 1"
-                preserveAspectRatio="none"
-                aria-hidden="true">
-                <polygon
-                  class="mockup-upload-preview__quad"
-                  [attr.points]="getMockupQuadSvgPoints(mockupQuad)"
-                  (pointerdown)="onMockupQuadPointerDown($event, mockupGroup, mockupSetting)" />
-              </svg>
-              <span
-                *ngFor="let corner of mockupQuadCorners"
-                class="mockup-upload-preview__corner mockup-upload-preview__corner--absolute"
-                [style.left.%]="getMockupQuadCorner(mockupQuad, corner).x * 100"
-                [style.top.%]="getMockupQuadCorner(mockupQuad, corner).y * 100"
-                (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, corner, mockupSetting)"></span>
-            </ng-container>
-            <ng-template #mockupQuadDrawingRect>
-              <div
-                *ngIf="getMockupRect(mockupGroup, mockupSetting) as mockupRect"
-                class="mockup-upload-preview__rect"
-                [style.left.%]="mockupRect.x * 100"
-                [style.top.%]="mockupRect.y * 100"
-                [style.width.%]="mockupRect.width * 100"
-                [style.height.%]="mockupRect.height * 100">
-              </div>
-            </ng-template>
+        <ng-container *ngIf="!isMockupFullscreen(mockupGroup, mockupSetting)">
+          <ng-container
+            *ngTemplateOutlet="
+              mockupPreviewInteractiveFrame;
+              context: {
+                mockupGroup: mockupGroup,
+                mockupSetting: mockupSetting,
+                frameClass: null,
+                interactive: false
+              }
+            ">
           </ng-container>
-          <ng-template #mockupRectOverlay>
-            <div
-              *ngIf="getMockupRect(mockupGroup, mockupSetting) as mockupRect"
-              class="mockup-upload-preview__rect"
-              [style.left.%]="mockupRect.x * 100"
-              [style.top.%]="mockupRect.y * 100"
-              [style.width.%]="mockupRect.width * 100"
-              [style.height.%]="mockupRect.height * 100"
-              (pointerdown)="onMockupRectPointerDown($event, mockupGroup, mockupSetting)">
-              <span
-                class="mockup-upload-preview__corner mockup-upload-preview__corner--nw"
-                (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'nw', mockupSetting)"></span>
-              <span
-                class="mockup-upload-preview__corner mockup-upload-preview__corner--ne"
-                (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'ne', mockupSetting)"></span>
-              <span
-                class="mockup-upload-preview__corner mockup-upload-preview__corner--sw"
-                (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'sw', mockupSetting)"></span>
-              <span
-                class="mockup-upload-preview__corner mockup-upload-preview__corner--se"
-                (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'se', mockupSetting)"></span>
-            </div>
-          </ng-template>
-        </div>
+        </ng-container>
       </div>
     </div>
   </div>
@@ -1129,16 +1065,29 @@
   #mockupPreviewInteractiveFrame
   let-mockupGroup="mockupGroup"
   let-mockupSetting="mockupSetting"
-  let-frameClass="frameClass">
+  let-frameClass="frameClass"
+  let-interactive="interactive">
   <div
+    #mockupFrame
     class="mockup-upload-preview__frame"
     [ngClass]="frameClass"
-    [class.mockup-upload-preview__frame--pen-active]="isMockupPenActive(mockupGroup, mockupSetting)"
-    (pointerdown)="onMockupPointerDown($event, mockupGroup, mockupSetting)"
-    (pointermove)="onMockupPointerMove($event, mockupGroup, mockupSetting)"
-    (pointerup)="onMockupPointerUp($event, mockupGroup, mockupSetting)"
-    (pointercancel)="onMockupPointerUp($event, mockupGroup, mockupSetting)">
-    <img [src]="getMockupUrl(mockupGroup, mockupSetting)" class="mockup-upload-preview__img" alt="" draggable="false" />
+    [class.mockup-upload-preview__frame--pen-active]="interactive && isMockupPenActive(mockupGroup, mockupSetting)"
+    [class.mockup-upload-preview__frame--readonly]="!interactive"
+    [attr.data-mockup-preview-rev]="getMockupPreviewRevision(mockupGroup, mockupSetting)"
+    (pointerdown)="onMockupFramePointerDown($event, mockupGroup, mockupSetting, interactive)"
+    (pointermove)="onMockupFramePointerMove($event, mockupGroup, mockupSetting, interactive)"
+    (pointerup)="onMockupFramePointerUp($event, mockupGroup, mockupSetting, interactive)"
+    (pointercancel)="onMockupFramePointerUp($event, mockupGroup, mockupSetting, interactive)">
+    <div class="mockup-upload-preview__image-wrap">
+    <img
+      [src]="getMockupUrl(mockupGroup, mockupSetting)"
+      class="mockup-upload-preview__img"
+      [class.mockup-upload-preview__img--loading]="isMockupImageLoading(mockupGroup, mockupSetting)"
+      alt=""
+      draggable="false"
+      (load)="onMockupPreviewImageLoad(mockupGroup, mockupSetting)"
+      (error)="onMockupPreviewImageError(mockupGroup, mockupSetting)" />
+    <div class="mockup-upload-preview__image-space">
     <ng-container *ngIf="usesMockupQuad(mockupGroup); else mockupRectOverlayTpl">
       <ng-container *ngIf="getMockupQuad(mockupGroup, mockupSetting) as mockupQuad; else mockupQuadDrawingRectTpl">
         <svg
@@ -1147,16 +1096,20 @@
           preserveAspectRatio="none"
           aria-hidden="true">
           <polygon
-            class="mockup-upload-preview__quad"
+            class="mockup-upload-preview__quad-fill"
+            [attr.points]="getMockupQuadSvgPoints(mockupQuad)" />
+          <polygon
+            class="mockup-upload-preview__quad-outline"
             [attr.points]="getMockupQuadSvgPoints(mockupQuad)"
-            (pointerdown)="onMockupQuadPointerDown($event, mockupGroup, mockupSetting)" />
+            (pointerdown)="onMockupQuadPointerDown($event, mockupGroup, mockupSetting, interactive)" />
         </svg>
         <span
           *ngFor="let corner of mockupQuadCorners"
           class="mockup-upload-preview__corner mockup-upload-preview__corner--absolute"
+          [class.mockup-upload-preview__corner--engaged]="isMockupCornerEngaged(mockupGroup, corner, mockupSetting)"
           [style.left.%]="getMockupQuadCorner(mockupQuad, corner).x * 100"
           [style.top.%]="getMockupQuadCorner(mockupQuad, corner).y * 100"
-          (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, corner, mockupSetting)"></span>
+          (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, corner, mockupSetting, interactive)"></span>
       </ng-container>
       <ng-template #mockupQuadDrawingRectTpl>
         <div
@@ -1177,20 +1130,26 @@
         [style.top.%]="mockupRect.y * 100"
         [style.width.%]="mockupRect.width * 100"
         [style.height.%]="mockupRect.height * 100"
-        (pointerdown)="onMockupRectPointerDown($event, mockupGroup, mockupSetting)">
+        (pointerdown)="onMockupRectPointerDown($event, mockupGroup, mockupSetting, interactive)">
         <span
           class="mockup-upload-preview__corner mockup-upload-preview__corner--nw"
-          (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'nw', mockupSetting)"></span>
+          [class.mockup-upload-preview__corner--engaged]="isMockupCornerEngaged(mockupGroup, 'nw', mockupSetting)"
+          (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'nw', mockupSetting, interactive)"></span>
         <span
           class="mockup-upload-preview__corner mockup-upload-preview__corner--ne"
-          (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'ne', mockupSetting)"></span>
+          [class.mockup-upload-preview__corner--engaged]="isMockupCornerEngaged(mockupGroup, 'ne', mockupSetting)"
+          (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'ne', mockupSetting, interactive)"></span>
         <span
           class="mockup-upload-preview__corner mockup-upload-preview__corner--sw"
-          (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'sw', mockupSetting)"></span>
+          [class.mockup-upload-preview__corner--engaged]="isMockupCornerEngaged(mockupGroup, 'sw', mockupSetting)"
+          (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'sw', mockupSetting, interactive)"></span>
         <span
           class="mockup-upload-preview__corner mockup-upload-preview__corner--se"
-          (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'se', mockupSetting)"></span>
+          [class.mockup-upload-preview__corner--engaged]="isMockupCornerEngaged(mockupGroup, 'se', mockupSetting)"
+          (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, 'se', mockupSetting, interactive)"></span>
       </div>
     </ng-template>
+    </div>
+    </div>
   </div>
 </ng-template>
