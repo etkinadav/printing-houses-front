@@ -22,6 +22,7 @@ import {
 import {
   buildMockupCropGuideSvgModel,
   buildMockupSlotClipPathCss,
+  computeMockupSlotCornerRadiusPx,
   buildMockupPrintImageWarp,
   buildMockupQuadCropGuideSvgModel,
   computeMockupCoverCrop,
@@ -488,7 +489,15 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       : buildMockupCropGuideSvgModel(crop, slotW, slotH);
 
     this.printSlotClipPathCss = this.cropGuideSvg
-      ? buildMockupSlotClipPathCss(this.cropGuideSvg)
+      ? buildMockupSlotClipPathCss(
+          this.cropGuideSvg,
+          this.cornerType,
+          computeMockupSlotCornerRadiusPx(
+            slotW,
+            layout.cornerRadiusPx,
+            layout.baseWidthPx,
+          ),
+        )
       : null;
 
     this.refreshPrintImageWarp(

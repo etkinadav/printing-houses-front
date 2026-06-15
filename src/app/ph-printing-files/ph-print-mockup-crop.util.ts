@@ -1,4 +1,5 @@
 import { computeRectToQuadMatrix3d } from './ph-print-mockup-perspective.util';
+import { CornerType } from '../ph-products/ph-product.model';
 
 export interface MockupCoverCropModel {
   cropVertical: boolean;
@@ -160,7 +161,38 @@ export function buildMockupSlotClipPathCss(
     MockupCropGuideSvgModel,
     'slotPolygonPoints' | 'slotRect'
   >,
+  cornerType: CornerType | 'none' = 'none',
+  cornerRadiusPx = 0,
 ): string | null {
+  const hasCorners =
+    cornerType !== 'none' && Number.isFinite(cornerRadiusPx) && cornerRadiusPx > 0;
+
+  if (hasCorners && guide.slotPolygonPoints) {
+    const corners = parsePolygonPointPairs(guide.slotPolygonPoints);
+    if (corners.length === 4) {
+      return cornerType === 'chamfer'
+        ? buildQuadChamferClipPathCss(
+            corners,
+            guide.slotRect.width,
+            guide.slotRect.height,
+            cornerRadiusPx,
+          )
+        : buildQuadRoundedClipPathCss(
+            corners,
+            guide.slotRect.width,
+            guide.slotRect.height,
+            cornerRadiusPx,
+          );
+    }
+  }
+
+  if (hasCorners && guide.slotRect) {
+    const r = guide.slotRect;
+    return cornerType === 'chamfer'
+      ? buildChamferRectClipPathCss(r.x, r.y, r.width, r.height, cornerRadiusPx)
+      : buildRoundedRectClipPathCss(r.x, r.y, r.width, r.height, cornerRadiusPx);
+  }
+
   if (guide.slotPolygonPoints) {
     const cssPoints = guide.slotPolygonPoints
       .trim()
@@ -181,6 +213,228 @@ export function buildMockupSlotClipPathCss(
   }
 
   return null;
+}
+
+/** Scale preview corner radius to the mockup print slot (same proportion as ph-print-preview). */
+export function computeMockupSlotCornerRadiusPx(
+  slotWidthPx: number,
+  layoutCornerRadiusPx: number,
+  layoutBaseWidthPx: number,
+): number {
+  if (
+    slotWidthPx <= 0 ||
+    layoutCornerRadiusPx <= 0 ||
+    layoutBaseWidthPx <= 0
+  ) {
+    return 0;
+  }
+  return layoutCornerRadiusPx * (slotWidthPx / layoutBaseWidthPx);
+}
+
+const BEZIER_CIRCLE_KAPPA = 0.5522847498;
+
+function parsePolygonPointPairs(points: string): { x: number; y: number }[] {
+  return points
+    .trim()
+    .split(/\s+/)
+    .map((pair) => {
+      const [x, y] = pair.split(',').map(Number);
+      return { x, y };
+    })
+    .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
+}
+
+function clampCornerRadiusPx(
+  radiusPx: number,
+  widthPx: number,
+  heightPx: number,
+): number {
+  if (widthPx <= 0 || heightPx <= 0) {
+    return 0;
+  }
+  return Math.min(radiusPx, widthPx / 2, heightPx / 2);
+}
+
+function pointAlongEdge(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  distanceFromFrom: number,
+): { x: number; y: number } {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 1e-6) {
+    return { ...from };
+  }
+  const t = Math.min(Math.max(distanceFromFrom / len, 0), 1);
+  return { x: from.x + dx * t, y: from.y + dy * t };
+}
+
+function chamferDistanceAlongEdge(
+  edgeLengthPx: number,
+  refLengthPx: number,
+  radiusPx: number,
+): number {
+  if (edgeLengthPx <= 0 || refLengthPx <= 0 || radiusPx <= 0) {
+    return 0;
+  }
+  return Math.min((radiusPx * edgeLengthPx) / refLengthPx, edgeLengthPx / 2);
+}
+
+function refLengthForSlotEdge(edgeIndex: number, slotWidthPx: number, slotHeightPx: number): number {
+  return edgeIndex % 2 === 0 ? slotWidthPx : slotHeightPx;
+}
+
+function buildChamferRectClipPathCss(
+  x: number,
+  y: number,
+  widthPx: number,
+  heightPx: number,
+  radiusPx: number,
+): string {
+  const r = clampCornerRadiusPx(radiusPx, widthPx, heightPx);
+  const x2 = x + widthPx;
+  const y2 = y + heightPx;
+  return `polygon(${x + r}px ${y}px, ${x2 - r}px ${y}px, ${x2}px ${y + r}px, ${x2}px ${y2 - r}px, ${x2 - r}px ${y2}px, ${x + r}px ${y2}px, ${x}px ${y2 - r}px, ${x}px ${y + r}px)`;
+}
+
+function buildRoundedRectPathD(
+  x: number,
+  y: number,
+  widthPx: number,
+  heightPx: number,
+  radiusPx: number,
+): string {
+  const r = clampCornerRadiusPx(radiusPx, widthPx, heightPx);
+  if (r <= 0) {
+    return `M ${x} ${y} H ${x + widthPx} V ${y + heightPx} H ${x} Z`;
+  }
+  const x2 = x + widthPx;
+  const y2 = y + heightPx;
+  const k = r * BEZIER_CIRCLE_KAPPA;
+  return [
+    `M ${x + r} ${y}`,
+    `L ${x2 - r} ${y}`,
+    `C ${x2 - r + k} ${y} ${x2} ${y + r - k} ${x2} ${y + r}`,
+    `L ${x2} ${y2 - r}`,
+    `C ${x2} ${y2 - r + k} ${x2 - r + k} ${y2} ${x2 - r} ${y2}`,
+    `L ${x + r} ${y2}`,
+    `C ${x + r - k} ${y2} ${x} ${y2 - r + k} ${x} ${y2 - r}`,
+    `L ${x} ${y + r}`,
+    `C ${x} ${y + r - k} ${x + r - k} ${y} ${x + r} ${y}`,
+    'Z',
+  ].join(' ');
+}
+
+function buildRoundedRectClipPathCss(
+  x: number,
+  y: number,
+  widthPx: number,
+  heightPx: number,
+  radiusPx: number,
+): string {
+  return `path('${buildRoundedRectPathD(x, y, widthPx, heightPx, radiusPx)}')`;
+}
+
+function computeQuadCornerCuts(
+  corners: { x: number; y: number }[],
+  slotWidthPx: number,
+  slotHeightPx: number,
+  radiusPx: number,
+): { pIn: { x: number; y: number }; pOut: { x: number; y: number } }[] {
+  const cuts: { pIn: { x: number; y: number }; pOut: { x: number; y: number } }[] = [];
+  for (let index = 0; index < 4; index += 1) {
+    const prev = corners[(index + 3) % 4];
+    const curr = corners[index];
+    const next = corners[(index + 1) % 4];
+    const edgeInIndex = (index + 3) % 4;
+    const edgeOutIndex = index;
+    const lenIn = edgeLength(prev, curr);
+    const lenOut = edgeLength(curr, next);
+    const dIn = chamferDistanceAlongEdge(
+      lenIn,
+      refLengthForSlotEdge(edgeInIndex, slotWidthPx, slotHeightPx),
+      radiusPx,
+    );
+    const dOut = chamferDistanceAlongEdge(
+      lenOut,
+      refLengthForSlotEdge(edgeOutIndex, slotWidthPx, slotHeightPx),
+      radiusPx,
+    );
+    cuts.push({
+      pIn: pointAlongEdge(curr, prev, dIn),
+      pOut: pointAlongEdge(curr, next, dOut),
+    });
+  }
+  return cuts;
+}
+
+function buildQuadChamferClipPathCss(
+  corners: { x: number; y: number }[],
+  slotWidthPx: number,
+  slotHeightPx: number,
+  radiusPx: number,
+): string {
+  const cuts = computeQuadCornerCuts(corners, slotWidthPx, slotHeightPx, radiusPx);
+  const points: { x: number; y: number }[] = [];
+  for (let index = 0; index < 4; index += 1) {
+    points.push(cuts[index].pOut);
+    points.push(cuts[(index + 1) % 4].pIn);
+  }
+  const cssPoints = points
+    .map((point) => `${point.x}px ${point.y}px`)
+    .join(', ');
+  return `polygon(${cssPoints})`;
+}
+
+function appendRoundedCornerBezier(
+  parts: string[],
+  pIn: { x: number; y: number },
+  corner: { x: number; y: number },
+  pOut: { x: number; y: number },
+): void {
+  const inLen = edgeLength(pIn, corner);
+  const outLen = edgeLength(corner, pOut);
+  const arcSpan = Math.min(inLen, outLen);
+  if (arcSpan <= 1e-6) {
+    parts.push(`L ${pOut.x} ${pOut.y}`);
+    return;
+  }
+  const k = arcSpan * BEZIER_CIRCLE_KAPPA;
+  const inDx = corner.x - pIn.x;
+  const inDy = corner.y - pIn.y;
+  const outDx = pOut.x - corner.x;
+  const outDy = pOut.y - corner.y;
+  const inLenFull = Math.hypot(inDx, inDy) || 1;
+  const outLenFull = Math.hypot(outDx, outDy) || 1;
+  const cp1x = pIn.x + (inDx / inLenFull) * k;
+  const cp1y = pIn.y + (inDy / inLenFull) * k;
+  const cp2x = pOut.x - (outDx / outLenFull) * k;
+  const cp2y = pOut.y - (outDy / outLenFull) * k;
+  parts.push(`C ${cp1x} ${cp1y} ${cp2x} ${cp2y} ${pOut.x} ${pOut.y}`);
+}
+
+function buildQuadRoundedClipPathCss(
+  corners: { x: number; y: number }[],
+  slotWidthPx: number,
+  slotHeightPx: number,
+  radiusPx: number,
+): string {
+  const cuts = computeQuadCornerCuts(corners, slotWidthPx, slotHeightPx, radiusPx);
+  const parts = [`M ${cuts[0].pOut.x} ${cuts[0].pOut.y}`];
+  for (let index = 1; index < 4; index += 1) {
+    parts.push(`L ${cuts[index].pIn.x} ${cuts[index].pIn.y}`);
+    appendRoundedCornerBezier(
+      parts,
+      cuts[index].pIn,
+      corners[index],
+      cuts[index].pOut,
+    );
+  }
+  parts.push(`L ${cuts[0].pIn.x} ${cuts[0].pIn.y}`);
+  appendRoundedCornerBezier(parts, cuts[0].pIn, corners[0], cuts[0].pOut);
+  parts.push('Z');
+  return `path('${parts.join(' ')}')`;
 }
 
 interface GuideCanvasLayout {
