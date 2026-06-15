@@ -1255,17 +1255,24 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   private mockupImageBoundsFromFrame(frame: HTMLElement): DOMRect | null {
-    const wrap = frame.querySelector('.mockup-upload-preview__image-wrap') as HTMLElement | null;
     const img = frame.querySelector('img.mockup-upload-preview__img') as HTMLImageElement | null;
-    const target = wrap ?? img;
-    if (!target || img?.classList.contains('mockup-upload-preview__img--loading')) {
+    if (!img || img.classList.contains('mockup-upload-preview__img--loading')) {
       return null;
     }
-    const bounds = target.getBoundingClientRect();
-    if (!bounds.width || !bounds.height) {
+    const imgRect = img.getBoundingClientRect();
+    if (imgRect.width && imgRect.height) {
+      return imgRect;
+    }
+
+    const wrap = frame.querySelector('.mockup-upload-preview__image-wrap') as HTMLElement | null;
+    if (!wrap) {
       return null;
     }
-    return bounds;
+    const wrapRect = wrap.getBoundingClientRect();
+    if (!wrapRect.width || !wrapRect.height) {
+      return null;
+    }
+    return wrapRect;
   }
 
   private mockupPointFromEvent(
