@@ -1109,7 +1109,8 @@
     #mockupFrame
     class="mockup-upload-preview__frame"
     [ngClass]="frameClass"
-    [class.mockup-upload-preview__frame--pen-active]="interactive && isMockupPenActive(mockupGroup, mockupSetting)"
+    [class.mockup-upload-preview__frame--pen-active]="interactive && isMockupShapeEditingActive(mockupGroup, mockupSetting)"
+    [class.mockup-upload-preview__frame--corners-editing]="interactive && isMockupPrintCornersEditing(mockupGroup, mockupSetting)"
     [class.mockup-upload-preview__frame--readonly]="!interactive"
     [attr.data-mockup-preview-rev]="getMockupPreviewRevision(mockupGroup, mockupSetting)"
     (pointerdown)="onMockupFramePointerDown($event, mockupGroup, mockupSetting, interactive)"
@@ -1133,21 +1134,39 @@
           viewBox="0 0 1 1"
           preserveAspectRatio="none"
           aria-hidden="true">
-          <polygon
-            class="mockup-upload-preview__quad-fill"
-            [attr.points]="getMockupQuadSvgPoints(mockupQuad)" />
-          <polygon
-            class="mockup-upload-preview__quad-outline"
-            [attr.points]="getMockupQuadSvgPoints(mockupQuad)"
-            (pointerdown)="onMockupQuadPointerDown($event, mockupGroup, mockupSetting, interactive)" />
+          <ng-container *ngIf="!isMockupPrintCornersEditing(mockupGroup, mockupSetting); else mockupQuadCornerOutlineTpl">
+            <polygon
+              class="mockup-upload-preview__quad-fill"
+              [attr.points]="getMockupQuadSvgPoints(mockupQuad)" />
+            <polygon
+              class="mockup-upload-preview__quad-outline"
+              [attr.points]="getMockupQuadSvgPoints(mockupQuad)"
+              (pointerdown)="onMockupQuadPointerDown($event, mockupGroup, mockupSetting, interactive)" />
+          </ng-container>
+          <ng-template #mockupQuadCornerOutlineTpl>
+            <path
+              class="mockup-upload-preview__quad-outline mockup-upload-preview__quad-outline--corner-edit"
+              [attr.d]="getMockupQuadCornerOutlinePath(mockupGroup, mockupSetting)"
+              (pointerdown)="onMockupQuadPointerDown($event, mockupGroup, mockupSetting, interactive)" />
+          </ng-template>
         </svg>
         <span
           *ngFor="let corner of mockupQuadCorners"
           class="mockup-upload-preview__corner mockup-upload-preview__corner--absolute"
           [class.mockup-upload-preview__corner--engaged]="isMockupCornerEngaged(mockupGroup, corner, mockupSetting)"
+          [attr.data-mockup-corner]="corner"
           [style.left.%]="getMockupQuadCorner(mockupQuad, corner).x * 100"
           [style.top.%]="getMockupQuadCorner(mockupQuad, corner).y * 100"
           (pointerdown)="onMockupCornerPointerDown($event, mockupGroup, corner, mockupSetting, interactive)"></span>
+        <span
+          *ngFor="let handle of getMockupRectCornerHandleViewsForTemplate(mockupGroup, mockupSetting)"
+          class="mockup-upload-preview__corner-handle mockup-upload-preview__corner-handle--absolute"
+          [class.mockup-upload-preview__corner-handle--bulge]="handle.kind === 'bulge'"
+          [class.mockup-upload-preview__corner-handle--engaged]="isMockupRectCornerHandleEngaged(mockupGroup, handle.id, mockupSetting)"
+          [attr.data-mockup-corner-handle]="handle.id"
+          [style.left.%]="handle.x * 100"
+          [style.top.%]="handle.y * 100"
+          (pointerdown)="onMockupRectCornerHandlePointerDown($event, mockupGroup, handle.id, mockupSetting, interactive)"></span>
       </ng-container>
       <ng-template #mockupQuadDrawingRectTpl>
         <div
@@ -1164,11 +1183,32 @@
       <div
         *ngIf="getMockupRect(mockupGroup, mockupSetting) as mockupRect"
         class="mockup-upload-preview__rect"
+        [class.mockup-upload-preview__rect--shaped-corners]="isMockupPrintCornersEditing(mockupGroup, mockupSetting)"
         [style.left.%]="mockupRect.x * 100"
         [style.top.%]="mockupRect.y * 100"
         [style.width.%]="mockupRect.width * 100"
         [style.height.%]="mockupRect.height * 100"
         (pointerdown)="onMockupRectPointerDown($event, mockupGroup, mockupSetting, interactive)">
+        <svg
+          *ngIf="isMockupPrintCornersEditing(mockupGroup, mockupSetting)"
+          class="mockup-upload-preview__rect-outline"
+          viewBox="0 0 1 1"
+          preserveAspectRatio="none"
+          aria-hidden="true">
+          <path
+            class="mockup-upload-preview__rect-outline-path"
+            [attr.d]="getMockupRectCornerOutlinePath(mockupGroup, mockupSetting)"
+            (pointerdown)="onMockupRectPointerDown($event, mockupGroup, mockupSetting, interactive)" />
+        </svg>
+        <span
+          *ngFor="let handle of getMockupRectCornerHandleViewsForTemplate(mockupGroup, mockupSetting)"
+          class="mockup-upload-preview__corner-handle"
+          [class.mockup-upload-preview__corner-handle--bulge]="handle.kind === 'bulge'"
+          [class.mockup-upload-preview__corner-handle--engaged]="isMockupRectCornerHandleEngaged(mockupGroup, handle.id, mockupSetting)"
+          [attr.data-mockup-corner-handle]="handle.id"
+          [style.left.%]="handle.x * 100"
+          [style.top.%]="handle.y * 100"
+          (pointerdown)="onMockupRectCornerHandlePointerDown($event, mockupGroup, handle.id, mockupSetting, interactive)"></span>
         <span
           class="mockup-upload-preview__corner mockup-upload-preview__corner--nw"
           [class.mockup-upload-preview__corner--engaged]="isMockupCornerEngaged(mockupGroup, 'nw', mockupSetting)"

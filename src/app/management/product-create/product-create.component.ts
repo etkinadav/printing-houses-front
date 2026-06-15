@@ -47,6 +47,19 @@ import {
   PhSize,
   PhTreeExtraSettings,
 } from '../../ph-products/ph-product.model';
+import {
+  applyMockupQuadCornerHandleDrag,
+  applyMockupRectCornerHandleDrag,
+  buildMockupQuadCornerOutlinePathD,
+  buildMockupRectCornerOutlinePathD,
+  cloneMockupRectCorners,
+  createDefaultMockupRectCorners,
+  getMockupQuadCornerHandleViews,
+  getMockupRectCornerHandleViews,
+  MockupRectCornerHandleId,
+  MockupRectCornersParams,
+  syncQuadBulgeControlPoints,
+} from './mockup-rect-corners.util';
 
 interface MockupRect {
   x: number;
@@ -71,6 +84,7 @@ interface ProductMockupState {
   previewRevision: number;
   rect: MockupRect | null;
   quad: MockupQuad | null;
+  rectCornerHandles: MockupRectCornersParams | null;
 }
 
 type MockupCorner = 'nw' | 'ne' | 'sw' | 'se';
@@ -80,12 +94,16 @@ type MockupScope = ExtraSettingKey | 'node';
 interface MockupPointerDrag {
   group: AbstractControl;
   scope: MockupScope;
-  mode: 'draw' | 'move' | 'resize';
+  mode: 'draw' | 'move' | 'resize' | 'corner-handle';
   corner?: MockupCorner;
+  cornerHandle?: MockupRectCornerHandleId;
   startX: number;
   startY: number;
   origRect: MockupRect | null;
   origQuad: MockupQuad | null;
+  origCornerHandles?: MockupRectCornersParams;
+  frame?: HTMLElement;
+  settingKey?: ExtraSettingKey | null;
 }
 
 @Component({
@@ -124,6 +142,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   private mockupPointerDrag: MockupPointerDrag | null = null;
   private mockupPenOutsideTarget: { group: AbstractControl; scope: MockupScope } | null = null;
   private mockupPenOutsidePointerHandler: ((event: PointerEvent) => void) | null = null;
+  private mockupDragDocumentMove: ((event: PointerEvent) => void) | null = null;
+  private mockupDragDocumentUp: ((event: PointerEvent) => void) | null = null;
   mockupFullscreenTarget: { group: AbstractControl; scope: MockupScope } | null = null;
   mockupFullscreenImageLoading = false;
   mockupFullscreenCornersEnabled = false;
@@ -131,6 +151,39 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   private readonly mockupDefaultRectSize = 0.22;
   private readonly mockupMinRectSize = 0.04;
   readonly mockupQuadCorners: MockupCorner[] = ['nw', 'ne', 'sw', 'se'];
+  /** Dev-only trace for orange corner-handle drag. Filter console: mockup-orange-handle */
+  private mockupCornerDragDebugEnabled = true;
+  private mockupCornerDragMoveLogCount = 0;
+
+  private logMockupCornerDrag(message: string, data?: unknown): void {
+    if (!this.mockupCornerDragDebugEnabled) {
+      return;
+    }
+    if (data !== undefined) {
+      console.log('[mockup-orange-handle]', message, data);
+    } else {
+      console.log('[mockup-orange-handle]', message);
+    }
+  }
+
+  private snapshotMockupCornerParams(
+    handles: MockupRectCornersParams | null | undefined,
+    handleId?: MockupRectCornerHandleId | null,
+  ): unknown {
+    if (!handles || !handleId) {
+      return handles;
+    }
+    const corner = handleId.split('-')[0] as keyof MockupRectCornersParams;
+    return { handleId, corner: { ...handles[corner] } };
+  }
+
+  private shouldLogMockupCornerDragMove(): boolean {
+    this.mockupCornerDragMoveLogCount += 1;
+    return (
+      this.mockupCornerDragMoveLogCount <= 2 ||
+      this.mockupCornerDragMoveLogCount % 25 === 0
+    );
+  }
 
   form = new FormGroup({
     name_he: new FormControl<string>('', {
@@ -306,6 +359,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     }
     this.mockupUploadSubs.clear();
     this.detachMockupPenOutsideListener();
+    this.detachMockupDragDocumentListeners();
     this.exitMockupFullscreen();
   }
 
@@ -526,6 +580,17 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     return this.getMockupState(group, settingKey).penActive;
   }
 
+  /** Fullscreen mockup handles stay interactive while corners mode is on. */
+  isMockupShapeEditingActive(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): boolean {
+    return (
+      this.isMockupPenActive(group, settingKey) ||
+      this.isMockupPrintCornersEditing(group, settingKey)
+    );
+  }
+
   isMockupImageLoading(group: AbstractControl, settingKey?: ExtraSettingKey | null): boolean {
     return this.getMockupState(group, settingKey).imageLoading;
   }
@@ -535,7 +600,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     corner: MockupCorner,
     settingKey?: ExtraSettingKey | null,
   ): boolean {
-    if (!this.isMockupPenActive(group, settingKey)) {
+    if (!this.isMockupShapeEditingActive(group, settingKey)) {
       return false;
     }
     const drag = this.mockupPointerDrag;
@@ -631,7 +696,60 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     if (interactive === false) {
       return;
     }
+
+    const cornerHandleId = this.resolveMockupCornerHandleIdFromEvent(event);
+    if (cornerHandleId && this.isMockupPrintCornersEditing(group, settingKey ?? null)) {
+      this.logMockupCornerDrag('frame pointerdown -> delegate corner handle', { cornerHandleId });
+      this.onMockupRectCornerHandlePointerDown(
+        event,
+        group,
+        cornerHandleId,
+        settingKey ?? null,
+        interactive,
+      );
+      return;
+    }
+
+    const quadCorner = this.resolveMockupQuadCornerFromEvent(event);
+    if (quadCorner) {
+      this.logMockupCornerDrag('frame pointerdown -> delegate quad corner', { quadCorner });
+      this.onMockupCornerPointerDown(event, group, quadCorner, settingKey ?? null, interactive);
+      return;
+    }
+
+    if (this.isMockupPrintCornersEditing(group, settingKey ?? null)) {
+      this.logMockupCornerDrag('frame pointerdown ignored (corners editing, not a handle)');
+      return;
+    }
+    this.logMockupCornerDrag('frame pointerdown -> draw check');
     this.onMockupPointerDown(event, group, settingKey);
+  }
+
+  private resolveMockupCornerHandleIdFromEvent(
+    event: PointerEvent,
+  ): MockupRectCornerHandleId | null {
+    const el = (event.target as HTMLElement | null)?.closest(
+      '.mockup-upload-preview__corner-handle',
+    );
+    const handleId = el?.getAttribute('data-mockup-corner-handle');
+    return handleId ? (handleId as MockupRectCornerHandleId) : null;
+  }
+
+  private resolveMockupQuadCornerFromEvent(event: PointerEvent): MockupCorner | null {
+    const el = (event.target as HTMLElement | null)?.closest(
+      '.mockup-upload-preview__corner.mockup-upload-preview__corner--absolute',
+    );
+    const corner = el?.getAttribute('data-mockup-corner');
+    return corner === 'nw' || corner === 'ne' || corner === 'sw' || corner === 'se'
+      ? corner
+      : null;
+  }
+
+  private isMockupPointerOnShapeHandle(event: PointerEvent): boolean {
+    const el = event.target as HTMLElement | null;
+    return !!el?.closest(
+      '.mockup-upload-preview__corner-handle, .mockup-upload-preview__corner',
+    );
   }
 
   onMockupFramePointerMove(
@@ -711,6 +829,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     } else if (state.rect) {
       state.rect = { ...state.rect };
     }
+    if (state.rectCornerHandles) {
+      state.rectCornerHandles = cloneMockupRectCorners(state.rectCornerHandles);
+    }
     state.previewRevision += 1;
   }
 
@@ -778,16 +899,395 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
   onMockupFullscreenCornersEnabledChange(enabled: boolean): void {
     this.mockupFullscreenCornersEnabled = enabled;
+    if (!this.mockupFullscreenTarget) {
+      return;
+    }
+    const { group, scope } = this.mockupFullscreenTarget;
+    const settingKey = scope === 'node' ? null : scope;
+    this.activateMockupPen(group, settingKey);
+    if (enabled) {
+      this.ensureMockupRectCornerHandles(group, settingKey);
+      const state = this.getMockupState(group, settingKey);
+      if (state.quad && state.rectCornerHandles && state.rectCornerHandles.nw.bulgeH <= 0.2) {
+        syncQuadBulgeControlPoints(state.quad, state.rectCornerHandles);
+      }
+    }
+    this.cdr.detectChanges();
   }
 
   onMockupFullscreenCornerTypeChange(type: CornerType | null): void {
     if (type === 'rounded' || type === 'chamfer') {
       this.mockupFullscreenCornerType = type;
+      if (this.mockupFullscreenTarget) {
+        const { group, scope } = this.mockupFullscreenTarget;
+        this.activateMockupPen(group, scope === 'node' ? null : scope);
+      }
+      this.cdr.detectChanges();
     }
   }
 
   getMockupFullscreenCornerMode(): 'none' | CornerType {
     return this.mockupFullscreenCornersEnabled ? this.mockupFullscreenCornerType : 'none';
+  }
+
+  isMockupPrintCornersEditing(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): boolean {
+    if (
+      !this.mockupFullscreenCornersEnabled ||
+      !this.isMockupFullscreen(group, settingKey)
+    ) {
+      return false;
+    }
+    return !!this.getMockupRect(group, settingKey) || !!this.getMockupQuad(group, settingKey);
+  }
+
+  getMockupQuadCornerOutlinePath(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): string | null {
+    if (!this.isMockupPrintCornersEditing(group, settingKey)) {
+      return null;
+    }
+    const quad = this.getMockupQuad(group, settingKey);
+    const handles = this.getMockupRectCornerHandles(group, settingKey);
+    if (!quad || !handles) {
+      return null;
+    }
+    return buildMockupQuadCornerOutlinePathD(quad, handles, this.mockupFullscreenCornerType);
+  }
+
+  getMockupRectCornerOutlinePath(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): string | null {
+    if (!this.isMockupPrintCornersEditing(group, settingKey)) {
+      return null;
+    }
+    const handles = this.getMockupRectCornerHandles(group, settingKey);
+    if (!handles) {
+      return null;
+    }
+    return buildMockupRectCornerOutlinePathD(handles, this.mockupFullscreenCornerType);
+  }
+
+  getMockupRectCornerHandleViewsForTemplate(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ) {
+    if (!this.isMockupPrintCornersEditing(group, settingKey)) {
+      return [];
+    }
+    const handles = this.getMockupRectCornerHandles(group, settingKey);
+    if (!handles) {
+      return [];
+    }
+    const cornerType = this.mockupFullscreenCornerType;
+    const quad = this.getMockupQuad(group, settingKey);
+    if (quad) {
+      return getMockupQuadCornerHandleViews(quad, handles, cornerType);
+    }
+    const rect = this.getMockupRect(group, settingKey);
+    if (!rect) {
+      return [];
+    }
+    return getMockupRectCornerHandleViews(handles, cornerType);
+  }
+
+  isMockupRectCornerHandleEngaged(
+    group: AbstractControl,
+    handleId: MockupRectCornerHandleId,
+    settingKey?: ExtraSettingKey | null,
+  ): boolean {
+    if (!this.isMockupShapeEditingActive(group, settingKey)) {
+      return false;
+    }
+    const drag = this.mockupPointerDrag;
+    if (!drag || drag.mode !== 'corner-handle' || drag.cornerHandle !== handleId) {
+      return false;
+    }
+    return (
+      drag.group === group &&
+      drag.scope === this.resolveMockupScope(settingKey)
+    );
+  }
+
+  onMockupRectCornerHandlePointerDown(
+    event: PointerEvent,
+    group: AbstractControl,
+    handleId: MockupRectCornerHandleId,
+    settingKey?: ExtraSettingKey | null,
+    interactive?: boolean,
+  ): void {
+    event.stopPropagation();
+    event.preventDefault();
+    if (
+      this.mockupPointerDrag?.mode === 'corner-handle' &&
+      this.mockupPointerDrag.cornerHandle === handleId
+    ) {
+      return;
+    }
+    this.mockupCornerDragMoveLogCount = 0;
+    this.logMockupCornerDrag('handle pointerdown', {
+      handleId,
+      interactive,
+      cornersEditing: this.isMockupPrintCornersEditing(group, settingKey),
+      shapeEditingActive: this.isMockupShapeEditingActive(group, settingKey),
+      scope: this.resolveMockupScope(settingKey),
+    });
+    if (interactive === false || !this.isMockupPrintCornersEditing(group, settingKey)) {
+      this.logMockupCornerDrag('handle pointerdown ABORT: not interactive or corners off');
+      return;
+    }
+    const scope = this.resolveMockupScope(settingKey);
+    if (!this.isMockupShapeEditingActive(group, settingKey)) {
+      this.logMockupCornerDrag('handle pointerdown ABORT: shape editing inactive');
+      return;
+    }
+
+    const frame = this.mockupFrameFromEvent(event);
+    const state = this.getMockupState(group, settingKey);
+    const handles = state.rectCornerHandles;
+    if (!frame || !handles || (!state.rect && !state.quad)) {
+      this.logMockupCornerDrag('handle pointerdown ABORT: missing frame/handles/shape', {
+        hasFrame: !!frame,
+        hasHandles: !!handles,
+        hasRect: !!state.rect,
+        hasQuad: !!state.quad,
+      });
+      return;
+    }
+
+    const point = this.mockupPointFromEvent(event, frame);
+    if (!point) {
+      this.logMockupCornerDrag('handle pointerdown ABORT: no image point');
+      return;
+    }
+
+    this.mockupPointerDrag = {
+      group,
+      scope,
+      mode: 'corner-handle',
+      cornerHandle: handleId,
+      startX: point.x,
+      startY: point.y,
+      origRect: state.rect ? { ...state.rect } : null,
+      origQuad: state.quad ? this.cloneMockupQuad(state.quad) : null,
+      origCornerHandles: cloneMockupRectCorners(handles),
+      frame,
+      settingKey: settingKey ?? null,
+    };
+
+    this.logMockupCornerDrag('handle pointerdown OK -> drag started', {
+      handleId,
+      point,
+      before: this.snapshotMockupCornerParams(handles, handleId),
+      pointerId: event.pointerId,
+    });
+
+    frame.setPointerCapture(event.pointerId);
+    this.attachMockupDragDocumentListeners();
+  }
+
+  private attachMockupDragDocumentListeners(): void {
+    this.detachMockupDragDocumentListeners();
+    this.mockupDragDocumentMove = (event: PointerEvent) => {
+      this.onMockupDragDocumentPointerMove(event);
+    };
+    this.mockupDragDocumentUp = (event: PointerEvent) => {
+      const drag = this.mockupPointerDrag;
+      if (!drag) {
+        this.detachMockupDragDocumentListeners();
+        return;
+      }
+      this.onMockupPointerUp(event, drag.group, drag.settingKey ?? null);
+      this.detachMockupDragDocumentListeners();
+    };
+    document.addEventListener('pointermove', this.mockupDragDocumentMove, true);
+    document.addEventListener('pointerup', this.mockupDragDocumentUp, true);
+    document.addEventListener('pointercancel', this.mockupDragDocumentUp, true);
+    this.logMockupCornerDrag('document drag listeners attached');
+  }
+
+  private detachMockupDragDocumentListeners(): void {
+    if (this.mockupDragDocumentMove || this.mockupDragDocumentUp) {
+      this.logMockupCornerDrag('document drag listeners detached');
+    }
+    if (this.mockupDragDocumentMove) {
+      document.removeEventListener('pointermove', this.mockupDragDocumentMove, true);
+      this.mockupDragDocumentMove = null;
+    }
+    if (this.mockupDragDocumentUp) {
+      document.removeEventListener('pointerup', this.mockupDragDocumentUp, true);
+      document.removeEventListener('pointercancel', this.mockupDragDocumentUp, true);
+      this.mockupDragDocumentUp = null;
+    }
+  }
+
+  private onMockupDragDocumentPointerMove(event: PointerEvent): void {
+    const drag = this.mockupPointerDrag;
+    if (!drag?.frame) {
+      if (this.shouldLogMockupCornerDragMove()) {
+        this.logMockupCornerDrag('document pointermove ignored: no drag/frame', {
+          hasDrag: !!drag,
+          dragMode: drag?.mode,
+        });
+      }
+      return;
+    }
+
+    event.preventDefault();
+    const group = drag.group;
+    const settingKey = drag.settingKey ?? null;
+
+    if (drag.mode === 'corner-handle') {
+      if (this.shouldLogMockupCornerDragMove()) {
+        this.logMockupCornerDrag('document pointermove -> apply corner drag', {
+          handleId: drag.cornerHandle,
+          clientX: event.clientX,
+          clientY: event.clientY,
+        });
+      }
+      this.applyMockupCornerHandleDrag(event, drag.frame, group, settingKey);
+      return;
+    }
+    if (drag.mode === 'move' || drag.mode === 'resize') {
+      this.applyMockupShapeDrag(event, drag.frame, group, settingKey);
+    }
+  }
+
+  private applyMockupShapeDrag(
+    event: PointerEvent,
+    frame: HTMLElement,
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): void {
+    const drag = this.mockupPointerDrag;
+    if (!drag || (drag.mode !== 'move' && drag.mode !== 'resize')) {
+      return;
+    }
+
+    const point = this.mockupPointFromEvent(event, frame);
+    if (!point) {
+      return;
+    }
+
+    const state = this.getMockupState(group, settingKey);
+    const usesQuad = this.usesMockupQuad(group);
+
+    if (drag.mode === 'resize' && drag.corner) {
+      if (usesQuad && drag.origQuad) {
+        state.quad = this.resizeMockupQuadCorner(drag.origQuad, drag.corner, point);
+      } else if (drag.origRect) {
+        state.rect = this.mockupResizeRect(drag.origRect, drag.corner, point);
+      }
+    } else if (drag.mode === 'move') {
+      const dx = point.x - drag.startX;
+      const dy = point.y - drag.startY;
+      if (usesQuad && drag.origQuad) {
+        state.quad = this.moveMockupQuad(drag.origQuad, dx, dy);
+      } else if (drag.origRect) {
+        state.rect = {
+          ...drag.origRect,
+          x: this.clampMockupCoord(drag.origRect.x + dx, 0, 1 - drag.origRect.width),
+          y: this.clampMockupCoord(drag.origRect.y + dy, 0, 1 - drag.origRect.height),
+        };
+      }
+    }
+
+    state.previewRevision += 1;
+    this.cdr.detectChanges();
+  }
+
+  private applyMockupCornerHandleDrag(
+    event: PointerEvent,
+    frame: HTMLElement,
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): void {
+    const drag = this.mockupPointerDrag;
+    if (!drag || drag.mode !== 'corner-handle' || !drag.cornerHandle) {
+      this.logMockupCornerDrag('apply corner drag ABORT: bad drag state', {
+        hasDrag: !!drag,
+        mode: drag?.mode,
+        handleId: drag?.cornerHandle,
+      });
+      return;
+    }
+
+    const point = this.mockupPointFromEvent(event, frame);
+    if (!point) {
+      this.logMockupCornerDrag('apply corner drag ABORT: no image point');
+      return;
+    }
+
+    const state = this.getMockupState(group, settingKey);
+    if (!state.rectCornerHandles) {
+      this.logMockupCornerDrag('apply corner drag ABORT: no rectCornerHandles in state');
+      return;
+    }
+
+    const before = this.snapshotMockupCornerParams(state.rectCornerHandles, drag.cornerHandle);
+    const next = cloneMockupRectCorners(state.rectCornerHandles);
+    if (state.quad) {
+      applyMockupQuadCornerHandleDrag(
+        drag.cornerHandle,
+        point,
+        state.quad,
+        next,
+      );
+    } else if (state.rect) {
+      const local = this.mockupPointInRectLocal(point, state.rect);
+      applyMockupRectCornerHandleDrag(
+        drag.cornerHandle,
+        local.x,
+        local.y,
+        next,
+      );
+    } else {
+      this.logMockupCornerDrag('apply corner drag ABORT: no quad/rect');
+      return;
+    }
+
+    state.rectCornerHandles = next;
+
+    if (this.shouldLogMockupCornerDragMove()) {
+      this.logMockupCornerDrag('apply corner drag OK', {
+        handleId: drag.cornerHandle,
+        point,
+        before,
+        after: this.snapshotMockupCornerParams(next, drag.cornerHandle),
+        previewRevision: state.previewRevision + 1,
+      });
+    }
+
+    state.previewRevision += 1;
+    this.cdr.detectChanges();
+  }
+
+  private getMockupRectCornerHandles(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): MockupRectCornersParams | null {
+    return this.getMockupState(group, settingKey).rectCornerHandles;
+  }
+
+  private ensureMockupRectCornerHandles(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): void {
+    const state = this.getMockupState(group, settingKey);
+    if (!state.rect && !state.quad) {
+      return;
+    }
+    if (!state.rectCornerHandles) {
+      state.rectCornerHandles = createDefaultMockupRectCorners();
+      if (state.quad) {
+        syncQuadBulgeControlPoints(state.quad, state.rectCornerHandles);
+      }
+      state.previewRevision += 1;
+    }
   }
 
   private resetMockupFullscreenCornerOptions(): void {
@@ -844,6 +1344,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         this.detachMockupPenOutsideListener();
         return;
       }
+      if (this.mockupFullscreenTarget) {
+        return;
+      }
       const el = event.target as HTMLElement;
       if (el.closest('.mockup-fullscreen-overlay')) {
         return;
@@ -879,6 +1382,14 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     if (!this.isMockupPenActive(group, settingKey)) {
       return;
     }
+    if (this.isMockupPointerOnShapeHandle(event)) {
+      this.logMockupCornerDrag('draw blocked: shape handle target');
+      return;
+    }
+    if (this.isMockupPrintCornersEditing(group, settingKey)) {
+      this.logMockupCornerDrag('draw blocked: corners editing');
+      return;
+    }
 
     const frame = this.mockupFrameFromEvent(event);
     if (!frame) {
@@ -908,6 +1419,12 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       origRect: null,
       origQuad: null,
     };
+
+    this.logMockupCornerDrag('draw mode STARTED (unexpected during corner edit?)', {
+      point,
+      usesQuad,
+      hadQuad: !!state.quad,
+    });
 
     state.rect = { x: point.x, y: point.y, width: 0, height: 0 };
     if (usesQuad) {
@@ -947,8 +1464,11 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     group: AbstractControl,
     settingKey?: ExtraSettingKey | null,
   ): void {
+    if (this.isMockupPointerOnShapeHandle(event)) {
+      return;
+    }
     const scope = this.resolveMockupScope(settingKey);
-    if (!this.isMockupPenActive(group, settingKey)) {
+    if (!this.isMockupShapeEditingActive(group, settingKey)) {
       return;
     }
 
@@ -972,9 +1492,12 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       startY: point.y,
       origRect: usesQuad ? null : state.rect ? { ...state.rect } : null,
       origQuad: usesQuad && state.quad ? this.cloneMockupQuad(state.quad) : null,
+      frame,
+      settingKey: settingKey ?? null,
     };
 
     frame.setPointerCapture(event.pointerId);
+    this.attachMockupDragDocumentListeners();
     event.stopPropagation();
     event.preventDefault();
   }
@@ -986,11 +1509,13 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     settingKey?: ExtraSettingKey | null,
     interactive?: boolean,
   ): void {
+    event.stopPropagation();
+    event.preventDefault();
     if (interactive === false) {
       return;
     }
     const scope = this.resolveMockupScope(settingKey);
-    if (!this.isMockupPenActive(group, settingKey)) {
+    if (!this.isMockupShapeEditingActive(group, settingKey)) {
       return;
     }
 
@@ -1015,11 +1540,12 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       startY: point.y,
       origRect: usesQuad ? null : state.rect ? { ...state.rect } : null,
       origQuad: usesQuad && state.quad ? this.cloneMockupQuad(state.quad) : null,
+      frame,
+      settingKey: settingKey ?? null,
     };
 
     frame.setPointerCapture(event.pointerId);
-    event.stopPropagation();
-    event.preventDefault();
+    this.attachMockupDragDocumentListeners();
   }
 
   onMockupPointerMove(
@@ -1028,8 +1554,35 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     settingKey?: ExtraSettingKey | null,
   ): void {
     const drag = this.mockupPointerDrag;
+    if (!drag) {
+      return;
+    }
+
+    if (drag.mode === 'corner-handle' && drag.frame) {
+      if (this.shouldLogMockupCornerDragMove()) {
+        this.logMockupCornerDrag('frame pointermove -> apply corner drag (from drag state)');
+      }
+      this.applyMockupCornerHandleDrag(
+        event,
+        drag.frame,
+        drag.group,
+        drag.settingKey ?? null,
+      );
+      return;
+    }
+
     const scope = this.resolveMockupScope(settingKey);
-    if (!drag || drag.group !== group || drag.scope !== scope) {
+    if (drag.group !== group || drag.scope !== scope) {
+      if (drag.mode === 'corner-handle' && this.shouldLogMockupCornerDragMove()) {
+        this.logMockupCornerDrag('frame pointermove BLOCKED (group/scope mismatch?)', {
+          dragMode: drag.mode,
+          groupMatch: drag.group === group,
+          scopeMatch: drag.scope === scope,
+          dragScope: drag.scope,
+          templateScope: scope,
+          dragHandle: drag.cornerHandle,
+        });
+      }
       return;
     }
 
@@ -1038,40 +1591,22 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       return;
     }
 
-    const point = this.mockupPointFromEvent(event, frame);
-    if (!point) {
-      return;
-    }
-
-    const state = this.getMockupState(group, settingKey);
-    const usesQuad = this.usesMockupQuad(group);
-
     if (drag.mode === 'draw') {
+      const point = this.mockupPointFromEvent(event, frame);
+      if (!point) {
+        return;
+      }
+      const state = this.getMockupState(group, settingKey);
       state.rect = this.mockupRectFromPoints(drag.startX, drag.startY, point.x, point.y);
+      state.previewRevision += 1;
+      this.cdr.detectChanges();
       return;
     }
 
-    if (drag.mode === 'resize' && drag.corner) {
-      if (usesQuad && drag.origQuad) {
-        state.quad = this.resizeMockupQuadCorner(drag.origQuad, drag.corner, point);
-      } else if (drag.origRect) {
-        state.rect = this.mockupResizeRect(drag.origRect, drag.corner, point);
-      }
+    const dragFrame = drag.frame ?? frame;
+    if (drag.mode === 'resize' || drag.mode === 'move') {
+      this.applyMockupShapeDrag(event, dragFrame, group, settingKey);
       return;
-    }
-
-    if (drag.mode === 'move') {
-      const dx = point.x - drag.startX;
-      const dy = point.y - drag.startY;
-      if (usesQuad && drag.origQuad) {
-        state.quad = this.moveMockupQuad(drag.origQuad, dx, dy);
-      } else if (drag.origRect) {
-        state.rect = {
-          ...drag.origRect,
-          x: this.clampMockupCoord(drag.origRect.x + dx, 0, 1 - drag.origRect.width),
-          y: this.clampMockupCoord(drag.origRect.y + dy, 0, 1 - drag.origRect.height),
-        };
-      }
     }
   }
 
@@ -1081,13 +1616,38 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     settingKey?: ExtraSettingKey | null,
   ): void {
     const drag = this.mockupPointerDrag;
+    if (!drag) {
+      return;
+    }
+
+    if (drag.mode === 'corner-handle') {
+      this.logMockupCornerDrag('pointerup -> corner drag end', {
+        handleId: drag.cornerHandle,
+        after: this.snapshotMockupCornerParams(
+          this.getMockupState(drag.group, drag.settingKey ?? null).rectCornerHandles,
+          drag.cornerHandle,
+        ),
+      });
+      this.mockupCornerDragMoveLogCount = 0;
+      const frame = drag.frame ?? this.mockupFrameFromEvent(event);
+      frame?.releasePointerCapture(event.pointerId);
+      this.detachMockupDragDocumentListeners();
+      const state = this.getMockupState(drag.group, drag.settingKey ?? null);
+      state.previewRevision += 1;
+      this.mockupPointerDrag = null;
+      this.refreshMockupValidationState();
+      this.cdr.detectChanges();
+      return;
+    }
+
     const scope = this.resolveMockupScope(settingKey);
-    if (!drag || drag.group !== group || drag.scope !== scope) {
+    if (drag.group !== group || drag.scope !== scope) {
       return;
     }
 
     const frame = this.mockupFrameFromEvent(event);
     frame?.releasePointerCapture(event.pointerId);
+    this.detachMockupDragDocumentListeners();
 
     const state = this.getMockupState(group, settingKey);
     const usesQuad = this.usesMockupQuad(group);
@@ -1115,7 +1675,13 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       if (usesQuad) {
         state.quad = this.mockupQuadFromRect(state.rect);
         state.rect = null;
+      } else if (this.mockupFullscreenCornersEnabled && this.isMockupFullscreen(group, settingKey)) {
+        this.ensureMockupRectCornerHandles(group, settingKey);
       }
+    }
+
+    if (usesQuad && state.quad && this.mockupFullscreenCornersEnabled && this.isMockupFullscreen(group, settingKey)) {
+      this.ensureMockupRectCornerHandles(group, settingKey);
     }
 
     this.mockupPointerDrag = null;
@@ -1202,6 +1768,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         previewRevision: state.previewRevision,
         rect: state.rect ? { ...state.rect } : null,
         quad: state.quad ? this.cloneMockupQuad(state.quad) : null,
+        rectCornerHandles: state.rectCornerHandles
+          ? cloneMockupRectCorners(state.rectCornerHandles)
+          : null,
       });
       if (this.optionalMockupEnabled.has(key)) {
         this.optionalMockupEnabled.add(newKey);
@@ -1219,10 +1788,36 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       previewRevision: 0,
       rect: null,
       quad: null,
+      rectCornerHandles: null,
+    };
+  }
+
+  private mockupPointInRectLocal(
+    point: { x: number; y: number },
+    rect: MockupRect,
+  ): { x: number; y: number } {
+    if (!rect.width || !rect.height) {
+      return { x: 0, y: 0 };
+    }
+    return {
+      x: this.clampMockupCoord((point.x - rect.x) / rect.width, 0, 1),
+      y: this.clampMockupCoord((point.y - rect.y) / rect.height, 0, 1),
     };
   }
 
   private mockupFrameFromEvent(event: PointerEvent): HTMLElement | null {
+    const dragFrame = this.mockupPointerDrag?.frame;
+    if (dragFrame) {
+      return dragFrame;
+    }
+
+    const fromTarget = (event.target as HTMLElement | null)?.closest(
+      '.mockup-upload-preview__frame',
+    ) as HTMLElement | null;
+    if (fromTarget) {
+      return fromTarget;
+    }
+
     const target = event.currentTarget as HTMLElement | null;
     if (!target) {
       return null;
