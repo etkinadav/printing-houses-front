@@ -1,5 +1,5 @@
 import { HttpEventType } from '@angular/common/http';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
@@ -74,8 +74,10 @@ const POLL_MS = 4000;
 const FILES_END_CONTROLS_THRESHOLD = 6;
 /** Settings toggle groups wrap when label score exceeds this threshold. */
 const SETTINGS_BUTTONS_WRAP_SCORE_THRESHOLD = 30;
-/** Debounce for persisting canvas settings / placements. */
-const CANVAS_PERSIST_DEBOUNCE_MS = 500;
+/** Debounce for persisting canvas print settings to the API. */
+const CANVAS_SETTINGS_PERSIST_DEBOUNCE_MS = 300;
+/** Placements save immediately — object:modified already fires once per edit. */
+const CANVAS_PLACEMENT_PERSIST_DEBOUNCE_MS = 0;
 
 export interface FileListDisplayEntry {
   file: PhPrintingFile;
@@ -145,6 +147,8 @@ export class PrintComponent implements OnInit, OnDestroy {
   private suppressSettingsPersist = false;
   private settingsPersistTimer: ReturnType<typeof setTimeout> | null = null;
   private placementPersistTimers = new Map<PhCanvasSideName, ReturnType<typeof setTimeout>>();
+  private placementPersistPending = new Map<PhCanvasSideName, PhCanvasPlacement[]>();
+  private placementPersistSeq = new Map<PhCanvasSideName, number>();
   private compositeToken = 0;
 
   constructor(
@@ -497,9 +501,12 @@ export class PrintComponent implements OnInit, OnDestroy {
     if (this.settingsPersistTimer) {
       clearTimeout(this.settingsPersistTimer);
     }
-    for (const timer of this.placementPersistTimers.values()) {
-      clearTimeout(timer);
-    }
+    this.flushPendingPlacements();
+  }
+
+  @HostListener('window:beforeunload')
+  onBeforeUnload(): void {
+    this.flushPendingPlacements();
   }
 
   isFileProcessing(file: PhPrintingFile): boolean {
@@ -1072,11 +1079,12 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
     const side = this.getSide(payload.side);
     if (side) {
-      side.placements = payload.placements;
+      // Mutate in place so the canvas sheet @Input reference stays stable (no re-sync flicker).
+      side.placements.splice(0, side.placements.length, ...payload.placements);
     } else {
       this.canvas.sides = [
         ...this.canvas.sides,
-        { side: payload.side, placements: payload.placements },
+        { side: payload.side, placements: [...payload.placements] },
       ];
     }
     this.persistSidePlacements(payload.side, payload.placements);
@@ -1089,21 +1097,51 @@ export class PrintComponent implements OnInit, OnDestroy {
     if (!this.canvas?._id) {
       return;
     }
+    this.placementPersistPending.set(side, placements.map((p) => ({ ...p })));
     const existing = this.placementPersistTimers.get(side);
     if (existing) {
       clearTimeout(existing);
     }
     const canvasId = this.canvas._id;
+    const seq = (this.placementPersistSeq.get(side) ?? 0) + 1;
+    this.placementPersistSeq.set(side, seq);
+    const snapshot = placements.map((p) => ({ ...p }));
     const timer = setTimeout(() => {
       this.placementPersistTimers.delete(side);
+      this.placementPersistPending.delete(side);
       this.phCanvasService
-        .updateSidePlacements(canvasId, side, placements.map((p) => ({ ...p })))
+        .updateSidePlacements(canvasId, side, snapshot)
         .subscribe({
-          next: (res) => this.applyCanvasFromServer(res.canvas),
-          error: () => {},
+          next: () => {
+            if (this.placementPersistSeq.get(side) === seq) {
+              this.placementPersistSeq.delete(side);
+            }
+          },
+          error: () => {
+            // Restore pending so a flush / next edit can retry.
+            this.placementPersistPending.set(side, snapshot);
+          },
         });
-    }, CANVAS_PERSIST_DEBOUNCE_MS);
+    }, CANVAS_PLACEMENT_PERSIST_DEBOUNCE_MS);
     this.placementPersistTimers.set(side, timer);
+  }
+
+  /** Push any debounced placement writes before navigation / refresh. */
+  private flushPendingPlacements(): void {
+    if (!this.canvas?._id) {
+      return;
+    }
+    const canvasId = this.canvas._id;
+    for (const timer of this.placementPersistTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.placementPersistTimers.clear();
+    for (const [side, placements] of this.placementPersistPending.entries()) {
+      this.placementPersistPending.delete(side);
+      this.phCanvasService.updateSidePlacements(canvasId, side, placements).subscribe({
+        error: () => {},
+      });
+    }
   }
 
   private pruneCanvasPlacementsForFile(fileId: string): void {
@@ -1597,7 +1635,7 @@ export class PrintComponent implements OnInit, OnDestroy {
         next: (res) => this.applyCanvasFromServer(res.canvas),
         error: () => {},
       });
-    }, CANVAS_PERSIST_DEBOUNCE_MS);
+    }, CANVAS_SETTINGS_PERSIST_DEBOUNCE_MS);
   }
 
   private onDimensionBlur(axis: 'W' | 'L' = 'W'): void {

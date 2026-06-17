@@ -41,6 +41,14 @@ $ph-preview-duplex-stack-gap-px: 0;
   z-index: 1;
 }
 
+.ph-print-preview-host--canvas {
+  overflow: visible;
+}
+
+.ph-print-preview-host--canvas.ph-print-preview-host--duplex {
+  overflow: visible;
+}
+
 .ph-print-preview-host {
 
   min-width: 0;
@@ -79,6 +87,10 @@ $ph-preview-duplex-stack-gap-px: 0;
 }
 
 
+
+.ph-print-preview-duplex-item--canvas {
+  overflow: visible;
+}
 
 .ph-print-preview-duplex-item {
   flex: 1 1 0;
@@ -164,6 +176,10 @@ $ph-preview-duplex-stack-gap-px: 0;
 
 .ph-print-preview-bundle--fold-dims .ph-print-preview-dim-top-fold {
   top: -$ph-preview-dim-band-px;
+}
+
+.ph-print-preview-stage--canvas {
+  overflow: visible;
 }
 
 .ph-print-preview-stage {
@@ -489,6 +505,10 @@ $ph-preview-duplex-stack-gap-px: 0;
 
 
 
+.ph-print-preview-sheet--canvas {
+  overflow: visible;
+}
+
 .ph-print-preview-sheet {
 
   position: relative;
@@ -514,6 +534,26 @@ $ph-preview-duplex-stack-gap-px: 0;
 }
 
 
+
+.ph-print-preview-image-layer--canvas {
+  overflow: visible;
+  clip-path: none !important;
+}
+
+.ph-print-preview-image-bg {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.ph-print-preview-image-bg--static {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
 
 .ph-print-preview-image-layer {
 
@@ -557,6 +597,7 @@ $ph-preview-duplex-stack-gap-px: 0;
   width: 100%;
   height: 100%;
   z-index: 1;
+  overflow: visible;
 }
 
 

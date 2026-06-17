@@ -2,7 +2,8 @@
   #measureHost
   class="ph-print-preview-host w-100 h-100 d-flex justify-content-center align-items-center"
   [class.ph-print-preview-host--duplex]="isDuplexStack && !compactSheetOnly"
-  [class.ph-print-preview-host--compact]="compactSheetOnly">
+  [class.ph-print-preview-host--compact]="compactSheetOnly"
+  [class.ph-print-preview-host--canvas]="canvasMode">
 
   <ng-container *ngIf="!canvasMode">
     <img
@@ -29,12 +30,12 @@
   <div
     *ngIf="isDuplexStack && layout && !imageLoading"
     class="ph-print-preview-duplex-stack w-100 h-100">
-    <div class="ph-print-preview-duplex-item ph-print-preview-duplex-item--front">
+    <div class="ph-print-preview-duplex-item ph-print-preview-duplex-item--front" [class.ph-print-preview-duplex-item--canvas]="canvasMode">
       <ng-container
         *ngTemplateOutlet="previewBundle; context: { sheetImageUrl: activeImageUrls[0], isDuplexFront: true, side: 'front' }">
       </ng-container>
     </div>
-    <div class="ph-print-preview-duplex-item ph-print-preview-duplex-item--back">
+    <div class="ph-print-preview-duplex-item ph-print-preview-duplex-item--back" [class.ph-print-preview-duplex-item--canvas]="canvasMode">
       <ng-container
         *ngTemplateOutlet="previewBundle; context: { sheetImageUrl: activeImageUrls[1], isDuplexFront: false, side: 'back' }">
       </ng-container>
@@ -57,6 +58,7 @@
     [class.ph-print-preview-bundle--fold-dims]="layout.hasFoldDims">
     <div
       class="ph-print-preview-stage position-relative"
+      [class.ph-print-preview-stage--canvas]="canvasMode"
       [class.bg-white]="!layout.hasBleed && !layout.hasCornerShape"
       [class.shadow-85-strong]="!layout.hasBleed && !layout.hasCornerShape"
       [class.ph-print-preview-stage--bleed]="layout.hasBleed"
@@ -136,6 +138,7 @@
 
       <div
       class="ph-print-preview-sheet w-100 h-100"
+      [class.ph-print-preview-sheet--canvas]="canvasMode"
       [class.ph-print-preview-sheet--bleed]="layout.hasBleed"
       [class.ph-print-preview-sheet--corner-shape]="layout.hasCornerShape"
       [class.ph-print-preview-sheet--duplex-front]="isDuplexFront"
@@ -260,10 +263,17 @@
     class="ph-print-preview-image-layer"
     [class.ph-print-preview-image-layer--bleed]="layout.hasBleed"
     [class.ph-print-preview-image-layer--compact]="compactSheetOnly"
-    [ngStyle]="sheetBackgroundStyles"
+    [class.ph-print-preview-image-layer--canvas]="canvasMode"
     [style.grid-area]="compactSheetOnly ? null : (layout.hasBleed ? '1 / 1 / 4 / 4' : '1 / 1 / 2 / 2')"
-    [style.clip-path]="layout.imageClipPath"
-    [style.border-radius.px]="layout.imageBorderRadiusPx">
+    [style.clip-path]="canvasMode ? null : layout.imageClipPath"
+    [style.border-radius.px]="canvasMode ? null : layout.imageBorderRadiusPx">
+    <div
+      *ngIf="canvasMode"
+      class="ph-print-preview-image-bg"
+      [class.ph-print-preview-image-layer--bleed]="layout.hasBleed"
+      [ngStyle]="sheetBackgroundStyles"
+      [style.clip-path]="layout.imageClipPath"
+      [style.border-radius.px]="layout.imageBorderRadiusPx"></div>
     <app-ph-canvas-sheet
       *ngIf="canvasMode; else staticSheetImage"
       class="ph-print-preview-canvas-sheet"
@@ -274,7 +284,11 @@
       (placementsChange)="onSheetPlacementsChange(side || 'front', $event)">
     </app-ph-canvas-sheet>
     <ng-template #staticSheetImage>
-      <img [src]="sheetImageUrl" class="ph-print-preview-image" alt="" />
+      <div
+        class="ph-print-preview-image-bg ph-print-preview-image-bg--static"
+        [ngStyle]="sheetBackgroundStyles">
+        <img [src]="sheetImageUrl" class="ph-print-preview-image" alt="" />
+      </div>
     </ng-template>
   </div>
 </ng-template>
