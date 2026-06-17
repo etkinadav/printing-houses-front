@@ -25,35 +25,15 @@ import {
   buildDefaultExtraUiStateMap,
   buildExtraSettingsContext,
   buildVisibleExtraSettingRows,
-  buildPersistedExtraSelections,
-  didDoubleSidedRequiredChange,
-  ExtraSettingsContext,
   EXTRA_OPTION_NONE_INDEX,
-  isDoubleSidedRequired,
   productHasDoubleSidedRequired,
   reconcileExtraUiStateOnTreeChange,
   resolveSelectedDuplex,
   resolveSelectedCorner,
   resolveSelectedFolding,
   syncExtraUiStateFromSaved,
-  validateExtraSelections,
 } from '../ph-printing-files/ph-print-extra-settings.util';
 import { resolveMockupForPrint } from '../ph-printing-files/ph-print-mockup.util';
-import {
-  formatImageOriginalDimensionsLine,
-  getImageOriginalHeightCm,
-  getImageOriginalWidthCm,
-  isRasterPrintingFile,
-  pixelsToOriginalCmString,
-  resolveImageOriginalDpi,
-} from '../ph-printing-files/ph-file-dimensions.util';
-import {
-  buildDuplexPairDisplayEntries,
-  DuplexPairDisplayEntry,
-  findDuplexPartnerSide,
-  findDuplexPairForSide,
-} from '../ph-printing-files/ph-duplex-pairing.util';
-import { PhPrintingFilesService } from '../ph-printing-files/ph-printing-files.service';
 import { isColorTextureUrl } from '../ph-products/ph-color-texture.util';
 import {
   PhColor,
@@ -68,6 +48,17 @@ import {
 import { PhProductsService } from '../ph-products/ph-products.service';
 import { PhPrintingHouse } from '../ph-printing-house/ph-printing-house.model';
 import { PhPrintingHouseService } from '../ph-printing-house/ph-printing-house.service';
+import { PhPrintingFilesService } from '../ph-printing-files/ph-printing-files.service';
+import { PhCanvasService } from '../ph-canvas/ph-canvas.service';
+import {
+  PhCanvas,
+  PhCanvasDragPayload,
+  PhCanvasPlacement,
+  PhCanvasSide,
+  PhCanvasSideName,
+  PH_CANVAS_DRAG_MIME,
+} from '../ph-canvas/ph-canvas.model';
+import { renderCanvasSideComposite } from '../ph-canvas/ph-canvas-composite.util';
 
 interface FixedDimensionOption {
   optionIndex: number;
@@ -83,18 +74,17 @@ const POLL_MS = 4000;
 const FILES_END_CONTROLS_THRESHOLD = 6;
 /** Settings toggle groups wrap when label score exceeds this threshold. */
 const SETTINGS_BUTTONS_WRAP_SCORE_THRESHOLD = 30;
+/** Debounce for persisting canvas settings / placements. */
+const CANVAS_PERSIST_DEBOUNCE_MS = 500;
 
 export interface FileListDisplayEntry {
   file: PhPrintingFile;
   images: PhPrintingFileImage[];
-  imageIndex: number;
-  splitMode: boolean;
 }
 
 export type SidebarDisplayItem =
   | { kind: 'processing'; file: PhPrintingFile }
-  | { kind: 'file-entry'; entry: FileListDisplayEntry }
-  | { kind: 'duplex-pair'; pair: DuplexPairDisplayEntry };
+  | { kind: 'file-entry'; entry: FileListDisplayEntry };
 
 @Component({
   selector: 'app-print',
@@ -112,60 +102,50 @@ export class PrintComponent implements OnInit, OnDestroy {
   product: PhProduct | null = null;
   printingHouse: PhPrintingHouse | null = null;
 
+  /** Files are only a source of draggable page-images now. */
   files: PhPrintingFile[] = [];
   processingFiles: PhPrintingFile[] = [];
-  selectedFile: PhPrintingFile | null = null;
-  /** Selected page (image) within the selected file. Settings are per page. */
-  selectedImage: PhPrintingFileImage | null = null;
-  /** 0-based index of the selected page within selectedFile.images. */
-  currentImageIndex = 0;
-  /** Stable preview URL — only changes when the selected page or its thumbnail changes. */
-  previewThumbnailUrl: string | null = null;
-  /** Stable object reference for preview background — avoids child ngOnChanges loops. */
-  previewSheetBackgroundStylesCache: Record<string, string> = { backgroundColor: '#ffffff' };
-  /** When true, desktop/mobile preview pane shows product mockup instead of print preview. */
+
+  /** The single editing canvas — print settings + placements live here. */
+  canvas: PhCanvas | null = null;
+
+  /** When true, the preview pane shows the composite mockup instead of the editable sheet. */
   mockupViewActive = false;
+  /** Composite raster of each side's placements, fed to the mockup. */
+  frontCompositeUrl: string | null = null;
+  backCompositeUrl: string | null = null;
+
+  previewSheetBackgroundStylesCache: Record<string, string> = { backgroundColor: '#ffffff' };
 
   /** Fixed: selected index in fixedDimensionOptions. */
   currentFixedOptionIndex: number | null = null;
-  /** Dynamic/fixed: selected material index — null when no file is ready. */
+  /** Dynamic/fixed: selected material index. */
   currentMaterialIndex: number | null = null;
   currentColorIndex: number | null = null;
   printingLengthCm = 0;
   printingWidthCm = 0;
   extraSettingsUi: ExtraSettingsUiStateMap = {};
-  /** Cached extra-setting rows — never compute in template (avoids infinite change detection). */
   extraSettingRows: PrintExtraSettingRow[] = [];
 
-  /** Cached product options — never compute in template (avoids infinite change detection). */
   fixedDimensionOptions: FixedDimensionOption[] = [];
 
   uploading = false;
   uploadProgress = 0;
   uploadingCount = 0;
   readonly expressFileAccept = EXPRESS_FILE_ACCEPT;
-  /** Value used for single-option display toggles when a file is ready. */
   readonly singleOptionToggleValue = 0;
-  /** Keeps the product-name display toggle visually selected (read-only). */
   readonly productNameToggle = 0;
 
   private directionSub?: Subscription;
   private darkModeSub?: Subscription;
   private pollSub?: Subscription;
   private activeUploads = 0;
-  /** Bumped on stopUploading() so in-flight upload callbacks are ignored. */
   private uploadGeneration = 0;
   private activeUploadSubscriptions = new Set<Subscription>();
-  private isUpdatingFileSettings = false;
-  private settingsSaveInFlightForFileId: string | null = null;
-  private settingsSaveInFlightForImageId: string | null = null;
-  private pendingDefaultSettingsFileIds = new Set<string>();
   private suppressSettingsPersist = false;
-  /** Stable duplex-pair sidebar mode for the whole order (not per selected page). */
-  private orderDoubleSidedRequired: boolean | null = null;
-  private isNormalizingDoubleSidedSettings = false;
-  private fileDimensionsResolveToken = 0;
-  resolvedFileDimensions: { widthCm: string; heightCm: string } | null = null;
+  private settingsPersistTimer: ReturnType<typeof setTimeout> | null = null;
+  private placementPersistTimers = new Map<PhCanvasSideName, ReturnType<typeof setTimeout>>();
+  private compositeToken = 0;
 
   constructor(
     private route: ActivatedRoute,
@@ -175,6 +155,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     private phPrintingFilesService: PhPrintingFilesService,
     private phProductsService: PhProductsService,
     private phPrintingHouseService: PhPrintingHouseService,
+    private phCanvasService: PhCanvasService,
     private translateService: TranslateService,
     private snackBar: MatSnackBar,
     private phUploadValidation: PhUploadValidationService,
@@ -186,11 +167,6 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   get hasFiles(): boolean {
     return this.files.length > 0;
-  }
-
-  /** Desktop preview: only processing files, no ready page selected yet (mean-corse ph-printing-table). */
-  get showPreviewProcessingState(): boolean {
-    return !this.selectedImage && this.processingFiles.length > 0;
   }
 
   get showEndDeleteAll(): boolean {
@@ -225,12 +201,11 @@ export class PrintComponent implements OnInit, OnDestroy {
     return materials[idx] ?? null;
   }
 
-  /** Fixed size context for settings panel rows when no file is ready (first size). */
   get settingsPanelFixedSize(): PhSize | null {
     if (this.selectedFixedSize) {
       return this.selectedFixedSize;
     }
-    if (this.settingsControlsDisabled && this.isFixedProduct && this.fixedSizes.length > 0) {
+    if (this.isFixedProduct && this.fixedSizes.length > 0) {
       const firstOption = this.fixedDimensionOptions[0];
       if (firstOption != null) {
         return this.fixedSizes[firstOption.sizeIndex] ?? this.fixedSizes[0] ?? null;
@@ -240,13 +215,9 @@ export class PrintComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  /** Material context for panel row visibility when toggles are disabled. */
   get settingsPanelMaterial(): PhMaterial | PhDynamicMaterial | null {
     if (this.selectedMaterial) {
       return this.selectedMaterial;
-    }
-    if (!this.settingsControlsDisabled) {
-      return null;
     }
     if (this.isDynamicProduct) {
       return this.dynamicMaterials[0] ?? null;
@@ -255,7 +226,6 @@ export class PrintComponent implements OnInit, OnDestroy {
     return materials[0] ?? null;
   }
 
-  /** Placeholder defaults for dynamic dimension inputs when no file is selected. */
   get dynamicMaterialForDimensionsPanel(): PhDynamicMaterial | null {
     return this.selectedDynamicMaterial ?? this.dynamicMaterials[0] ?? null;
   }
@@ -310,20 +280,15 @@ export class PrintComponent implements OnInit, OnDestroy {
     return colors[idx] ?? null;
   }
 
-  get hasSettingsReadyFile(): boolean {
-    return !!this.selectedFile && !this.isFileProcessing(this.selectedFile);
-  }
-
   get showPrintSettingsPanel(): boolean {
     return !!this.product;
   }
 
-  /** Per-control disabled — like mean-corse `[disabled]="!currentImage || files.length === 0"`. */
+  /** Settings act on the canvas; enabled as soon as the canvas exists. */
   get settingsControlsDisabled(): boolean {
-    return this.finishedCount === 0 || !this.selectedImage;
+    return !this.canvas;
   }
 
-  /** ngModel for toggles when disabled — no checked/gray background. */
   get materialToggleModel(): number | null {
     return this.settingsControlsDisabled ? null : this.currentMaterialIndex;
   }
@@ -336,72 +301,36 @@ export class PrintComponent implements OnInit, OnDestroy {
     return this.settingsControlsDisabled ? null : this.currentFixedOptionIndex;
   }
 
-  /** Single-option rows: display when ready, disabled+unchecked when empty (mean-corse). */
   get singleOptionToggleModel(): number | null {
     return this.settingsControlsDisabled ? null : this.singleOptionToggleValue;
   }
 
-  get showDuplexFileDimensions(): boolean {
-    return this.isDuplexPairingModeActive() && this.hasSettingsReadyFile;
+  // --- Canvas sides / placements --------------------------------------------
+
+  get isDoubleSided(): boolean {
+    if (this.product && productHasDoubleSidedRequired(this.product)) {
+      return true;
+    }
+    return this.canvas?.printSettings?.doubleSidedEnabled === true;
   }
 
-  get selectedDuplexPair(): DuplexPairDisplayEntry | null {
-    if (!this.selectedFile || !this.selectedImage) {
-      return null;
-    }
-    return findDuplexPairForSide(
-      this.getDuplexPairEntries(),
-      this.selectedFile._id,
-      this.selectedImage._id,
-    );
+  get canvasSides(): PhCanvasSideName[] {
+    return this.isDoubleSided ? ['front', 'back'] : ['front'];
   }
 
-  get selectedFileDimensionsLine(): string {
-    if (!this.showPrintSettingsPanel) {
-      return '';
-    }
-    if (!this.hasSettingsReadyFile) {
-      return '—';
-    }
-    return this.formatImageDimensionsLine(this.selectedImage);
+  private getSide(side: PhCanvasSideName): PhCanvasSide | null {
+    return this.canvas?.sides?.find((s) => s.side === side) ?? null;
   }
 
-  get selectedDuplexFrontDimensionsLine(): string {
-    if (!this.showPrintSettingsPanel || !this.hasSettingsReadyFile) {
-      return '—';
-    }
-    return this.formatImageDimensionsLine(this.selectedDuplexPair?.front.image ?? null);
+  get frontPlacements(): PhCanvasPlacement[] {
+    return this.getSide('front')?.placements ?? [];
   }
 
-  get selectedDuplexBackDimensionsLine(): string {
-    if (!this.showPrintSettingsPanel || !this.hasSettingsReadyFile) {
-      return '—';
-    }
-    return this.formatImageDimensionsLine(this.selectedDuplexPair?.back?.image ?? null);
+  get backPlacements(): PhCanvasPlacement[] {
+    return this.getSide('back')?.placements ?? [];
   }
 
-  formatImageDimensionsLine(image: PhPrintingFileImage | null | undefined): string {
-    if (!image) {
-      return '—';
-    }
-
-    const fromImage = formatImageOriginalDimensionsLine(
-      image,
-      this.translateService.instant('printing-table.dimensions-cm'),
-    );
-    if (fromImage !== '—') {
-      return fromImage;
-    }
-
-    if (
-      this.selectedImage?._id === image._id &&
-      this.resolvedFileDimensions
-    ) {
-      return `${this.resolvedFileDimensions.widthCm} × ${this.resolvedFileDimensions.heightCm} ${this.translateService.instant('printing-table.dimensions-cm')}`.trim();
-    }
-
-    return '—';
-  }
+  // --- Preview dimensions / extras ------------------------------------------
 
   get previewBaseWidthCm(): number {
     if (this.isFixedProduct) {
@@ -425,30 +354,6 @@ export class PrintComponent implements OnInit, OnDestroy {
     return 0;
   }
 
-  get previewDuplexStack(): boolean {
-    const pair = this.selectedDuplexPair;
-    return (
-      this.isDuplexPairingModeActive() &&
-      !!pair &&
-      !pair.isIncomplete &&
-      !!pair.back
-    );
-  }
-
-  get previewFrontThumbnailUrl(): string | null {
-    if (this.previewDuplexStack && this.selectedDuplexPair) {
-      return this.selectedDuplexPair.front.image.thumbnailUrl?.trim() || null;
-    }
-    return this.previewThumbnailUrl;
-  }
-
-  get previewBackThumbnailUrl(): string | null {
-    if (!this.previewDuplexStack || !this.selectedDuplexPair?.back) {
-      return null;
-    }
-    return this.selectedDuplexPair.back.image.thumbnailUrl?.trim() || null;
-  }
-
   get resolvedPrintMockup(): PhMockup | null {
     return resolveMockupForPrint(
       this.getCurrentExtraSettingsContext(),
@@ -458,14 +363,9 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   get showMockupPreview(): boolean {
-    return (
-      this.mockupViewActive &&
-      !!this.resolvedPrintMockup &&
-      !!this.previewFrontThumbnailUrl
-    );
+    return this.mockupViewActive && !!this.resolvedPrintMockup;
   }
 
-  /** Extra margin strips in preview — duplex (תוספת שוליים), not bleed. */
   get previewMarginCm(): number {
     return resolveSelectedDuplex(this.getCurrentExtraSettingsContext(), this.extraSettingsUi)?.size ?? 0;
   }
@@ -508,6 +408,20 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
     this.previewSheetBackgroundStylesCache = next;
     return this.previewSheetBackgroundStylesCache;
+  }
+
+  /** Representative thumbnail for the mobile mockup row. */
+  get canvasPreviewThumbnailUrl(): string | null {
+    const first = this.frontPlacements[0];
+    if (first) {
+      const file = this.files.find((f) => f._id === first.fileId);
+      const image = file?.images?.find((im) => im._id === first.imageId);
+      const url = image?.thumbnailUrl?.trim();
+      if (url) {
+        return url;
+      }
+    }
+    return null;
   }
 
   get printingHouseLogoUrl(): string {
@@ -566,6 +480,7 @@ export class PrintComponent implements OnInit, OnDestroy {
 
       if (productChanged) {
         this.resetSettingsUiState();
+        this.canvas = null;
       }
 
       this.loadPrintingHouse();
@@ -579,275 +494,47 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.darkModeSub?.unsubscribe();
     this.pollSub?.unsubscribe();
     this.stopUploading();
-    this.fileDimensionsResolveToken += 1;
-  }
-
-  private refreshResolvedFileDimensions(): void {
-    this.resolvedFileDimensions = null;
-    this.fileDimensionsResolveToken += 1;
-
-    const file = this.selectedFile;
-    const image = this.selectedImage;
-    if (!file || !image || this.isFileProcessing(file)) {
-      return;
+    if (this.settingsPersistTimer) {
+      clearTimeout(this.settingsPersistTimer);
     }
-    if (getImageOriginalWidthCm(image) !== '-' && getImageOriginalHeightCm(image) !== '-') {
-      return;
+    for (const timer of this.placementPersistTimers.values()) {
+      clearTimeout(timer);
     }
-    // Browser fallback only makes sense for single-page raster files.
-    if (!isRasterPrintingFile(file) || (file.images?.length ?? 0) > 1) {
-      return;
-    }
-
-    const url = file.originalUrl?.trim();
-    if (!url) {
-      return;
-    }
-
-    const token = this.fileDimensionsResolveToken;
-    const dpi = resolveImageOriginalDpi(image);
-    const img = new Image();
-    img.onload = () => {
-      if (token !== this.fileDimensionsResolveToken) {
-        return;
-      }
-      if (!img.naturalWidth || !img.naturalHeight) {
-        return;
-      }
-      this.resolvedFileDimensions = {
-        widthCm: pixelsToOriginalCmString(img.naturalWidth, dpi),
-        heightCm: pixelsToOriginalCmString(img.naturalHeight, dpi),
-      };
-    };
-    img.onerror = () => {};
-    img.src = url;
   }
 
   isFileProcessing(file: PhPrintingFile): boolean {
     return file.processing || !(file.images && file.images.length > 0);
   }
 
-  /** Pages of a file (always an array). */
   getFileImages(file: PhPrintingFile | null | undefined): PhPrintingFileImage[] {
     return file?.images ?? [];
   }
 
-  isMultiPageFile(file: PhPrintingFile): boolean {
-    return this.getFileImages(file).length > 1;
-  }
-
-  /** True when double-sided is required for the current order (stable while browsing files). */
-  isDuplexPairingModeActive(): boolean {
-    if (!this.product) {
-      return false;
-    }
-    if (productHasDoubleSidedRequired(this.product)) {
-      return true;
-    }
-    if (this.orderDoubleSidedRequired !== null) {
-      return this.orderDoubleSidedRequired;
-    }
-    return isDoubleSidedRequired(this.getCurrentExtraSettingsContext());
-  }
-
-  getDuplexPairEntries(): DuplexPairDisplayEntry[] {
-    return buildDuplexPairDisplayEntries(this.files);
+  isFileListEntryGroupedMultiPage(entry: FileListDisplayEntry): boolean {
+    return entry.images.length > 1;
   }
 
   getSidebarDisplayItems(): SidebarDisplayItem[] {
-    if (this.isDuplexPairingModeActive()) {
-      const items: SidebarDisplayItem[] = [];
-      for (const file of this.files) {
-        if (this.isFileProcessing(file)) {
-          items.push({ kind: 'processing', file });
-        }
+    const items: SidebarDisplayItem[] = [];
+    for (const file of this.files) {
+      if (this.isFileProcessing(file)) {
+        items.push({ kind: 'processing', file });
+        continue;
       }
-      for (const pair of this.getDuplexPairEntries()) {
-        items.push({ kind: 'duplex-pair', pair });
-      }
-      return items;
+      items.push({
+        kind: 'file-entry',
+        entry: { file, images: this.getFileImages(file) },
+      });
     }
-
-    return this.getFileListEntries().map((entry) => ({
-      kind: 'file-entry' as const,
-      entry,
-    }));
+    return items;
   }
 
   trackSidebarItem = (_index: number, item: SidebarDisplayItem): string => {
     if (item.kind === 'processing') {
       return `processing:${item.file._id}`;
     }
-    if (item.kind === 'duplex-pair') {
-      const frontId = item.pair.front.image._id;
-      const backId = item.pair.back?.image._id ?? 'placeholder';
-      return `pair:${item.pair.pairIndex}:${frontId}:${backId}`;
-    }
     return item.entry.file._id;
   };
-
-  trackDuplexPair(_index: number, pair: DuplexPairDisplayEntry): string {
-    const backId = pair.back?.image._id ?? 'placeholder';
-    return `${pair.pairIndex}:${pair.front.image._id}:${backId}`;
-  }
-
-  getDisplayPageLabel(
-    file: PhPrintingFile,
-    image: PhPrintingFileImage,
-    imageIndex: number,
-  ): string {
-    const page = image.page ?? imageIndex + 1;
-    return this.translateService.instant('ph-print.file-page-label', {
-      name: this.getDisplayFileName(file),
-      page,
-    });
-  }
-
-  isDuplexPairSelected(pair: DuplexPairDisplayEntry): boolean {
-    if (!this.selectedFile || !this.selectedImage) {
-      return false;
-    }
-    const selectedId = this.selectedImage._id;
-    if (
-      pair.front.file._id === this.selectedFile._id &&
-      pair.front.image._id === selectedId
-    ) {
-      return true;
-    }
-    return (
-      !!pair.back &&
-      pair.back.file._id === this.selectedFile._id &&
-      pair.back.image._id === selectedId
-    );
-  }
-
-  selectDuplexPair(pair: DuplexPairDisplayEntry): void {
-    if (pair.isIncomplete) {
-      return;
-    }
-    this.selectImage(pair.front.file, pair.front.image, pair.front.imageIndex);
-  }
-
-  onDuplexPairContainerClick(
-    pair: DuplexPairDisplayEntry,
-    fileInput: HTMLInputElement,
-    event: MouseEvent,
-  ): void {
-    if (!pair.isIncomplete) {
-      this.selectDuplexPair(pair);
-      return;
-    }
-    if (this.uploading || this.isDuplexDeleteClickTarget(event.target)) {
-      return;
-    }
-    this.triggerFilePicker(fileInput);
-  }
-
-  onDuplexPairContainerKeyup(
-    pair: DuplexPairDisplayEntry,
-    fileInput: HTMLInputElement,
-    event: KeyboardEvent,
-  ): void {
-    if (event.key !== 'Enter') {
-      return;
-    }
-    if (!pair.isIncomplete) {
-      this.selectDuplexPair(pair);
-      return;
-    }
-    if (this.uploading) {
-      return;
-    }
-    this.triggerFilePicker(fileInput);
-  }
-
-  private isDuplexDeleteClickTarget(target: EventTarget | null): boolean {
-    const el = target as HTMLElement | null;
-    return !!el?.closest?.('.delete-button, [matMenuTriggerFor]');
-  }
-
-  getFileListEntries(): FileListDisplayEntry[] {
-    const entries: FileListDisplayEntry[] = [];
-    for (const file of this.files) {
-      if (this.isFileProcessing(file)) {
-        entries.push({ file, images: [], imageIndex: 0, splitMode: false });
-        continue;
-      }
-      entries.push({
-        file,
-        images: this.getFileImages(file),
-        imageIndex: 0,
-        splitMode: false,
-      });
-    }
-    return entries;
-  }
-
-  getFileListImageIndex(entry: FileListDisplayEntry, loopIndex: number): number {
-    return entry.splitMode ? entry.imageIndex : loopIndex;
-  }
-
-  isFileListEntryGroupedMultiPage(entry: FileListDisplayEntry): boolean {
-    return !entry.splitMode && entry.images.length > 1;
-  }
-
-  /** Thumbnail used for sidebar/preview — the first page's thumbnail. */
-  getFileThumbnailUrl(file: PhPrintingFile | null | undefined): string | null {
-    return this.getFileImages(file)[0]?.thumbnailUrl?.trim() || null;
-  }
-
-  selectFile(file: PhPrintingFile): void {
-    if (this.isFileProcessing(file)) {
-      return;
-    }
-    this.selectImage(file, this.getFileImages(file)[0] ?? null, 0);
-  }
-
-  selectImage(file: PhPrintingFile, image: PhPrintingFileImage | null, index: number): void {
-    if (this.isFileProcessing(file) || !image) {
-      return;
-    }
-
-    const previousCtx = this.selectedImage
-      ? this.getExtraSettingsContextForImage(this.selectedImage)
-      : null;
-    const nextCtx = this.getExtraSettingsContextForImage(image);
-    const previousRequired =
-      previousCtx != null
-        ? isDoubleSidedRequired(previousCtx)
-        : this.orderDoubleSidedRequired;
-    const nextRequired = isDoubleSidedRequired(nextCtx);
-
-    if (this.isDuplexPairingModeActive() || nextRequired) {
-      const pair = findDuplexPairForSide(this.getDuplexPairEntries(), file._id, image._id);
-      if (pair?.isIncomplete) {
-        return;
-      }
-    }
-
-    this.selectedFile = file;
-    this.selectedImage = image;
-    this.currentImageIndex = index;
-    const nextPreviewUrl = image.thumbnailUrl?.trim() || null;
-    this.previewThumbnailUrl = nextPreviewUrl;
-    this.refreshResolvedFileDimensions();
-    this.syncSettingsUiFromImage(image);
-
-    const modeChanged =
-      previousRequired !== null && previousRequired !== nextRequired;
-
-    if (modeChanged) {
-      this.syncOrderDoubleSidedRequired(nextCtx);
-      this.propagateCurrentSettingsToAllFiles();
-      return;
-    }
-
-    if (this.orderDoubleSidedRequired === null) {
-      this.syncOrderDoubleSidedRequired(nextCtx);
-    }
-
-    this.ensureConsistentDoubleSidedSettings();
-  }
 
   trackFileById(_index: number, file: PhPrintingFile): string {
     return file._id;
@@ -857,20 +544,41 @@ export class PrintComponent implements OnInit, OnDestroy {
     return image._id;
   }
 
-  isSelectedImage(file: PhPrintingFile, index: number): boolean {
-    return this.selectedFile?._id === file._id && this.currentImageIndex === index;
-  }
-
   trackExtraSettingRow(_index: number, row: PrintExtraSettingRow): string {
     return row.key;
   }
 
-  isSelected(file: PhPrintingFile): boolean {
-    return this.selectedFile?._id === file._id;
-  }
-
   getDisplayFileName(file: PhPrintingFile): string {
     return file.originalFileName?.trim() || this.translateService.instant('printing-table.file');
+  }
+
+  // --- Drag source -----------------------------------------------------------
+
+  onPageDragStart(
+    event: DragEvent,
+    file: PhPrintingFile,
+    image: PhPrintingFileImage,
+  ): void {
+    if (!event.dataTransfer) {
+      return;
+    }
+    const payload: PhCanvasDragPayload = {
+      fileId: file._id,
+      imageId: image._id,
+      page: image.page ?? 1,
+      thumbnailUrl: image.thumbnailUrl?.trim() || '',
+      imageWidth: image.imageWidth ?? null,
+      imageHeight: image.imageHeight ?? null,
+      origImageDPI: image.origImageDPI ?? null,
+    };
+    const json = JSON.stringify(payload);
+    event.dataTransfer.setData(PH_CANVAS_DRAG_MIME, json);
+    event.dataTransfer.setData('text/plain', json);
+    event.dataTransfer.effectAllowed = 'copy';
+  }
+
+  canDeletePageFromFile(file: PhPrintingFile): boolean {
+    return this.getFileImages(file).length > 1;
   }
 
   getMaterialLabel(material: PhDynamicMaterial | PhMaterial): string {
@@ -895,10 +603,6 @@ export class PrintComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Sum of all label lengths + optional per-button extra + (buttonCount - 1) * 5.
-   * When the score exceeds 30, settings toggles use a stacked centered layout.
-   */
   settingsButtonsShouldWrap(labels: string[], extraPerButton = 0): boolean {
     const count = labels.length;
     if (count === 0) {
@@ -973,86 +677,59 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
     const option = this.fixedDimensionOptions[optionIndex];
     const size = option ? this.fixedSizes[option.sizeIndex] : null;
-    if (!option || !size || !this.selectedFile) {
+    if (!option || !size) {
       return;
     }
 
     const previousOption = this.getSelectedFixedOption();
-    const previousSize = previousOption
-      ? this.fixedSizes[previousOption.sizeIndex]
-      : null;
+    const previousSize = previousOption ? this.fixedSizes[previousOption.sizeIndex] : null;
     const previousMaterials = previousSize?.materials ?? [];
-    const previousMaterial = this.getMaterialAtIndex(
-      previousMaterials,
-      this.currentMaterialIndex,
-    );
-    const previousColor = this.getColorAtIndex(
-      previousMaterial,
-      this.currentColorIndex,
-    );
-    const previousExtraCtx = buildExtraSettingsContext(
-      previousSize,
-      previousMaterial,
-      previousColor,
-    );
+    const previousMaterial = this.getMaterialAtIndex(previousMaterials, this.currentMaterialIndex);
+    const previousColor = this.getColorAtIndex(previousMaterial, this.currentColorIndex);
+    const previousExtraCtx = buildExtraSettingsContext(previousSize, previousMaterial, previousColor);
     const previousExtraUi = { ...this.extraSettingsUi };
 
-    const previousMaterialLabel = previousMaterial
-      ? this.getMaterialLabel(previousMaterial)
-      : '';
-    const previousColorLabel = this.getColorLabelAtIndex(
-      previousMaterial,
-      this.currentColorIndex,
-    );
+    const previousMaterialLabel = previousMaterial ? this.getMaterialLabel(previousMaterial) : '';
+    const previousColorLabel = this.getColorLabelAtIndex(previousMaterial, this.currentColorIndex);
 
     this.currentFixedOptionIndex = optionIndex;
     const newMaterials = size.materials ?? [];
-    this.currentMaterialIndex = this.findMatchingMaterialIndex(
-      newMaterials,
-      previousMaterialLabel,
-    );
+    this.currentMaterialIndex = this.findMatchingMaterialIndex(newMaterials, previousMaterialLabel);
     const newMaterial = newMaterials[this.currentMaterialIndex] ?? null;
     this.currentColorIndex = this.findMatchingColorIndex(
       newMaterial?.colors ?? [],
       previousColorLabel,
     );
     this.extraSettingsUi = reconcileExtraUiStateOnTreeChange(
-      buildExtraSettingsContext(size, newMaterial, this.getColorAtIndex(newMaterial, this.currentColorIndex)),
+      buildExtraSettingsContext(
+        size,
+        newMaterial,
+        this.getColorAtIndex(newMaterial, this.currentColorIndex),
+      ),
       previousExtraCtx,
       previousExtraUi,
     );
     this.rebuildExtraSettingRows();
     this.printingLengthCm = Number(size.length);
     this.printingWidthCm = Number(size.width);
-    this.persistSettingsAfterContextChange(previousExtraCtx);
+    this.persistCanvasSettings();
   }
 
   onMaterialChange(materialIndex: number): void {
     if (this.suppressSettingsPersist || !Number.isInteger(materialIndex)) {
       return;
     }
-    if (!this.selectedFile) {
-      return;
-    }
 
     if (this.isDynamicProduct) {
       const materials = this.dynamicMaterials;
-      if (
-        !materials.length ||
-        !Number.isInteger(materialIndex) ||
-        materialIndex < 0 ||
-        materialIndex >= materials.length
-      ) {
+      if (!materials.length || materialIndex < 0 || materialIndex >= materials.length) {
         return;
       }
-      const previousMaterial = materials[this.currentMaterialIndex] ?? null;
+      const previousMaterial = materials[this.currentMaterialIndex ?? 0] ?? null;
       const previousColor = this.getColorAtIndex(previousMaterial, this.currentColorIndex);
       const previousExtraCtx = buildExtraSettingsContext(null, previousMaterial, previousColor);
       const previousExtraUi = { ...this.extraSettingsUi };
-      const previousColorLabel = this.getColorLabelAtIndex(
-        previousMaterial,
-        this.currentColorIndex,
-      );
+      const previousColorLabel = this.getColorLabelAtIndex(previousMaterial, this.currentColorIndex);
       this.currentMaterialIndex = materialIndex;
       const material = materials[materialIndex];
       this.currentColorIndex = this.findMatchingColorIndex(
@@ -1060,36 +737,31 @@ export class PrintComponent implements OnInit, OnDestroy {
         previousColorLabel,
       );
       this.extraSettingsUi = reconcileExtraUiStateOnTreeChange(
-        buildExtraSettingsContext(null, material, this.getColorAtIndex(material, this.currentColorIndex)),
+        buildExtraSettingsContext(
+          null,
+          material,
+          this.getColorAtIndex(material, this.currentColorIndex),
+        ),
         previousExtraCtx,
         previousExtraUi,
       );
       this.rebuildExtraSettingRows();
       if (
-        !this.areDynamicDimensionsValid(
-          material,
-          this.printingLengthCm,
-          this.printingWidthCm,
-        )
+        !this.areDynamicDimensionsValid(material, this.printingLengthCm, this.printingWidthCm)
       ) {
         this.printingLengthCm = Number(material.defaultLength);
         this.printingWidthCm = Number(material.defaultHeight);
       }
-      this.persistSettingsAfterContextChange(previousExtraCtx);
+      this.persistCanvasSettings();
       return;
     }
 
     if (this.isFixedProduct) {
       const materials = this.fixedMaterialsForSelectedSize;
-      if (
-        !materials.length ||
-        !Number.isInteger(materialIndex) ||
-        materialIndex < 0 ||
-        materialIndex >= materials.length
-      ) {
+      if (!materials.length || materialIndex < 0 || materialIndex >= materials.length) {
         return;
       }
-      const previousMaterial = materials[this.currentMaterialIndex] ?? null;
+      const previousMaterial = materials[this.currentMaterialIndex ?? 0] ?? null;
       const previousColor = this.getColorAtIndex(previousMaterial, this.currentColorIndex);
       const previousExtraCtx = buildExtraSettingsContext(
         this.selectedFixedSize,
@@ -1097,10 +769,7 @@ export class PrintComponent implements OnInit, OnDestroy {
         previousColor,
       );
       const previousExtraUi = { ...this.extraSettingsUi };
-      const previousColorLabel = this.getColorLabelAtIndex(
-        previousMaterial,
-        this.currentColorIndex,
-      );
+      const previousColorLabel = this.getColorLabelAtIndex(previousMaterial, this.currentColorIndex);
       this.currentMaterialIndex = materialIndex;
       const material = materials[materialIndex];
       this.currentColorIndex = this.findMatchingColorIndex(
@@ -1117,21 +786,16 @@ export class PrintComponent implements OnInit, OnDestroy {
         previousExtraUi,
       );
       this.rebuildExtraSettingRows();
-      this.persistSettingsAfterContextChange(previousExtraCtx);
+      this.persistCanvasSettings();
     }
   }
 
   onColorChange(colorIndex: number): void {
-    if (this.suppressSettingsPersist || !this.selectedFile) {
+    if (this.suppressSettingsPersist) {
       return;
     }
     const colors = this.colorsForSelectedMaterial;
-    if (
-      !colors.length ||
-      !Number.isInteger(colorIndex) ||
-      colorIndex < 0 ||
-      colorIndex >= colors.length
-    ) {
+    if (!colors.length || colorIndex < 0 || colorIndex >= colors.length) {
       return;
     }
     const previousExtraCtx = this.getCurrentExtraSettingsContext();
@@ -1143,7 +807,7 @@ export class PrintComponent implements OnInit, OnDestroy {
       previousExtraUi,
     );
     this.rebuildExtraSettingRows();
-    this.persistSettingsAfterContextChange(previousExtraCtx);
+    this.persistCanvasSettings();
   }
 
   onExtraSettingEnabledChange(key: ExtraSettingKey, enabled: boolean): void {
@@ -1156,7 +820,7 @@ export class PrintComponent implements OnInit, OnDestroy {
       [key]: { ...current, enabled },
     };
     this.rebuildExtraSettingRows();
-    this.persistCurrentFileSettings();
+    this.persistCanvasSettings();
   }
 
   onExtraSettingIndexChange(key: ExtraSettingKey, index: number): void {
@@ -1169,7 +833,7 @@ export class PrintComponent implements OnInit, OnDestroy {
       [key]: { ...current, selectedIndex: index, enabled: true },
     };
     this.rebuildExtraSettingRows();
-    this.persistCurrentFileSettings();
+    this.persistCanvasSettings();
   }
 
   getExtraOptionToggleValue(key: ExtraSettingKey): number | null {
@@ -1209,7 +873,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     return this.fixedDimensionOptions[this.currentFixedOptionIndex] ?? null;
   }
 
-  private findFixedOptionIndex(sizeIndex: number, _materialIndex: number): number {
+  private findFixedOptionIndex(sizeIndex: number): number {
     const idx = this.fixedDimensionOptions.findIndex((option) => option.sizeIndex === sizeIndex);
     return idx >= 0 ? idx : 0;
   }
@@ -1226,7 +890,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     const temp = this.printingWidthCm;
     this.printingWidthCm = this.roundCm(this.printingLengthCm) ?? this.printingLengthCm;
     this.printingLengthCm = this.roundCm(temp) ?? temp;
-    this.persistCurrentFileSettings();
+    this.persistCanvasSettings();
   }
 
   triggerFilePicker(input: HTMLInputElement): void {
@@ -1236,7 +900,6 @@ export class PrintComponent implements OnInit, OnDestroy {
     input.click();
   }
 
-  /** Mean-corse ph-printing-table: cancel all in-flight uploads. */
   stopUploading(): void {
     this.uploadGeneration += 1;
     for (const sub of this.activeUploadSubscriptions) {
@@ -1287,10 +950,10 @@ export class PrintComponent implements OnInit, OnDestroy {
       );
       return;
     }
-    if (!this.previewFrontThumbnailUrl) {
-      return;
-    }
     this.mockupViewActive = !this.mockupViewActive;
+    if (this.mockupViewActive) {
+      this.rebuildComposites();
+    }
   }
 
   onContinue(): void {
@@ -1306,13 +969,8 @@ export class PrintComponent implements OnInit, OnDestroy {
 
     this.phPrintingFilesService.deleteFile(file._id).subscribe({
       next: () => {
-        const prevSelectedFileId = this.selectedFile?._id ?? null;
-        const prevSelectedImageId = this.selectedImage?._id ?? null;
-        if (this.isDuplexPairingModeActive()) {
-          this.refreshFilesAfterDuplexMutation(prevSelectedFileId, prevSelectedImageId);
-          return;
-        }
-        this.removeFileFromLocalState(file._id, true);
+        this.removeFileFromLocalState(file._id);
+        this.pruneCanvasPlacementsForFile(file._id);
       },
       error: () => {
         this.snackBar.open(
@@ -1327,7 +985,6 @@ export class PrintComponent implements OnInit, OnDestroy {
   onDeleteFileOrImage(
     file: PhPrintingFile,
     image: PhPrintingFileImage,
-    imageIndex: number,
     forceDeleteFile = false,
     event?: Event,
   ): void {
@@ -1347,64 +1004,29 @@ export class PrintComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const prevSelectedFileId = this.selectedFile?._id ?? null;
-    const prevSelectedImageId = this.selectedImage?._id ?? null;
-
-    if (!this.isDuplexPairingModeActive()) {
-      this.selectImage(file, image, imageIndex);
-    }
-
     this.phPrintingFilesService
       .deleteImage(file._id, image._id, this.productId, this.printingHouseId)
       .subscribe({
         next: (response) => {
-          if (this.isDuplexPairingModeActive()) {
-            this.refreshFilesAfterDuplexMutation(prevSelectedFileId, prevSelectedImageId);
-            return;
-          }
-
           if (response.deletedFileId) {
-            this.removeFileFromLocalState(file._id, true);
-            return;
-          }
-
-          const fileIndex = this.files.findIndex((f) => f._id === file._id);
-          if (fileIndex === -1) {
-            return;
-          }
-
-          const wasSelected =
-            this.selectedFile?._id === file._id &&
-            this.selectedImage?._id === image._id;
-          const selectedIndexBefore = this.currentImageIndex;
-
-          if (response.file) {
-            this.files[fileIndex] = response.file;
+            this.removeFileFromLocalState(file._id);
+          } else if (response.file) {
+            const fileIndex = this.files.findIndex((f) => f._id === file._id);
+            if (fileIndex >= 0) {
+              this.files[fileIndex] = response.file;
+            }
           } else {
-            this.files[fileIndex] = {
-              ...this.files[fileIndex],
-              images: this.getFileImages(this.files[fileIndex]).filter(
-                (img) => img._id !== image._id,
-              ),
-            };
+            const fileIndex = this.files.findIndex((f) => f._id === file._id);
+            if (fileIndex >= 0) {
+              this.files[fileIndex] = {
+                ...this.files[fileIndex],
+                images: this.getFileImages(this.files[fileIndex]).filter(
+                  (img) => img._id !== image._id,
+                ),
+              };
+            }
           }
-
-          const updatedFile = this.files[fileIndex];
-          const remaining = this.getFileImages(updatedFile);
-
-          if (wasSelected) {
-            const newIndex = Math.min(
-              imageIndex,
-              Math.max(0, remaining.length - 1),
-            );
-            this.selectImage(updatedFile, remaining[newIndex] ?? null, newIndex);
-          } else if (
-            this.selectedFile?._id === file._id &&
-            selectedIndexBefore > imageIndex
-          ) {
-            const newIndex = selectedIndexBefore - 1;
-            this.selectImage(updatedFile, remaining[newIndex] ?? null, newIndex);
-          }
+          this.pruneCanvasPlacementsForImage(file._id, image._id);
         },
         error: () => {
           this.snackBar.open(
@@ -1416,51 +1038,9 @@ export class PrintComponent implements OnInit, OnDestroy {
       });
   }
 
-  canDeletePageFromFile(file: PhPrintingFile): boolean {
-    if (this.isDuplexPairingModeActive()) {
-      return true;
-    }
-    return this.getFileImages(file).length > 1;
-  }
-
-  private refreshFilesAfterDuplexMutation(
-    prevSelectedFileId: string | null,
-    prevSelectedImageId: string | null,
-  ): void {
-    this.phPrintingFilesService
-      .getMyFiles(this.printingHouseId, this.productId)
-      .subscribe({
-        next: (res) => {
-          this.applyFilesFromServer(res.files ?? [], prevSelectedFileId, prevSelectedImageId);
-        },
-        error: () => {},
-      });
-  }
-
-  private removeFileFromLocalState(fileId: string, clearSelectionIfSelected: boolean): void {
-    const wasSelected = clearSelectionIfSelected && this.selectedFile?._id === fileId;
+  private removeFileFromLocalState(fileId: string): void {
     this.files = this.files.filter((f) => f._id !== fileId);
     this.processingFiles = this.processingFiles.filter((f) => f._id !== fileId);
-    this.pendingDefaultSettingsFileIds.delete(fileId);
-
-    if (!wasSelected) {
-      return;
-    }
-
-    const nextFile = this.files.find((f) => !this.isFileProcessing(f)) ?? null;
-    if (nextFile) {
-      this.selectImage(nextFile, this.getFileImages(nextFile)[0] ?? null, 0);
-      return;
-    }
-
-    this.selectedFile = null;
-    this.selectedImage = null;
-    this.currentImageIndex = 0;
-    this.previewThumbnailUrl = null;
-    this.refreshResolvedFileDimensions();
-    if (this.product) {
-      this.clearSettingsUiUnselected();
-    }
   }
 
   onDeleteAllFiles(): void {
@@ -1468,31 +1048,129 @@ export class PrintComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.phPrintingFilesService
-      .deleteAll(this.printingHouseId)
-      .subscribe({
-        next: () => {
-          this.files = [];
-          this.processingFiles = [];
-          this.selectedFile = null;
-          this.selectedImage = null;
-          this.currentImageIndex = 0;
-          this.previewThumbnailUrl = null;
-          this.pendingDefaultSettingsFileIds.clear();
-          this.refreshResolvedFileDimensions();
-          if (this.product) {
-            this.clearSettingsUiUnselected();
-          }
-        },
-        error: () => {
-          this.snackBar.open(
-            this.translateService.instant('ph-print.delete-all-failed'),
-            undefined,
-            { duration: 4000 },
-          );
-        },
-      });
+    this.phPrintingFilesService.deleteAll(this.printingHouseId).subscribe({
+      next: () => {
+        this.files = [];
+        this.processingFiles = [];
+        this.clearAllCanvasPlacements();
+      },
+      error: () => {
+        this.snackBar.open(
+          this.translateService.instant('ph-print.delete-all-failed'),
+          undefined,
+          { duration: 4000 },
+        );
+      },
+    });
   }
+
+  // --- Canvas placements -----------------------------------------------------
+
+  onSheetPlacementsChange(payload: { side: PhCanvasSideName; placements: PhCanvasPlacement[] }): void {
+    if (!this.canvas) {
+      return;
+    }
+    const side = this.getSide(payload.side);
+    if (side) {
+      side.placements = payload.placements;
+    } else {
+      this.canvas.sides = [
+        ...this.canvas.sides,
+        { side: payload.side, placements: payload.placements },
+      ];
+    }
+    this.persistSidePlacements(payload.side, payload.placements);
+    if (this.mockupViewActive) {
+      this.rebuildComposites();
+    }
+  }
+
+  private persistSidePlacements(side: PhCanvasSideName, placements: PhCanvasPlacement[]): void {
+    if (!this.canvas?._id) {
+      return;
+    }
+    const existing = this.placementPersistTimers.get(side);
+    if (existing) {
+      clearTimeout(existing);
+    }
+    const canvasId = this.canvas._id;
+    const timer = setTimeout(() => {
+      this.placementPersistTimers.delete(side);
+      this.phCanvasService
+        .updateSidePlacements(canvasId, side, placements.map((p) => ({ ...p })))
+        .subscribe({
+          next: (res) => this.applyCanvasFromServer(res.canvas),
+          error: () => {},
+        });
+    }, CANVAS_PERSIST_DEBOUNCE_MS);
+    this.placementPersistTimers.set(side, timer);
+  }
+
+  private pruneCanvasPlacementsForFile(fileId: string): void {
+    if (!this.canvas) {
+      return;
+    }
+    for (const side of this.canvas.sides) {
+      const next = side.placements.filter((p) => p.fileId !== fileId);
+      if (next.length !== side.placements.length) {
+        side.placements = next;
+        this.persistSidePlacements(side.side, next);
+      }
+    }
+  }
+
+  private pruneCanvasPlacementsForImage(fileId: string, imageId: string): void {
+    if (!this.canvas) {
+      return;
+    }
+    for (const side of this.canvas.sides) {
+      const next = side.placements.filter(
+        (p) => !(p.fileId === fileId && p.imageId === imageId),
+      );
+      if (next.length !== side.placements.length) {
+        side.placements = next;
+        this.persistSidePlacements(side.side, next);
+      }
+    }
+  }
+
+  private clearAllCanvasPlacements(): void {
+    if (!this.canvas) {
+      return;
+    }
+    for (const side of this.canvas.sides) {
+      if (side.placements.length) {
+        side.placements = [];
+        this.persistSidePlacements(side.side, []);
+      }
+    }
+  }
+
+  // --- Composite mockup ------------------------------------------------------
+
+  private rebuildComposites(): void {
+    const token = ++this.compositeToken;
+    const widthCm = this.previewBaseWidthCm;
+    const heightCm = this.previewBaseHeightCm;
+
+    renderCanvasSideComposite(this.frontPlacements, this.files, widthCm, heightCm).then((url) => {
+      if (token === this.compositeToken) {
+        this.frontCompositeUrl = url;
+      }
+    });
+
+    if (this.isDoubleSided) {
+      renderCanvasSideComposite(this.backPlacements, this.files, widthCm, heightCm).then((url) => {
+        if (token === this.compositeToken) {
+          this.backCompositeUrl = url;
+        }
+      });
+    } else {
+      this.backCompositeUrl = null;
+    }
+  }
+
+  // --- Data loading ----------------------------------------------------------
 
   private loadPrintingHouse(): void {
     this.printingHouse = null;
@@ -1525,9 +1203,29 @@ export class PrintComponent implements OnInit, OnDestroy {
         this.product = product;
         this.productName = product?.name_he?.trim() || '';
         this.rebuildProductOptionCaches();
-        this.afterProductLoaded();
+        this.loadCanvas();
       },
     });
+  }
+
+  private loadCanvas(): void {
+    if (!this.productId) {
+      return;
+    }
+    this.phCanvasService.getCurrent(this.productId, this.printingHouseId).subscribe({
+      next: (res) => this.applyCanvasFromServer(res.canvas, true),
+      error: () => {},
+    });
+  }
+
+  private applyCanvasFromServer(canvas: PhCanvas, syncUi = false): void {
+    this.canvas = canvas;
+    if (syncUi) {
+      this.syncSettingsUiFromSettings(canvas.printSettings ?? {});
+    }
+    if (this.mockupViewActive) {
+      this.rebuildComposites();
+    }
   }
 
   private rebuildProductOptionCaches(): void {
@@ -1547,17 +1245,6 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.fixedDimensionOptions = options;
   }
 
-  private afterProductLoaded(): void {
-    if (!this.product) {
-      return;
-    }
-    if (productHasDoubleSidedRequired(this.product)) {
-      this.orderDoubleSidedRequired = true;
-    }
-    this.ensureAllReadyFilesHaveSettings();
-    this.applySettingsPanelState();
-  }
-
   private resetSettingsUiState(): void {
     this.currentFixedOptionIndex = null;
     this.currentMaterialIndex = null;
@@ -1566,7 +1253,9 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.extraSettingRows = [];
     this.printingLengthCm = 0;
     this.printingWidthCm = 0;
-    this.orderDoubleSidedRequired = null;
+    this.mockupViewActive = false;
+    this.frontCompositeUrl = null;
+    this.backCompositeUrl = null;
   }
 
   private rebuildExtraSettingRows(): void {
@@ -1581,54 +1270,10 @@ export class PrintComponent implements OnInit, OnDestroy {
     );
   }
 
-  private getExtraSettingsContextForImage(image: PhPrintingFileImage | null) {
-    const ps = image?.printSettings;
-    if (this.isFixedProduct) {
-      const sizeIndex = Number(ps?.sizeIndex ?? 0);
-      const size = this.fixedSizes[sizeIndex] ?? null;
-      const materials = size?.materials ?? [];
-      const materialIndex = Number(ps?.materialIndex ?? 0);
-      const material = materials[materialIndex] ?? null;
-      const colors = material?.colors ?? [];
-      const colorIndex = colors.length
-        ? Math.min(Math.max(0, Number(ps?.colorIndex ?? 0)), colors.length - 1)
-        : 0;
-      const color = colors[colorIndex] ?? null;
-      return buildExtraSettingsContext(size, material, color);
-    }
-    if (this.isDynamicProduct) {
-      const materialIndex = Number(ps?.materialIndex ?? 0);
-      const material = this.dynamicMaterials[materialIndex] ?? null;
-      const colors = material?.colors ?? [];
-      const colorIndex = colors.length
-        ? Math.min(Math.max(0, Number(ps?.colorIndex ?? 0)), colors.length - 1)
-        : 0;
-      const color = colors[colorIndex] ?? null;
-      return buildExtraSettingsContext(null, material, color);
-    }
-    return buildExtraSettingsContext(null, null, null);
-  }
-
-  private imageExtraSettingsAreValid(image: PhPrintingFileImage | null): boolean {
-    const ps = image?.printSettings;
-    if (!ps) {
-      return false;
-    }
-    const ctx = this.getExtraSettingsContextForImage(image);
-    return validateExtraSelections(ctx, {
-      ...buildPersistedExtraSelections(ctx, buildDefaultExtraUiStateMap(ctx)),
-      ...ps,
-    });
-  }
-
   private getCurrentExtraSettingsContext() {
     const size = this.settingsPanelFixedSize;
     const material = this.settingsPanelMaterial;
-    const color =
-      this.selectedColor ??
-      (this.settingsControlsDisabled
-        ? this.getColorAtIndex(material, 0)
-        : null);
+    const color = this.selectedColor ?? this.getColorAtIndex(material, 0);
     return buildExtraSettingsContext(size, material, color);
   }
 
@@ -1664,19 +1309,16 @@ export class PrintComponent implements OnInit, OnDestroy {
     if (materialIndex == null || !materials.length) {
       return null;
     }
-    const idx = Math.min(
-      Math.max(0, materialIndex),
-      materials.length - 1,
-    );
+    const idx = Math.min(Math.max(0, materialIndex), materials.length - 1);
     return materials[idx] ?? null;
   }
 
   private getColorLabelAtIndex(
     material: PhMaterial | PhDynamicMaterial | null | undefined,
-    colorIndex: number,
+    colorIndex: number | null,
   ): string {
     const colors = material?.colors ?? [];
-    if (!colors.length) {
+    if (!colors.length || colorIndex == null) {
       return '';
     }
     const idx = Math.min(Math.max(0, colorIndex), colors.length - 1);
@@ -1709,7 +1351,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   private resolveColorIndexForMaterial(
-    material: PhMaterial | null | undefined,
+    material: PhMaterial | PhDynamicMaterial | null | undefined,
     colorIndex: number,
   ): number {
     const colors = material?.colors ?? [];
@@ -1722,22 +1364,9 @@ export class PrintComponent implements OnInit, OnDestroy {
     return 0;
   }
 
-  private isColorIndexValidForMaterial(
-    material: PhMaterial | null | undefined,
-    colorIndex: number,
-  ): boolean {
-    const colors = material?.colors ?? [];
-    if (!colors.length) {
-      return true;
-    }
-    return (
-      Number.isInteger(colorIndex) && colorIndex >= 0 && colorIndex < colors.length
-    );
-  }
-
   private appendColorIndexToSettings(
     settings: PhPrintingFilePrintSettings,
-    material: PhMaterial | null | undefined,
+    material: PhMaterial | PhDynamicMaterial | null | undefined,
   ): PhPrintingFilePrintSettings {
     const colors = material?.colors ?? [];
     if (!colors.length || this.currentColorIndex == null) {
@@ -1745,10 +1374,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
     return {
       ...settings,
-      colorIndex: Math.min(
-        Math.max(0, this.currentColorIndex),
-        colors.length - 1,
-      ),
+      colorIndex: Math.min(Math.max(0, this.currentColorIndex), colors.length - 1),
     };
   }
 
@@ -1771,72 +1397,14 @@ export class PrintComponent implements OnInit, OnDestroy {
       });
   }
 
-  private applyFilesFromServer(
-    nextFiles: PhPrintingFile[],
-    prevSelectedFileId = this.selectedFile?._id ?? null,
-    prevSelectedImageId = this.selectedImage?._id ?? null,
-  ): void {
-    if (this.isNormalizingDoubleSidedSettings) {
-      return;
-    }
-
-    // Compare server payload before merge mutates this.files in place (isEqual(merged, this.files) is always true after soft merge).
+  private applyFilesFromServer(nextFiles: PhPrintingFile[]): void {
     if (this.isSameFileListPollState(nextFiles, this.files)) {
       return;
     }
-
-    const merged = this.mergePolledFilesWithExisting(nextFiles);
-    this.files = merged;
-    this.processingFiles = merged.filter((file) => this.isFileProcessing(file));
-
-    if (this.selectedFile) {
-      const still = merged.find((f) => f._id === this.selectedFile!._id);
-      if (!still || this.isFileProcessing(still)) {
-        this.clearSelection();
-      } else {
-        this.selectedFile = still;
-        this.resolveSelectedImageWithin(still, prevSelectedImageId);
-        this.updatePreviewThumbnailIfChanged();
-      }
-    }
-
-    // Mean-corse ph-printing-table: !isChosen && not all processing → first ready file + preview.
-    if (!this.selectedImage && this.processingFiles.length !== this.files.length) {
-      const firstReady = merged.find((f) => !this.isFileProcessing(f));
-      if (this.isDuplexPairingModeActive()) {
-        const firstPair = buildDuplexPairDisplayEntries(merged).find((p) => !p.isIncomplete);
-        if (firstPair) {
-          this.selectImage(
-            firstPair.front.file,
-            firstPair.front.image,
-            firstPair.front.imageIndex,
-          );
-        }
-      } else {
-        const firstImage = firstReady ? this.getFileImages(firstReady)[0] : null;
-        if (firstReady && firstImage) {
-          this.selectImage(firstReady, firstImage, 0);
-        }
-      }
-    }
-
-    this.ensureAllReadyFilesHaveSettings();
-    this.refreshResolvedFileDimensions();
-
-    const selectionChanged =
-      this.selectedFile?._id !== prevSelectedFileId ||
-      this.selectedImage?._id !== prevSelectedImageId;
-
-    if (this.selectedImage && selectionChanged) {
-      this.syncSettingsUiFromImage(this.selectedImage);
-    } else if (!this.selectedFile && this.product) {
-      this.clearSettingsUiUnselected();
-    }
-
-    this.ensureConsistentDoubleSidedSettings();
+    this.files = nextFiles;
+    this.processingFiles = nextFiles.filter((file) => this.isFileProcessing(file));
   }
 
-  /** True when poll payload matches local list — compare before in-place merge. */
   private isSameFileListPollState(
     incoming: PhPrintingFile[],
     current: PhPrintingFile[],
@@ -1857,109 +1425,10 @@ export class PrintComponent implements OnInit, OnDestroy {
   private isSameFilePollState(prev: PhPrintingFile, next: PhPrintingFile): boolean {
     return (
       prev.processing === next.processing &&
-      this.imagesStructureEqual(prev.images, next.images) &&
-      this.getFileThumbnailUrl(prev) === this.getFileThumbnailUrl(next) &&
-      isEqual(
-        (prev.images ?? []).map((img) => img.printSettings),
-        (next.images ?? []).map((img) => img.printSettings),
-      )
+      this.imagesStructureEqual(prev.images, next.images)
     );
   }
 
-  private clearSelection(): void {
-    this.selectedFile = null;
-    this.selectedImage = null;
-    this.currentImageIndex = 0;
-    this.previewThumbnailUrl = null;
-  }
-
-  /** Keep the selected page stable across polls by matching its id, else fall back to page 0. */
-  private resolveSelectedImageWithin(
-    file: PhPrintingFile,
-    preferImageId: string | undefined,
-  ): void {
-    const images = this.getFileImages(file);
-    let index = preferImageId
-      ? images.findIndex((img) => img._id === preferImageId)
-      : -1;
-    if (index < 0) {
-      index = 0;
-    }
-    this.selectedImage = images[index] ?? null;
-    this.currentImageIndex = this.selectedImage ? index : 0;
-
-    if (
-      this.isDuplexPairingModeActive() &&
-      this.selectedImage &&
-      preferImageId
-    ) {
-      const pair = findDuplexPairForSide(
-        this.getDuplexPairEntries(),
-        file._id,
-        preferImageId,
-      );
-      if (pair?.isIncomplete) {
-        this.clearSelection();
-      }
-    }
-  }
-
-  /**
-   * Merge poll results without replacing file objects when only printSettings changed,
-   * so sidebar/preview thumbnails are not reloaded on settings updates.
-   */
-  private mergePolledFilesWithExisting(nextFiles: PhPrintingFile[]): PhPrintingFile[] {
-    const existingById = new Map(this.files.map((file) => [file._id, file]));
-
-    return nextFiles.map((next) => {
-      const prev = existingById.get(next._id);
-      if (!prev) {
-        return next;
-      }
-
-      let incoming = next;
-      // Preserve the optimistic per-page settings while a save is in flight.
-      if (this.settingsSaveInFlightForFileId === next._id) {
-        incoming = {
-          ...next,
-          images: this.overlayInFlightImageSettings(prev, next),
-        };
-      }
-
-      const thumbnailUnchanged =
-        this.getFileThumbnailUrl(prev) === this.getFileThumbnailUrl(incoming);
-      const processingUnchanged = prev.processing === incoming.processing;
-      const structureUnchanged = this.imagesStructureEqual(prev.images, incoming.images);
-
-      if (thumbnailUnchanged && processingUnchanged && structureUnchanged) {
-        // Only per-page settings may have changed — patch in place, keep object identity.
-        this.applyIncomingImageSettings(prev.images, incoming.images);
-        return prev;
-      }
-
-      Object.assign(prev, incoming);
-      return prev;
-    });
-  }
-
-  /** Overlay prev's in-flight page settings onto the incoming images by id. */
-  private overlayInFlightImageSettings(
-    prev: PhPrintingFile,
-    next: PhPrintingFile,
-  ): PhPrintingFileImage[] {
-    const prevById = new Map((prev.images ?? []).map((img) => [img._id, img]));
-    return (next.images ?? []).map((img) => {
-      if (
-        img._id === this.settingsSaveInFlightForImageId &&
-        prevById.get(img._id)?.printSettings
-      ) {
-        return { ...img, printSettings: prevById.get(img._id)!.printSettings };
-      }
-      return img;
-    });
-  }
-
-  /** True when both image arrays describe the same pages (same ids in order). */
   private imagesStructureEqual(
     a: PhPrintingFileImage[] | undefined,
     b: PhPrintingFileImage[] | undefined,
@@ -1973,293 +1442,20 @@ export class PrintComponent implements OnInit, OnDestroy {
       if (aa[i]._id !== bb[i]._id) {
         return false;
       }
+      if ((aa[i].thumbnailUrl ?? '') !== (bb[i].thumbnailUrl ?? '')) {
+        return false;
+      }
     }
     return true;
   }
 
-  /** Copy per-page settings from incoming into existing image objects (by index, ids match). */
-  private applyIncomingImageSettings(
-    target: PhPrintingFileImage[] | undefined,
-    source: PhPrintingFileImage[] | undefined,
-  ): void {
-    const tt = target ?? [];
-    const ss = source ?? [];
-    for (let i = 0; i < tt.length; i += 1) {
-      if (!isEqual(tt[i].printSettings, ss[i]?.printSettings)) {
-        tt[i].printSettings = ss[i]?.printSettings
-          ? { ...ss[i].printSettings }
-          : undefined;
-      }
-    }
-  }
-
-  private updatePreviewThumbnailIfChanged(): void {
-    this.previewThumbnailUrl = this.selectedImage?.thumbnailUrl?.trim() || null;
-  }
-
-  private ensureAllReadyFilesHaveSettings(): void {
-    if (!this.product) {
-      return;
-    }
-    for (const file of this.files) {
-      if (this.isFileProcessing(file)) {
-        continue;
-      }
-      for (const image of this.getFileImages(file)) {
-        if (this.imageHasValidPrintSettings(image)) {
-          continue;
-        }
-        const pendingKey = `${file._id}:${image._id}`;
-        if (this.pendingDefaultSettingsFileIds.has(pendingKey)) {
-          continue;
-        }
-        const defaults = this.buildDefaultPrintSettingsForImage(image);
-        if (!defaults) {
-          continue;
-        }
-        this.pendingDefaultSettingsFileIds.add(pendingKey);
-        this.saveFileSettings(file._id, image._id, defaults, () => {
-          this.pendingDefaultSettingsFileIds.delete(pendingKey);
-          if (this.selectedImage?._id === image._id) {
-            this.syncSettingsUiFromImage(this.selectedImage);
-          }
-        });
-      }
-    }
-  }
-
-  private imageHasValidPrintSettings(image: PhPrintingFileImage | null): boolean {
-    const ps = image?.printSettings;
-    if (!ps || !this.product) {
-      return false;
-    }
-    if (this.isFixedProduct) {
-      const sizeIndex = Number(ps.sizeIndex);
-      const materialIndex = Number(ps.materialIndex ?? 0);
-      if (!Number.isInteger(sizeIndex) || sizeIndex < 0 || sizeIndex >= this.fixedSizes.length) {
-        return false;
-      }
-      if (!this.fixedDimensionOptions.some((option) => option.sizeIndex === sizeIndex)) {
-        return false;
-      }
-      const materials = this.fixedSizes[sizeIndex]?.materials ?? [];
-      if (
-        !Number.isInteger(materialIndex) ||
-        materialIndex < 0 ||
-        materialIndex >= materials.length
-      ) {
-        return false;
-      }
-      return this.isColorIndexValidForMaterial(
-        materials[materialIndex],
-        Number(ps.colorIndex ?? 0),
-      ) && this.imageExtraSettingsAreValid(image);
-    }
-    if (this.isDynamicProduct) {
-      const materialIndex = Number(ps.materialIndex ?? 0);
-      const lengthCm = Number(ps.lengthCm);
-      const widthCm = Number(ps.widthCm);
-      if (
-        !Number.isInteger(materialIndex) ||
-        materialIndex < 0 ||
-        materialIndex >= this.dynamicMaterials.length ||
-        !Number.isFinite(lengthCm) ||
-        !Number.isFinite(widthCm) ||
-        lengthCm <= 0 ||
-        widthCm <= 0
-      ) {
-        return false;
-      }
-      if (
-        !this.areDynamicDimensionsValid(
-          this.dynamicMaterials[materialIndex],
-          lengthCm,
-          widthCm,
-        )
-      ) {
-        return false;
-      }
-      return this.isColorIndexValidForMaterial(
-        this.dynamicMaterials[materialIndex],
-        Number(ps.colorIndex ?? 0),
-      ) && this.imageExtraSettingsAreValid(image);
-    }
-    return false;
-  }
-
-  private buildDefaultPrintSettings(): PhPrintingFilePrintSettings | null {
-    if (!this.product) {
-      return null;
-    }
-    if (this.isFixedProduct) {
-      const option = this.fixedDimensionOptions[0];
-      const size = option ? this.fixedSizes[option.sizeIndex] : null;
-      if (!option || !size) {
-        return null;
-      }
-      const material = size.materials?.[0] ?? null;
-      const color = material?.colors?.[0] ?? null;
-      const extraCtx = buildExtraSettingsContext(size, material, color);
-      return appendExtraSelectionsToPrintSettings(
-        this.appendColorIndexToSettings(
-          {
-            paperType: material ? this.getMaterialLabel(material) : option.label,
-            sizeIndex: option.sizeIndex,
-            materialIndex: 0,
-            lengthCm: Number(size.length),
-            widthCm: Number(size.width),
-          },
-          material,
-        ),
-        extraCtx,
-        buildDefaultExtraUiStateMap(extraCtx),
-      );
-    }
-    if (this.isDynamicProduct) {
-      const material = this.dynamicMaterials[0];
-      if (!material) {
-        return null;
-      }
-      const color = material.colors?.[0] ?? null;
-      const extraCtx = buildExtraSettingsContext(null, material, color);
-      return appendExtraSelectionsToPrintSettings(
-        this.appendColorIndexToSettings(
-          {
-            paperType: this.getMaterialLabel(material),
-            materialIndex: 0,
-            lengthCm: Number(material.defaultLength),
-            widthCm: Number(material.defaultHeight),
-          },
-          material,
-        ),
-        extraCtx,
-        buildDefaultExtraUiStateMap(extraCtx),
-      );
-    }
-    return null;
-  }
-
-  private buildDefaultPrintSettingsForImage(
-    image: PhPrintingFileImage | null,
-  ): PhPrintingFilePrintSettings | null {
-    if (!this.product) {
-      return null;
-    }
-    const ps = image?.printSettings;
-    if (this.isFixedProduct) {
-      const sizeIndex = Number.isInteger(Number(ps?.sizeIndex)) && Number(ps?.sizeIndex) >= 0
-        ? Number(ps?.sizeIndex)
-        : 0;
-      const size = this.fixedSizes[sizeIndex] ?? this.fixedSizes[0];
-      if (!size) {
-        return null;
-      }
-      const materials = size.materials ?? [];
-      const materialIndex =
-        Number.isInteger(Number(ps?.materialIndex)) &&
-        Number(ps?.materialIndex) >= 0 &&
-        Number(ps?.materialIndex) < materials.length
-          ? Number(ps?.materialIndex)
-          : 0;
-      const material = materials[materialIndex] ?? materials[0] ?? null;
-      const colors = material?.colors ?? [];
-      const colorIndex = colors.length
-        ? Math.min(Math.max(0, Number(ps?.colorIndex ?? 0)), colors.length - 1)
-        : 0;
-      const color = colors[colorIndex] ?? null;
-      const extraCtx = buildExtraSettingsContext(size, material, color);
-      return appendExtraSelectionsToPrintSettings(
-        this.appendColorIndexToSettings(
-          {
-            paperType: material ? this.getMaterialLabel(material) : this.getFixedSizeDisplayLabel(size),
-            sizeIndex,
-            materialIndex,
-            lengthCm: Number(size.length),
-            widthCm: Number(size.width),
-          },
-          material,
-        ),
-        extraCtx,
-        buildDefaultExtraUiStateMap(extraCtx),
-      );
-    }
-    if (this.isDynamicProduct) {
-      const materialIndex =
-        Number.isInteger(Number(ps?.materialIndex)) &&
-        Number(ps?.materialIndex) >= 0 &&
-        Number(ps?.materialIndex) < this.dynamicMaterials.length
-          ? Number(ps?.materialIndex)
-          : 0;
-      const material = this.dynamicMaterials[materialIndex] ?? this.dynamicMaterials[0];
-      if (!material) {
-        return null;
-      }
-      const colors = material.colors ?? [];
-      const colorIndex = colors.length
-        ? Math.min(Math.max(0, Number(ps?.colorIndex ?? 0)), colors.length - 1)
-        : 0;
-      const color = colors[colorIndex] ?? null;
-      const extraCtx = buildExtraSettingsContext(null, material, color);
-      return appendExtraSelectionsToPrintSettings(
-        this.appendColorIndexToSettings(
-          {
-            paperType: this.getMaterialLabel(material),
-            materialIndex,
-            lengthCm: Number(ps?.lengthCm ?? material.defaultLength),
-            widthCm: Number(ps?.widthCm ?? material.defaultHeight),
-          },
-          material,
-        ),
-        extraCtx,
-        buildDefaultExtraUiStateMap(extraCtx),
-      );
-    }
-    return null;
-  }
-
-  private applySettingsPanelState(): void {
-    if (!this.product) {
-      return;
-    }
-    if (this.hasSettingsReadyFile && this.selectedImage) {
-      this.refreshResolvedFileDimensions();
-      this.syncSettingsUiFromImage(this.selectedImage);
-    } else {
-      this.refreshResolvedFileDimensions();
-      this.clearSettingsUiUnselected();
-    }
-  }
-
-  /** Empty / processing-only table: all rows visible (first material/color context), controls disabled, no selection styling. */
-  private clearSettingsUiUnselected(): void {
+  private syncSettingsUiFromSettings(ps: PhPrintingFilePrintSettings): void {
     if (!this.product) {
       return;
     }
 
     this.suppressSettingsPersist = true;
     try {
-      this.currentFixedOptionIndex = null;
-      this.currentMaterialIndex = null;
-      this.currentColorIndex = null;
-      this.printingLengthCm = 0;
-      this.printingWidthCm = 0;
-      this.extraSettingsUi = {};
-    } finally {
-      this.rebuildExtraSettingRows();
-      setTimeout(() => {
-        this.suppressSettingsPersist = false;
-      });
-    }
-  }
-
-  private syncSettingsUiFromImage(image: PhPrintingFileImage | null): void {
-    if (!this.product || !image) {
-      return;
-    }
-
-    this.suppressSettingsPersist = true;
-    try {
-      const ps = image.printSettings;
       if (this.isFixedProduct) {
         const sizeIndex =
           ps?.sizeIndex != null && Number.isFinite(Number(ps.sizeIndex))
@@ -2271,7 +1467,7 @@ export class PrintComponent implements OnInit, OnDestroy {
             : 0;
         const size = this.fixedSizes[sizeIndex] ?? this.fixedSizes[0];
         const materials = size?.materials ?? [];
-        this.currentFixedOptionIndex = this.findFixedOptionIndex(sizeIndex, materialIndex);
+        this.currentFixedOptionIndex = this.findFixedOptionIndex(sizeIndex);
         const resolvedMaterialIndex =
           materials.length && materialIndex >= 0 && materialIndex < materials.length
             ? materialIndex
@@ -2289,12 +1485,7 @@ export class PrintComponent implements OnInit, OnDestroy {
           buildExtraSettingsContext(
             size,
             materials[resolvedMaterialIndex] ?? null,
-            (materials[resolvedMaterialIndex]?.colors ?? [])[
-              Math.min(
-                Math.max(0, Number(ps?.colorIndex ?? 0)),
-                Math.max(0, (materials[resolvedMaterialIndex]?.colors ?? []).length - 1),
-              )
-            ] ?? null,
+            this.getColorAtIndex(materials[resolvedMaterialIndex], this.currentColorIndex),
           ),
           ps,
         );
@@ -2314,22 +1505,13 @@ export class PrintComponent implements OnInit, OnDestroy {
             ? Number(ps.colorIndex)
             : 0,
         );
-        this.printingLengthCm = Number(
-          ps?.lengthCm ?? material?.defaultLength ?? 0,
-        );
-        this.printingWidthCm = Number(
-          ps?.widthCm ?? material?.defaultHeight ?? 0,
-        );
+        this.printingLengthCm = Number(ps?.lengthCm ?? material?.defaultLength ?? 0);
+        this.printingWidthCm = Number(ps?.widthCm ?? material?.defaultHeight ?? 0);
         this.extraSettingsUi = syncExtraUiStateFromSaved(
           buildExtraSettingsContext(
             null,
             material,
-            (material?.colors ?? [])[
-              Math.min(
-                Math.max(0, Number(ps?.colorIndex ?? 0)),
-                Math.max(0, (material?.colors ?? []).length - 1),
-              )
-            ] ?? null,
+            this.getColorAtIndex(material, this.currentColorIndex),
           ),
           ps,
         );
@@ -2391,220 +1573,36 @@ export class PrintComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  private persistCurrentFileSettings(): void {
-    if (!this.selectedFile?._id || !this.selectedImage?._id) {
+  private persistCanvasSettings(): void {
+    if (!this.canvas?._id) {
       return;
     }
     const settings = this.buildSettingsFromUi();
     if (!settings) {
       return;
     }
-    this.saveFileSettings(this.selectedFile._id, this.selectedImage._id, settings);
-  }
-
-  /**
-   * When required double-sided mode toggles (size/material/color tree change),
-   * reset every ready file page to the current panel settings.
-   */
-  private persistSettingsAfterContextChange(previousExtraCtx: ExtraSettingsContext): void {
-    if (
-      didDoubleSidedRequiredChange(previousExtraCtx, this.getCurrentExtraSettingsContext())
-    ) {
-      this.syncOrderDoubleSidedRequired();
-      this.propagateCurrentSettingsToAllFiles();
-      return;
-    }
-    this.persistCurrentFileSettings();
-  }
-
-  private syncOrderDoubleSidedRequired(ctx?: ExtraSettingsContext): void {
-    this.orderDoubleSidedRequired = isDoubleSidedRequired(
-      ctx ?? this.getCurrentExtraSettingsContext(),
-    );
-  }
-
-  /** Align all ready pages when saved settings disagree on required double-sided mode. */
-  private ensureConsistentDoubleSidedSettings(): void {
-    if (
-      !this.product ||
-      this.isNormalizingDoubleSidedSettings ||
-      this.isUpdatingFileSettings
-    ) {
-      return;
+    // Optimistic local update so sides/preview react immediately.
+    this.canvas = { ...this.canvas, printSettings: settings };
+    if (this.mockupViewActive) {
+      this.rebuildComposites();
     }
 
-    const readyImages: PhPrintingFileImage[] = [];
-    for (const file of this.files) {
-      if (this.isFileProcessing(file)) {
-        continue;
-      }
-      for (const image of this.getFileImages(file)) {
-        if (this.imageHasValidPrintSettings(image)) {
-          readyImages.push(image);
-        }
-      }
+    if (this.settingsPersistTimer) {
+      clearTimeout(this.settingsPersistTimer);
     }
-
-    if (!readyImages.length) {
-      this.orderDoubleSidedRequired = null;
-      return;
-    }
-
-    const canonicalImage =
-      this.selectedImage && this.imageHasValidPrintSettings(this.selectedImage)
-        ? this.selectedImage
-        : readyImages[0];
-    const canonicalCtx = this.getExtraSettingsContextForImage(canonicalImage);
-    const canonicalRequired = isDoubleSidedRequired(canonicalCtx);
-
-    if (this.orderDoubleSidedRequired === null) {
-      this.syncOrderDoubleSidedRequired(canonicalCtx);
-    }
-
-    const modeMismatch = readyImages.some(
-      (image) =>
-        isDoubleSidedRequired(this.getExtraSettingsContextForImage(image)) !==
-        canonicalRequired,
-    );
-
-    if (!modeMismatch) {
-      return;
-    }
-
-    this.syncOrderDoubleSidedRequired(canonicalCtx);
-    this.syncSettingsUiFromImage(canonicalImage);
-    this.propagateCurrentSettingsToAllFiles();
-  }
-
-  private propagateCurrentSettingsToAllFiles(): void {
-    const settings = this.buildSettingsFromUi();
-    if (!settings || !this.productId) {
-      return;
-    }
-
-    const targets: { fileId: string; imageId: string }[] = [];
-    for (const file of this.files) {
-      if (this.isFileProcessing(file)) {
-        continue;
-      }
-      for (const image of this.getFileImages(file)) {
-        if (image._id) {
-          targets.push({ fileId: file._id, imageId: image._id });
-        }
-      }
-    }
-    if (!targets.length) {
-      return;
-    }
-
-    for (const target of targets) {
-      this.patchImagePrintSettings(target.fileId, target.imageId, settings);
-    }
-
-    const prevSelectedFileId = this.selectedFile?._id ?? null;
-    const prevSelectedImageId = this.selectedImage?._id ?? null;
-
-    this.isNormalizingDoubleSidedSettings = true;
-    this.isUpdatingFileSettings = true;
-    this.phPrintingFilesService
-      .updateAllFileSettings(settings, this.productId, this.printingHouseId)
-      .subscribe({
-        next: (res) => {
-          this.isUpdatingFileSettings = false;
-          this.isNormalizingDoubleSidedSettings = false;
-          this.syncOrderDoubleSidedRequired();
-          this.applyFilesFromServer(
-            res.files ?? [],
-            prevSelectedFileId,
-            prevSelectedImageId,
-          );
-        },
-        error: () => {
-          this.isUpdatingFileSettings = false;
-          this.isNormalizingDoubleSidedSettings = false;
-        },
+    const canvasId = this.canvas._id;
+    this.settingsPersistTimer = setTimeout(() => {
+      this.settingsPersistTimer = null;
+      this.phCanvasService.updateSettings(canvasId, settings).subscribe({
+        next: (res) => this.applyCanvasFromServer(res.canvas),
+        error: () => {},
       });
+    }, CANVAS_PERSIST_DEBOUNCE_MS);
   }
 
-  private saveFileSettings(
-    fileId: string,
-    imageId: string,
-    printSettings: PhPrintingFilePrintSettings,
-    onDone?: () => void,
-  ): void {
-    if (!this.productId) {
-      onDone?.();
-      return;
-    }
-
-    this.isUpdatingFileSettings = true;
-    this.settingsSaveInFlightForFileId = fileId;
-    this.settingsSaveInFlightForImageId = imageId;
-    this.patchImagePrintSettings(fileId, imageId, printSettings);
-
-    this.phPrintingFilesService
-      .updateFileSettings(fileId, imageId, printSettings, this.productId)
-      .subscribe({
-        next: (res) => {
-          this.isUpdatingFileSettings = false;
-          this.settingsSaveInFlightForFileId = null;
-          this.settingsSaveInFlightForImageId = null;
-          const savedImage = (res.file?.images ?? []).find((img) => img._id === imageId);
-          if (savedImage?.printSettings) {
-            this.patchImagePrintSettings(fileId, imageId, savedImage.printSettings);
-            const partner = findDuplexPartnerSide(this.files, fileId, imageId);
-            if (partner) {
-              this.patchImagePrintSettings(
-                partner.file._id,
-                partner.image._id,
-                savedImage.printSettings,
-              );
-            }
-          }
-          if (this.selectedImage?._id === imageId) {
-            this.syncSettingsUiFromImage(this.selectedImage);
-          }
-          onDone?.();
-        },
-        error: () => {
-          this.isUpdatingFileSettings = false;
-          this.settingsSaveInFlightForFileId = null;
-          this.settingsSaveInFlightForImageId = null;
-          onDone?.();
-        },
-      });
-  }
-
-  private patchImagePrintSettings(
-    fileId: string,
-    imageId: string,
-    printSettings: PhPrintingFilePrintSettings,
-  ): void {
-    const nextSettings = { ...printSettings };
-    const patch = (file: PhPrintingFile | null) => {
-      if (!file || file._id !== fileId) {
-        return;
-      }
-      const image = this.getFileImages(file).find((img) => img._id === imageId);
-      if (image) {
-        image.printSettings = nextSettings;
-      }
-    };
-    for (const file of this.files) {
-      patch(file);
-    }
-    if (this.selectedImage?._id === imageId) {
-      this.selectedImage.printSettings = nextSettings;
-    }
-  }
-
-  /**
-   * Dynamic dimension validation — ported from mean-corse ph-printing-table.
-   * Maps אורך → height, רוחב → width in the algorithm.
-   */
   private onDimensionBlur(axis: 'W' | 'L' = 'W'): void {
     const material = this.selectedDynamicMaterial;
-    if (!material || !this.selectedFile) {
+    if (!material) {
       return;
     }
 
@@ -2616,8 +1614,8 @@ export class PrintComponent implements OnInit, OnDestroy {
     const minH = Number(material.minLength);
     const maxH = Number(material.maxLength);
 
-    const originalWidth = Number(this.selectedImage?.printSettings?.widthCm ?? width);
-    const originalHeight = Number(this.selectedImage?.printSettings?.lengthCm ?? height);
+    const originalWidth = Number(this.canvas?.printSettings?.widthCm ?? width);
+    const originalHeight = Number(this.canvas?.printSettings?.lengthCm ?? height);
 
     const bigMax = Math.max(maxW, maxH);
     const smallMax = Math.min(maxW, maxH);
@@ -2697,7 +1695,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     ) {
       this.printingWidthCm = width;
       this.printingLengthCm = height;
-      this.persistCurrentFileSettings();
+      this.persistCanvasSettings();
     } else {
       this.printingWidthCm = this.roundCm(originalWidth) ?? originalWidth;
       this.printingLengthCm = this.roundCm(originalHeight) ?? originalHeight;

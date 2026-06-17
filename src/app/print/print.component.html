@@ -30,7 +30,7 @@
           </header>
 
           <div class="w-100 d-flex flex-column-reverse flex-md-row flex-grow-1 min-h-0 ph-print-settings-files-row">
-            <!-- Files column -->
+            <!-- Files column (page palette / drag source) -->
             <div class="zx-files-area-outer-outer">
               <div class="zx-files-area-outer">
                 <div class="zx-files-area" [class.zx-bg-dark]="isDarkMode">
@@ -95,7 +95,7 @@
                               </span>
                             </h6>
                           </div>
-                          <!-- stop uploading (mean-corse ph sidebar) -->
+                          <!-- stop uploading -->
                           <div class="position-absolute d-flex px-2 top-0 w-100">
                             <div
                               matRipple
@@ -243,100 +243,10 @@
                           </div>
                         </article>
 
-                        <!-- Duplex pair (double-sided required) -->
-                        <article *ngIf="item.kind === 'duplex-pair'" class="zx-file-obj">
-                          <div
-                            class="zx-duplex-pair-container rounded-3"
-                            [class.zx-duplex-pair-container--incomplete]="item.pair.isIncomplete"
-                            [class.zx-bg-choosen]="isDuplexPairSelected(item.pair) && !item.pair.isIncomplete"
-                            [class.zx-border-gray-v-v-light]="true"
-                            [class.zx-border-gray-25-pr]="isDarkMode"
-                            tabindex="0"
-                            role="button"
-                            (click)="onDuplexPairContainerClick(item.pair, sidebarFileInput, $event)"
-                            (keyup)="onDuplexPairContainerKeyup(item.pair, sidebarFileInput, $event)">
-                            <!-- Back side (top-right, behind) -->
-                            <div
-                              *ngIf="item.pair.back; else duplexBackPlaceholder"
-                              class="zx-duplex-pair-side zx-duplex-pair-side--back">
-                              <ng-container
-                                *ngTemplateOutlet="
-                                  duplexSideCard;
-                                  context: {
-                                    side: item.pair.back,
-                                    pair: item.pair,
-                                    showDeletePage: canDeletePageFromFile(item.pair.back!.file)
-                                  }
-                                ">
-                              </ng-container>
-                            </div>
-                            <ng-template #duplexBackPlaceholder>
-                              <div
-                                class="zx-duplex-pair-side zx-duplex-pair-side--back zx-duplex-pair-side--placeholder">
-                                <div
-                                  *ngIf="!uploading"
-                                  class="zx-duplex-pair-side__inner zx-duplex-upload-placeholder d-flex flex-column align-items-center h-100 w-100 zx-border-gray-v-v-light"
-                                  [class.zx-border-gray-25-pr]="isDarkMode">
-                                  <img
-                                    src="assets/images/upload-file-icon.svg"
-                                    class="zx-duplex-upload-placeholder__icon svg"
-                                    alt="" />
-                                  <span class="zx-text-tiny fw-bold zx-duplex-upload-placeholder__label text-center">
-                                    {{
-                                      (hasFiles ? 'printing-table.upload-file-next' : 'printing-table.upload-file')
-                                        | translate
-                                    }}
-                                  </span>
-                                </div>
-                                <div
-                                  *ngIf="uploading"
-                                  class="zx-duplex-pair-side__inner zx-duplex-upload-placeholder zx-duplex-upload-placeholder--uploading d-flex flex-column align-items-center justify-content-center h-100 w-100 zx-border-gray-v-v-light"
-                                  [class.zx-border-gray-25-pr]="isDarkMode">
-                                  <b class="zx-text-tiny text-green mb-1">
-                                    <span>{{ uploadProgress }}</span>
-                                    <span>%</span>
-                                  </b>
-                                  <mat-progress-bar
-                                    class="zx-duplex-upload-placeholder__progress w-100"
-                                    mode="determinate"
-                                    [value]="uploadProgress">
-                                  </mat-progress-bar>
-                                  <span class="zx-text-tiny-tiny fw-bold zx-duplex-upload-placeholder__label text-center mt-1">
-                                    <span *ngIf="uploadingCount === 1">
-                                      {{ 'printing-table.uploading-file-one' | translate }}
-                                    </span>
-                                    <span *ngIf="uploadingCount > 1">
-                                      {{ 'printing-table.uploading-file-multi' | translate }}
-                                    </span>
-                                  </span>
-                                </div>
-                              </div>
-                            </ng-template>
-
-                            <!-- Front side (bottom-left, on top) -->
-                            <div
-                              class="zx-duplex-pair-side zx-duplex-pair-side--front"
-                              [class.zx-duplex-pair-side--disabled]="item.pair.isIncomplete">
-                              <ng-container
-                                *ngTemplateOutlet="
-                                  duplexSideCard;
-                                  context: {
-                                    side: item.pair.front,
-                                    pair: item.pair,
-                                    showDeletePage: canDeletePageFromFile(item.pair.front.file)
-                                  }
-                                ">
-                              </ng-container>
-                            </div>
-                          </div>
-                        </article>
-
-                        <!-- Standard file / multi-page -->
+                        <!-- Ready file / multi-page — each page is a drag source -->
                         <article *ngIf="item.kind === 'file-entry'" class="zx-file-obj">
                           <div
-                            *ngIf="!isFileProcessing(item.entry.file)"
                             class="zx-page-obj-container"
-                            [class.zx-bg-choosen]="isSelected(item.entry.file) && isFileListEntryGroupedMultiPage(item.entry)"
                             [class.zx-page-obj-container-bg]="isFileListEntryGroupedMultiPage(item.entry)"
                             [class.zx-page-obj-container-bg-darkmode]="isFileListEntryGroupedMultiPage(item.entry) && isDarkMode">
                             <article
@@ -345,18 +255,15 @@
                               role="button"
                               class="zx-page-obj"
                               [class.zx-page-obj-first]="j === 0 && isFileListEntryGroupedMultiPage(item.entry)"
-                              (click)="selectImage(item.entry.file, image, getFileListImageIndex(item.entry, j))"
-                              (keyup.enter)="selectImage(item.entry.file, image, getFileListImageIndex(item.entry, j))">
+                              draggable="true"
+                              (dragstart)="onPageDragStart($event, item.entry.file, image)">
                               <div
-                                class="zx-img-obj-container-container c-pointer rounded-3 d-flex flex-column zx-border-gray-v-v-light shadow-85-light w-100 h-100 flex-grow-1"
-                                [class.zx-border-choosen]="isSelectedImage(item.entry.file, getFileListImageIndex(item.entry, j))"
+                                class="zx-img-obj-container-container c-grab rounded-3 d-flex flex-column zx-border-gray-v-v-light shadow-85-light w-100 h-100 flex-grow-1"
                                 [class.zx-border-gray-25-pr]="isDarkMode"
                                 [class.bg-white]="isDarkMode">
                                 <span
                                   class="zx-text-tiny fw-bold w-100 text-center"
-                                  [class.text-green]="isSelectedImage(item.entry.file, getFileListImageIndex(item.entry, j))"
-                                  [class.text-black-imp]="isDarkMode && !isSelectedImage(item.entry.file, getFileListImageIndex(item.entry, j))"
-                                  [class.text-green-imp]="isSelectedImage(item.entry.file, getFileListImageIndex(item.entry, j)) && isDarkMode">
+                                  [class.text-black-imp]="isDarkMode">
                                   <span>{{ getDisplayFileName(item.entry.file) | slice: 0 : 16 }}</span>
                                   <span class="zx-text-tiny" *ngIf="getDisplayFileName(item.entry.file).length > 16">
                                     ...
@@ -366,7 +273,7 @@
                                   </span>
                                 </span>
                                 <div class="zx-img-obj-container">
-                                  <img [src]="image.thumbnailUrl" class="zx-img-obj" alt="" />
+                                  <img [src]="image.thumbnailUrl" class="zx-img-obj" alt="" draggable="false" />
                                   <div
                                     class="position-absolute d-flex px-2 zx-pb-12 rounded-pill bottom-0 zx-z-index-1 w-100">
                                     <div
@@ -384,7 +291,7 @@
                                         class="d-flex align-items-center gap-1 px-2"
                                         mat-menu-item
                                         [class.zx-ltr]="!isRTL"
-                                        (click)="onDeleteFileOrImage(item.entry.file, image, getFileListImageIndex(item.entry, j), false, $event)">
+                                        (click)="onDeleteFileOrImage(item.entry.file, image, false, $event)">
                                         <b
                                           class="text-red zx-text-small m-0"
                                           [class.zx-text-white]="isDarkMode">
@@ -392,7 +299,7 @@
                                             'printing-table.delete-page-for-good'
                                               | translate
                                                 : {
-                                                    page: getFileListImageIndex(item.entry, j) + 1,
+                                                    page: j + 1,
                                                     total: getFileImages(item.entry.file).length
                                                   }
                                           }}
@@ -407,7 +314,7 @@
                                         class="d-flex align-items-center gap-1 px-2"
                                         mat-menu-item
                                         [class.zx-ltr]="!isRTL"
-                                        (click)="onDeleteFileOrImage(item.entry.file, image, getFileListImageIndex(item.entry, j), true, $event)">
+                                        (click)="onDeleteFileOrImage(item.entry.file, image, true, $event)">
                                         <b
                                           class="text-red zx-text-small m-0"
                                           [class.zx-text-white]="isDarkMode">
@@ -427,82 +334,6 @@
                           </div>
                         </article>
                       </ng-container>
-
-                      <ng-template
-                        #duplexSideCard
-                        let-side="side"
-                        let-pair="pair"
-                        let-showDeletePage="showDeletePage">
-                        <div
-                          class="zx-duplex-pair-side__inner zx-img-obj-container-container d-flex flex-column w-100 h-100 zx-border-gray-v-v-light"
-                          [class.zx-border-gray-25-pr]="isDarkMode"
-                          [class.bg-white]="isDarkMode">
-                          <span
-                            class="zx-text-tiny fw-bold w-100 text-center px-1"
-                            [class.text-green]="isDuplexPairSelected(pair) && !pair.isIncomplete"
-                            [class.text-black-imp]="isDarkMode && (!isDuplexPairSelected(pair) || pair.isIncomplete)"
-                            [class.text-green-imp]="isDuplexPairSelected(pair) && !pair.isIncomplete && isDarkMode">
-                            {{ getDisplayPageLabel(side.file, side.image, side.imageIndex) | slice: 0 : 22 }}
-                          </span>
-                          <div class="zx-img-obj-container flex-grow-1">
-                            <img [src]="side.image.thumbnailUrl" class="zx-img-obj" alt="" />
-                            <div
-                              class="position-absolute d-flex px-2 zx-pb-12 rounded-pill bottom-0 zx-z-index-1">
-                              <div
-                                matRipple
-                                [matMenuTriggerFor]="duplexDeleteMenu"
-                                (click)="$event.stopPropagation()"
-                                class="delete-button delete-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer">
-                                <mat-icon class="text-red">
-                                  delete_outline
-                                </mat-icon>
-                              </div>
-                              <mat-menu #duplexDeleteMenu="matMenu">
-                                <button
-                                  *ngIf="showDeletePage"
-                                  class="d-flex align-items-center gap-1 px-2"
-                                  mat-menu-item
-                                  [class.zx-ltr]="!isRTL"
-                                  (click)="onDeleteFileOrImage(side.file, side.image, side.imageIndex, false, $event)">
-                                  <b
-                                    class="text-red zx-text-small m-0"
-                                    [class.zx-text-white]="isDarkMode">
-                                    {{
-                                      'printing-table.delete-page-for-good'
-                                        | translate
-                                          : {
-                                              page: side.image.page ?? side.imageIndex + 1,
-                                              total: getFileImages(side.file).length
-                                            }
-                                    }}
-                                  </b>
-                                  <mat-icon
-                                    class="text-red mx-1 p-0 zx-pt-small"
-                                    [class.zx-text-white]="isDarkMode">
-                                    delete_outline
-                                  </mat-icon>
-                                </button>
-                                <button
-                                  class="d-flex align-items-center gap-1 px-2"
-                                  mat-menu-item
-                                  [class.zx-ltr]="!isRTL"
-                                  (click)="onDeleteFileOrImage(side.file, side.image, side.imageIndex, true, $event)">
-                                  <b
-                                    class="text-red zx-text-small m-0"
-                                    [class.zx-text-white]="isDarkMode">
-                                    {{ 'printing-table.delete-file-for-good' | translate }}
-                                  </b>
-                                  <mat-icon
-                                    class="text-red mx-1 p-0 zx-pt-small"
-                                    [class.zx-text-white]="isDarkMode">
-                                    delete_outline
-                                  </mat-icon>
-                                </button>
-                              </mat-menu>
-                            </div>
-                          </div>
-                        </div>
-                      </ng-template>
 
                       <!-- Delete all files [end — when many files] -->
                       <article
@@ -552,7 +383,7 @@
               </div>
             </div>
 
-            <!-- Settings column (empty for now) -->
+            <!-- Settings column -->
             <div class="zx-settings-area mh-100 zx-mw-100-vw position-relative min-h-0">
               <div
                 id="zx-settings-area-inner"
@@ -560,9 +391,9 @@
                 [class.zx-settings-area-inner-rtl]="!isRTL">
                 <div
                   class="ph-print-settings-panel w-100 flex-grow-1 d-flex flex-column gap-3">
-                  <!-- Mobile mockup entry (mean-corse preview row position) -->
+                  <!-- Mobile mockup entry -->
                   <article
-                    *ngIf="showPrintSettingsPanel && selectedImage"
+                    *ngIf="showPrintSettingsPanel && canvas"
                     class="w-100 d-flex p-2 d-flex d-md-none align-items-center bg-white rounded-4 gap-2 ph-print-mockup-mobile-row"
                     [class.ph-print-mockup-mobile-row--active]="mockupViewActive"
                     [class.zx-bg-dark]="isDarkMode">
@@ -571,7 +402,7 @@
                       (click)="onMockupClick($event)">
                       <img
                         class="w-100 h-100 object-fit-contain rounded-3"
-                        [src]="previewThumbnailUrl || 'assets/images/no-img.svg'"
+                        [src]="canvasPreviewThumbnailUrl || 'assets/images/no-img.svg'"
                         alt="" />
                       <div
                         matRipple
@@ -1092,30 +923,6 @@
                       </div>
                     </article>
                   </ng-container>
-                  <hr
-                    *ngIf="showPrintSettingsPanel"
-                    class="ph-print-settings-divider"
-                    aria-hidden="true" />
-                  <ng-container *ngIf="showDuplexFileDimensions; else singleFileDimensions">
-                    <article
-                      class="zx-min-h-50 w-100 d-flex justify-content-between align-items-center ph-print-file-dimensions-row">
-                      <span>{{ 'printing-table.file-dimensions-front-side' | translate }}</span>
-                      <span class="ph-print-file-dimensions-value">{{ selectedDuplexFrontDimensionsLine }}</span>
-                    </article>
-                    <article
-                      class="zx-min-h-50 w-100 d-flex justify-content-between align-items-center ph-print-file-dimensions-row">
-                      <span>{{ 'printing-table.file-dimensions-back-side' | translate }}</span>
-                      <span class="ph-print-file-dimensions-value">{{ selectedDuplexBackDimensionsLine }}</span>
-                    </article>
-                  </ng-container>
-                  <ng-template #singleFileDimensions>
-                    <article
-                      *ngIf="showPrintSettingsPanel"
-                      class="zx-min-h-50 w-100 d-flex justify-content-between align-items-center ph-print-file-dimensions-row">
-                      <span>{{ 'printing-table.file-dimensions' | translate }}</span>
-                      <span class="ph-print-file-dimensions-value">{{ selectedFileDimensionsLine }}</span>
-                    </article>
-                  </ng-template>
                   <span class="ph-print-settings-bottom-spacer" aria-hidden="true"></span>
                 </div>
               </div>
@@ -1180,132 +987,22 @@
       </div>
     </div>
 
-    <!-- Preview pane [desktop] -->
+    <!-- Preview pane [desktop] — always shows the canvas -->
     <article
       class="d-none d-md-flex flex-grow-1 h-100 zx-p-preview-container position-relative"
       [class.bg-white]="!isDarkMode">
       <div
         id="preview-container"
         class="d-flex w-100 h-100 justify-content-center align-items-center">
-        <article *ngIf="!hasFiles" class="no-image-selected-container w-100 h-100">
-          <article class="no-image-selected-inner" [class.no-image-selected-inner-not-rtl]="!isRTL">
-            <div
-              *ngIf="!uploading"
-              tabindex="0"
-              role="button"
-              class="no-image-selected-upload-file file-btn-hover c-pointer"
-              (click)="triggerFilePicker(previewFileInput)">
-              <h4 class="mb-0 fw-bold zx-px-10 text-center c-pointer">
-                {{ 'printing-table.upload-file' | translate }}
-              </h4>
-              <img
-                src="assets/images/upload-file-icon.svg"
-                class="upload-file-icon-big svg c-pointer pt-2"
-                alt="" />
-              <p class="text-center zx-text-big c-pointer mb-0" style="max-width: 60%">
-                {{ 'printing-table.upload-file-desktop' | translate }}
-              </p>
-            </div>
-            <div
-              *ngIf="uploading"
-              class="no-image-selected-upload-file file-btn-hover d-flex flex-column justify-content-center align-items-center position-relative">
-              <div
-                class="w-100 d-flex flex-column justify-content-center align-items-center gap-1 gap-lg-2">
-                <b class="zx-text-big text-green">
-                  <span>{{ uploadProgress }}</span>
-                  <span>%</span>
-                </b>
-                <span class="zx-text-small opacity-75" *ngIf="uploadingCount > 1">
-                  <span>{{ 'printing-table.file' | translate }}</span>
-                  <span>1</span>
-                  <span>{{ 'printing-table.out-of' | translate }}</span>
-                  <span>{{ uploadingCount }}</span>
-                </span>
-              </div>
-              <div
-                class="w-100 d-flex flex-column justify-content-center align-items-center gap-1 gap-lg-2 px-4">
-                <mat-progress-bar mode="determinate" [value]="uploadProgress"></mat-progress-bar>
-                <h6 class="zx-text-medium mb-0">
-                  <span *ngIf="uploadingCount === 1">
-                    {{ 'printing-table.uploading-file-one' | translate }}
-                  </span>
-                  <span *ngIf="uploadingCount > 1">
-                    {{ 'printing-table.uploading-file-multi' | translate }}
-                  </span>
-                </h6>
-              </div>
-              <!-- stop uploading (mean-corse desktop preview) -->
-              <div class="position-absolute d-flex px-3 pt-3 top-0 w-100">
-                <div
-                  matRipple
-                  [matMenuTriggerFor]="stopUploadingMenuPreview"
-                  (click)="stopUploadEvent($event)"
-                  class="d-flex justify-content-center align-items-center zx-bg-light c-pointer">
-                  <mat-icon class="text-red mx-0 m-0 p-1 zx-text-small c-pointer">close</mat-icon>
-                </div>
-                <mat-menu #stopUploadingMenuPreview="matMenu">
-                  <button
-                    class="d-flex align-items-center gap-1 px-2"
-                    mat-menu-item
-                    [class.zx-ltr]="!isRTL"
-                    (click)="stopUploading()">
-                    <b class="text-red zx-text-small m-0" [class.zx-text-white]="isDarkMode">
-                      {{ 'printing-table.stop-uploading' | translate }}
-                    </b>
-                    <mat-icon
-                      class="text-red mx-1 p-0 zx-pt-small"
-                      [class.zx-text-white]="isDarkMode">
-                      close
-                    </mat-icon>
-                  </button>
-                </mat-menu>
-              </div>
-              <!-- // stop uploading -->
-            </div>
-          </article>
-        </article>
-        <input
-          #previewFileInput
-          type="file"
-          hidden
-          multiple
-          [attr.accept]="expressFileAccept"
-          (change)="onFilesSelected($event)" />
-
-        <!-- Files are processing (mean-corse preview spinner UI) -->
-        <article
-          *ngIf="showPreviewProcessingState"
-          class="no-image-selected-container w-100 h-100">
-          <article
-            class="no-image-selected-inner"
-            [class.no-image-selected-inner-not-rtl]="!isRTL">
-            <div class="no-image-selected-upload-file">
-              <h4
-                *ngIf="finishedCount === 0"
-                class="mb-0 fw-bold zx-px-10 text-center opacity-trans">
-                {{ 'printing-table.proccessing-your-files' | translate }}
-              </h4>
-              <div class="upload-file-icon-big p-5">
-                <div class="w-100 h-100">
-                  <mat-spinner class="w-100 h-100"></mat-spinner>
-                </div>
-              </div>
-              <h6
-                class="mb-0 zx-text-small text-center opacity-trans zx-z-index-1"
-                [class.opacity-trans-not-rtl]="!isRTL"
-                [matTooltip]="'printing-table.proccessing.explain' | translate"
-                matTooltipPosition="above">
-                {{ 'printing-table.proccessing' | translate }}
-              </h6>
-            </div>
-          </article>
-        </article>
 
         <app-ph-print-preview
-          *ngIf="hasFiles && previewFrontThumbnailUrl && !showMockupPreview"
+          *ngIf="canvas && !showMockupPreview"
           class="w-100 h-100"
-          [imageUrl]="previewFrontThumbnailUrl"
-          [secondImageUrl]="previewBackThumbnailUrl"
+          [canvasMode]="true"
+          [canvasSides]="canvasSides"
+          [frontPlacements]="frontPlacements"
+          [backPlacements]="backPlacements"
+          [canvasFiles]="files"
           [baseWidthCm]="previewBaseWidthCm"
           [baseHeightCm]="previewBaseHeightCm"
           [marginCm]="previewMarginCm"
@@ -1315,30 +1012,46 @@
           [foldingOffsetCm]="previewFoldingOffsetCm"
           [sheetBackgroundStyles]="previewSheetBackgroundStyles"
           [isRTL]="isRTL"
-          [isDarkMode]="isDarkMode">
+          [isDarkMode]="isDarkMode"
+          (placementsChange)="onSheetPlacementsChange($event)">
         </app-ph-print-preview>
 
-        <app-ph-print-mockup-preview
-          *ngIf="showMockupPreview"
-          class="w-100 h-100"
-          [mockup]="resolvedPrintMockup"
-          [printImageUrl]="previewFrontThumbnailUrl"
-          [printImageWidthPx]="selectedImage?.imageWidth ?? null"
-          [printImageHeightPx]="selectedImage?.imageHeight ?? null"
-          [baseWidthCm]="previewBaseWidthCm"
-          [baseHeightCm]="previewBaseHeightCm"
-          [marginCm]="previewMarginCm"
-          [cornerType]="previewCornerType"
-          [cornerRadiusCm]="previewCornerRadiusCm"
-          [foldingCount]="previewFoldingCount"
-          [foldingOffsetCm]="previewFoldingOffsetCm"
-          [sheetBackgroundStyles]="previewSheetBackgroundStyles"
-          [isRTL]="isRTL"
-          [isDarkMode]="isDarkMode">
-        </app-ph-print-mockup-preview>
+        <div *ngIf="showMockupPreview" class="w-100 h-100 d-flex flex-column">
+          <app-ph-print-mockup-preview
+            class="w-100 flex-grow-1 ph-mockup-composite-surface"
+            [mockup]="resolvedPrintMockup"
+            [printImageUrl]="frontCompositeUrl"
+            [baseWidthCm]="previewBaseWidthCm"
+            [baseHeightCm]="previewBaseHeightCm"
+            [marginCm]="previewMarginCm"
+            [cornerType]="previewCornerType"
+            [cornerRadiusCm]="previewCornerRadiusCm"
+            [foldingCount]="previewFoldingCount"
+            [foldingOffsetCm]="previewFoldingOffsetCm"
+            [sheetBackgroundStyles]="previewSheetBackgroundStyles"
+            [isRTL]="isRTL"
+            [isDarkMode]="isDarkMode">
+          </app-ph-print-mockup-preview>
+          <app-ph-print-mockup-preview
+            *ngIf="isDoubleSided"
+            class="w-100 flex-grow-1 ph-mockup-composite-surface"
+            [mockup]="resolvedPrintMockup"
+            [printImageUrl]="backCompositeUrl"
+            [baseWidthCm]="previewBaseWidthCm"
+            [baseHeightCm]="previewBaseHeightCm"
+            [marginCm]="previewMarginCm"
+            [cornerType]="previewCornerType"
+            [cornerRadiusCm]="previewCornerRadiusCm"
+            [foldingCount]="previewFoldingCount"
+            [foldingOffsetCm]="previewFoldingOffsetCm"
+            [sheetBackgroundStyles]="previewSheetBackgroundStyles"
+            [isRTL]="isRTL"
+            [isDarkMode]="isDarkMode">
+          </app-ph-print-mockup-preview>
+        </div>
       </div>
       <div
-        *ngIf="hasFiles && previewFrontThumbnailUrl"
+        *ngIf="canvas"
         class="preview-button mockup-button d-none d-md-flex justify-content-center align-items-center"
         [class.mockup-button--active]="mockupViewActive"
         [class.preview-button-not-rtl]="!isRTL">

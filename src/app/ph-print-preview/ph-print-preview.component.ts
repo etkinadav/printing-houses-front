@@ -3,9 +3,11 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
+  EventEmitter,
   Input,
   OnChanges,
   OnDestroy,
+  Output,
   QueryList,
   SimpleChanges,
   ViewChild,
@@ -21,6 +23,11 @@ import {
   MockupPrintOverlayQuad,
   MockupPrintOverlayRect,
 } from '../ph-printing-files/ph-print-mockup.util';
+import {
+  PhCanvasPlacement,
+  PhCanvasSideName,
+} from '../ph-canvas/ph-canvas.model';
+import { PhPrintingFile } from '../ph-printing-files/ph-printing-file.model';
 
 @Component({
   selector: 'app-ph-print-preview',
@@ -55,6 +62,20 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   @Input() mockupQuadOverlay: (MockupPrintOverlayQuad & { kind: 'quad' }) | null = null;
   @Input() mockupQuadBox: MockupPrintOverlayRect | null = null;
 
+  /** Canvas mode: render interactive Fabric sheet(s) instead of a static image. */
+  @Input() canvasMode = false;
+  /** Sides to render ('front' or 'front'+'back' when double-sided). */
+  @Input() canvasSides: PhCanvasSideName[] = ['front'];
+  @Input() frontPlacements: PhCanvasPlacement[] = [];
+  @Input() backPlacements: PhCanvasPlacement[] = [];
+  @Input() canvasFiles: PhPrintingFile[] = [];
+  @Input() canvasInteractive = true;
+
+  @Output() placementsChange = new EventEmitter<{
+    side: PhCanvasSideName;
+    placements: PhCanvasPlacement[];
+  }>();
+
   @ViewChild('measureHost') measureHost?: ElementRef<HTMLElement>;
   @ViewChildren('preloadImage') preloadImages?: QueryList<ElementRef<HTMLImageElement>>;
 
@@ -88,15 +109,49 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
     });
     this.resizeObserver.observe(host);
     this.scheduleLayoutRefresh();
-    this.scheduleImageLoadSync();
-    if (this.compactSheetOnly && this.imageUrl?.trim()) {
-      this.beginImagesLoad();
+    if (this.canvasMode) {
+      this.syncCanvasActiveSurfaces();
+    } else {
+      this.scheduleImageLoadSync();
+      if (this.compactSheetOnly && this.imageUrl?.trim()) {
+        this.beginImagesLoad();
+      }
     }
   }
 
+  /** Canvas mode: drive the duplex-stack layout from the number of sides. */
+  private syncCanvasActiveSurfaces(): void {
+    this.imageLoading = false;
+    const sides = this.canvasSides?.length ? this.canvasSides : ['front'];
+    // Reuse activeImageUrls length so the stacked layout renders one row per side.
+    this.activeImageUrls = sides.map((side) => `canvas:${side}`);
+    this.scheduleLayoutRefresh();
+    this.cdr.markForCheck();
+  }
+
+  placementsForSide(side: PhCanvasSideName): PhCanvasPlacement[] {
+    return side === 'back' ? this.backPlacements : this.frontPlacements;
+  }
+
+  onSheetPlacementsChange(side: PhCanvasSideName, placements: PhCanvasPlacement[]): void {
+    this.placementsChange.emit({ side, placements });
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['imageUrl'] || changes['secondImageUrl']) {
+    if (this.canvasMode) {
+      if (
+        changes['canvasMode'] ||
+        changes['canvasSides'] ||
+        changes['frontPlacements'] ||
+        changes['backPlacements']
+      ) {
+        this.syncCanvasActiveSurfaces();
+      }
+    } else if (changes['imageUrl'] || changes['secondImageUrl']) {
       this.beginImagesLoad();
+    }
+    if (changes['canvasMode'] && this.canvasMode) {
+      this.syncCanvasActiveSurfaces();
     }
     if (
       changes['baseWidthCm'] ||
@@ -143,6 +198,13 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   onPreviewImageLoaded(url: string): void {
     this.loadedImageUrls.add(url);
     this.syncImageLoadingState();
+  }
+
+  private getActiveSurfaceCount(): number {
+    if (this.canvasMode) {
+      return this.canvasSides?.length ? this.canvasSides.length : 1;
+    }
+    return this.buildActiveImageUrls().length;
   }
 
   private buildActiveImageUrls(): string[] {
@@ -292,7 +354,7 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
 
     this.measureRetryCount = 0;
 
-    const isDuplex = this.buildActiveImageUrls().length > 1;
+    const isDuplex = this.getActiveSurfaceCount() > 1;
     const layoutHeightPx = isDuplex
       ? Math.max(40, (containerHeightPx - PH_PREVIEW_DUPLEX_STACK_GAP_PX) / 2)
       : containerHeightPx;

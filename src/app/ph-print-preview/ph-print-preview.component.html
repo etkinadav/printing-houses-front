@@ -4,15 +4,17 @@
   [class.ph-print-preview-host--duplex]="isDuplexStack && !compactSheetOnly"
   [class.ph-print-preview-host--compact]="compactSheetOnly">
 
-  <img
-    *ngFor="let url of activeImageUrls; trackBy: trackImageUrl"
-    #preloadImage
-    class="ph-print-preview-preload"
-    [class.ph-print-preview-preload--hidden]="compactSheetOnly"
-    [src]="url"
-    alt=""
-    (load)="onPreviewImageLoaded(url)"
-    (error)="onPreviewImageLoaded(url)" />
+  <ng-container *ngIf="!canvasMode">
+    <img
+      *ngFor="let url of activeImageUrls; trackBy: trackImageUrl"
+      #preloadImage
+      class="ph-print-preview-preload"
+      [class.ph-print-preview-preload--hidden]="compactSheetOnly"
+      [src]="url"
+      alt=""
+      (load)="onPreviewImageLoaded(url)"
+      (error)="onPreviewImageLoaded(url)" />
+  </ng-container>
 
   <div
     *ngIf="imageLoading && !compactSheetOnly"
@@ -29,12 +31,12 @@
     class="ph-print-preview-duplex-stack w-100 h-100">
     <div class="ph-print-preview-duplex-item ph-print-preview-duplex-item--front">
       <ng-container
-        *ngTemplateOutlet="previewBundle; context: { sheetImageUrl: activeImageUrls[0], isDuplexFront: true }">
+        *ngTemplateOutlet="previewBundle; context: { sheetImageUrl: activeImageUrls[0], isDuplexFront: true, side: 'front' }">
       </ng-container>
     </div>
     <div class="ph-print-preview-duplex-item ph-print-preview-duplex-item--back">
       <ng-container
-        *ngTemplateOutlet="previewBundle; context: { sheetImageUrl: activeImageUrls[1], isDuplexFront: false }">
+        *ngTemplateOutlet="previewBundle; context: { sheetImageUrl: activeImageUrls[1], isDuplexFront: false, side: 'back' }">
       </ng-container>
     </div>
   </div>
@@ -42,13 +44,13 @@
   <ng-container *ngIf="!isDuplexStack && layout && activeImageUrls.length && (!imageLoading || compactSheetOnly)">
     <ng-container *ngIf="!compactSheetOnly">
       <ng-container
-        *ngTemplateOutlet="previewBundle; context: { sheetImageUrl: activeImageUrls[0], isDuplexFront: false }">
+        *ngTemplateOutlet="previewBundle; context: { sheetImageUrl: activeImageUrls[0], isDuplexFront: false, side: 'front' }">
       </ng-container>
     </ng-container>
   </ng-container>
 </div>
 
-<ng-template #previewBundle let-sheetImageUrl="sheetImageUrl" let-isDuplexFront="isDuplexFront">
+<ng-template #previewBundle let-sheetImageUrl="sheetImageUrl" let-isDuplexFront="isDuplexFront" let-side="side">
   <div
     class="ph-print-preview-bundle"
     [class.ph-print-preview-bundle--not-rtl]="!isRTL"
@@ -151,7 +153,7 @@
         [style.border-radius.px]="layout.sheetBorderRadiusPx">
 
         <ng-container
-          *ngTemplateOutlet="previewSheetImage; context: { sheetImageUrl: sheetImageUrl }">
+          *ngTemplateOutlet="previewSheetImage; context: { sheetImageUrl: sheetImageUrl, side: side }">
         </ng-container>
 
         <ng-container *ngIf="!compactSheetOnly">
@@ -253,7 +255,7 @@
   </div>
 </ng-template>
 
-<ng-template #previewSheetImage let-sheetImageUrl="sheetImageUrl">
+<ng-template #previewSheetImage let-sheetImageUrl="sheetImageUrl" let-side="side">
   <div
     class="ph-print-preview-image-layer"
     [class.ph-print-preview-image-layer--bleed]="layout.hasBleed"
@@ -262,6 +264,17 @@
     [style.grid-area]="compactSheetOnly ? null : (layout.hasBleed ? '1 / 1 / 4 / 4' : '1 / 1 / 2 / 2')"
     [style.clip-path]="layout.imageClipPath"
     [style.border-radius.px]="layout.imageBorderRadiusPx">
-    <img [src]="sheetImageUrl" class="ph-print-preview-image" alt="" />
+    <app-ph-canvas-sheet
+      *ngIf="canvasMode; else staticSheetImage"
+      class="ph-print-preview-canvas-sheet"
+      [side]="side || 'front'"
+      [placements]="placementsForSide(side || 'front')"
+      [files]="canvasFiles"
+      [interactive]="canvasInteractive"
+      (placementsChange)="onSheetPlacementsChange(side || 'front', $event)">
+    </app-ph-canvas-sheet>
+    <ng-template #staticSheetImage>
+      <img [src]="sheetImageUrl" class="ph-print-preview-image" alt="" />
+    </ng-template>
   </div>
 </ng-template>

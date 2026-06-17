@@ -1,0 +1,25 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ph-canvas-sheet-host {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.ph-canvas-sheet-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+/* Fabric injects a wrapper around the canvas; keep it filling the host. */
+:host ::ng-deep .canvas-container {
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}

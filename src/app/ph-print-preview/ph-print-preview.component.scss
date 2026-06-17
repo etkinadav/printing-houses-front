@@ -551,6 +551,14 @@ $ph-preview-duplex-stack-gap-px: 0;
 
 }
 
+.ph-print-preview-canvas-sheet {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
 
 
 .ph-print-preview-bleed-corner {
