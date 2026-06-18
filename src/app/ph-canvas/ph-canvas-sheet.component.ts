@@ -285,11 +285,29 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
 
   /** Clear selection when the other duplex side claims interaction. */
   private releaseFocusFromOtherSheet(): void {
+    this.clearSelectionFromInteraction('releaseFocusFromOtherSheet');
+  }
+
+  private clearActiveSelection(): void {
     if (!this.canvas?.getActiveObject()) {
       return;
     }
-    this.logSelection('releaseFocusFromOtherSheet', { prev: this.activePlacementKey() });
-    this.clearActiveSelection();
+    this.logSelection('clear', { prev: this.activePlacementKey(), side: this.side });
+    this.interactionService.release(this.side);
+    this.clearSelectionFromInteraction('clearActiveSelection');
+  }
+
+  /** Drop Fabric focus chrome without touching interaction service state. */
+  private clearSelectionFromInteraction(reason: string): void {
+    if (!this.canvas) {
+      return;
+    }
+    if (!this.canvas.getActiveObject()) {
+      return;
+    }
+    this.logSelection(reason, { prev: this.activePlacementKey(), side: this.side });
+    this.canvas.discardActiveObject();
+    this.gestureStartPlacement = null;
     this.syncFocusChrome();
   }
 
@@ -298,6 +316,18 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     if (!this.interactive || !this.canvas) {
       return;
     }
+
+    // Pointer on another duplex sheet — clear this sheet's selection immediately.
+    if (!this.isPointerActiveForThisSheet(event) && this.canvas.getActiveObject()) {
+      this.logSelection('pointerdown:capture → clear (other duplex sheet)', {
+        side: this.side,
+        hoverSide: this.interactionService.getHoverSide(),
+      });
+      this.interactionService.release(this.side);
+      this.clearSelectionFromInteraction('dismissOtherSheet');
+      return;
+    }
+
     if (!this.isPointerActiveForThisSheet(event)) {
       return;
     }
@@ -362,9 +392,10 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     if (!this.canvas) {
       return;
     }
+    // Claim first so the other duplex sheet clears before this side shows focus chrome.
+    this.interactionService.claim(this.side);
     const key = this.placementKeyForObject(obj);
     const prev = this.activePlacementKey();
-    this.interactionService.claim(this.side);
     this.bringObjectToFront(obj);
     this.canvas.setActiveObject(obj);
     this.captureGestureStartPlacement(obj);
@@ -419,20 +450,6 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
 
   private deferSyncFocusChrome(): void {
     queueMicrotask(() => this.syncFocusChrome());
-  }
-
-  private clearActiveSelection(): void {
-    if (!this.canvas) {
-      return;
-    }
-    const prev = this.activePlacementKey();
-    if (!prev) {
-      return;
-    }
-    this.logSelection('clear', { prev });
-    this.interactionService.release(this.side);
-    this.canvas.discardActiveObject();
-    this.gestureStartPlacement = null;
   }
 
   /** Resolve the topmost image under the pointer. */
@@ -885,6 +902,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       containsImageLayerPoint: (clientX, clientY) =>
         this.containsImageLayerPoint(clientX, clientY),
       getImageLayerRect: () => this.getImageLayerEl()?.getBoundingClientRect() ?? null,
+      clearSelection: () => this.clearSelectionFromInteraction('serviceClear'),
     });
   }
 

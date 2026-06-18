@@ -28,6 +28,8 @@ import {
   PhCanvasSideName,
 } from '../ph-canvas/ph-canvas.model';
 import { PhPrintingFile } from '../ph-printing-files/ph-printing-file.model';
+import { PhCanvasInteractionService } from '../ph-canvas/ph-canvas-interaction.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-ph-print-preview',
@@ -82,6 +84,8 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   layout: PhPrintPreviewLayout | null = null;
   imageLoading = false;
   activeImageUrls: string[] = [];
+  /** Duplex canvas: side with the selected image — elevated above the other sheet. */
+  canvasActiveSide: PhCanvasSideName | null = null;
 
   private resizeObserver?: ResizeObserver;
   private measureRetryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -89,8 +93,12 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   private imageLoadRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private loadedImageUrls = new Set<string>();
   private trackedImageUrlsKey = '';
+  private canvasActiveSideSub?: Subscription;
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private readonly canvasInteraction: PhCanvasInteractionService,
+  ) {}
 
   get isDuplexStack(): boolean {
     return this.activeImageUrls.length > 1;
@@ -111,6 +119,10 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
     this.scheduleLayoutRefresh();
     if (this.canvasMode) {
       this.syncCanvasActiveSurfaces();
+      this.canvasActiveSideSub = this.canvasInteraction.activeSide$.subscribe((side) => {
+        this.canvasActiveSide = side;
+        this.cdr.markForCheck();
+      });
     } else {
       this.scheduleImageLoadSync();
       if (this.compactSheetOnly && this.imageUrl?.trim()) {
@@ -135,6 +147,18 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
 
   onSheetPlacementsChange(side: PhCanvasSideName, placements: PhCanvasPlacement[]): void {
     this.placementsChange.emit({ side, placements });
+  }
+
+  /** Raise the duplex item that has (or last had) the selected image above the other sheet. */
+  isDuplexItemElevated(side: PhCanvasSideName): boolean {
+    if (!this.canvasMode || !this.isDuplexStack) {
+      return false;
+    }
+    const active = this.canvasActiveSide;
+    if (active) {
+      return active === side;
+    }
+    return side === 'front';
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -175,6 +199,7 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
 
   ngOnDestroy(): void {
     this.resizeObserver?.disconnect();
+    this.canvasActiveSideSub?.unsubscribe();
     if (this.measureRetryTimer) {
       clearTimeout(this.measureRetryTimer);
     }
