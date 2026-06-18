@@ -750,6 +750,20 @@ $ph-preview-duplex-stack-gap-px: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
+
+  polygon,
+  path {
+    /* Draw the 1px stroke outside the clip edge so images can fill to the line. */
+    stroke-alignment: outer;
+  }
+}
+
+.ph-print-preview-sheet-outline,
+.ph-print-preview-bleed-outline {
+  polygon,
+  path {
+    stroke-alignment: outer;
+  }
 }
 
 .ph-print-preview-folding-overlay {

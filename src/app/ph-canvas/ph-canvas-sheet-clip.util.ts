@@ -1,7 +1,7 @@
 import { FabricObject, Path, Rect } from 'fabric';
 
-/** Matches `.ph-print-preview-base-frame` green outline — keep image clip inside it. */
-export const SHEET_FRAME_INSET_PX = 1;
+/** Align Fabric clip with the printable edge (green outline is drawn outside via box-shadow / SVG stroke). */
+export const SHEET_FRAME_INSET_PX = 0;
 
 export type PhSheetClipSpec =
   | { type: 'rect' }
