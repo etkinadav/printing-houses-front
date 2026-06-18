@@ -10,9 +10,15 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
-import { Canvas, FabricImage, FabricObject, Rect } from 'fabric';
+import { Canvas, FabricImage, FabricObject } from 'fabric';
 
 import { PhPrintingFile } from '../ph-printing-files/ph-printing-file.model';
+import {
+  applySheetClipToContext,
+  createFabricSheetClip,
+  resolveSheetClipSpec,
+  sheetClipSpecKey,
+} from './ph-canvas-sheet-clip.util';
 import {
   PhCanvasDragPayload,
   PhCanvasPlacement,
@@ -36,7 +42,8 @@ type PhFabricImage = FabricObject & {
   phPlacement?: PhCanvasPlacement;
   _phOrigRender?: (ctx: CanvasRenderingContext2D) => void;
   _phOverflowRender?: boolean;
-  _phSheetClip?: Rect;
+  _phSheetClip?: FabricObject;
+  _phSheetClipKey?: string;
 };
 
 /**
@@ -53,6 +60,10 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
   @Input() side: PhCanvasSideName = 'front';
   @Input() placements: PhCanvasPlacement[] = [];
   @Input() files: PhPrintingFile[] = [];
+  /** CSS clip-path for the printable area (rounded/chamfer/bleed) — from preview layout. */
+  @Input() imageClipPath: string | null = null;
+  /** Border-radius when corners are rounded without clip-path — from preview layout. */
+  @Input() imageBorderRadiusPx = 0;
   /** Disable interaction (e.g. when the canvas is read-only). */
   @Input() interactive = true;
 
@@ -101,6 +112,12 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
         this.canvas.discardActiveObject();
       }
       this.applyInteractivity();
+    }
+    if (
+      (changes['imageClipPath'] || changes['imageBorderRadiusPx']) &&
+      this.canvas
+    ) {
+      this.syncFocusChrome();
     }
   }
 
@@ -198,35 +215,34 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       img._render = extended._phOrigRender;
     }
 
+    const { pad, sheetW, sheetH } = this.getSheetMetrics();
+    const shapeClip = this.ensureSheetFabricClip(extended, pad, sheetW, sheetH);
+
     if (focused) {
       img.opacity = FOCUS_OUTSIDE_OPACITY;
+      // No clip on the dim pass — full image at 20%; interior shape clip runs in after:render.
       img.clipPath = undefined;
     } else {
       img.opacity = 1;
-      const { pad, sheetW, sheetH } = this.getSheetMetrics();
-      let clip = extended._phSheetClip;
-      if (!clip) {
-        clip = new Rect({
-          left: pad,
-          top: pad,
-          width: sheetW,
-          height: sheetH,
-          originX: 'left',
-          originY: 'top',
-          absolutePositioned: true,
-        });
-        extended._phSheetClip = clip;
-      } else {
-        clip.set({
-          left: pad,
-          top: pad,
-          width: sheetW,
-          height: sheetH,
-        });
-      }
-      img.clipPath = clip;
+      img.clipPath = shapeClip;
     }
     extended._phOverflowRender = focused;
+  }
+
+  private ensureSheetFabricClip(
+    extended: PhFabricImage,
+    pad: number,
+    sheetW: number,
+    sheetH: number,
+  ): FabricObject {
+    const spec = resolveSheetClipSpec(this.imageClipPath, this.imageBorderRadiusPx);
+    const fullKey = `${sheetClipSpecKey(this.imageClipPath, this.imageBorderRadiusPx)}|${pad}|${sheetW}|${sheetH}`;
+    if (extended._phSheetClip && extended._phSheetClipKey === fullKey) {
+      return extended._phSheetClip;
+    }
+    extended._phSheetClip = createFabricSheetClip(spec, pad, sheetW, sheetH);
+    extended._phSheetClipKey = fullKey;
+    return extended._phSheetClip;
   }
 
   /** Re-draw the focused image at full opacity inside the printable sheet bounds. */
@@ -243,12 +259,11 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       return;
     }
     const { pad, sheetW, sheetH } = this.getSheetMetrics();
+    const spec = resolveSheetClipSpec(this.imageClipPath, this.imageBorderRadiusPx);
 
     ctx.save();
     ctx.transform(vpt[0], vpt[1], vpt[2], vpt[3], vpt[4], vpt[5]);
-    ctx.beginPath();
-    ctx.rect(pad, pad, sheetW, sheetH);
-    ctx.clip();
+    applySheetClipToContext(ctx, spec, pad, sheetW, sheetH);
 
     const prevOpacity = active.opacity;
     active.opacity = 1;

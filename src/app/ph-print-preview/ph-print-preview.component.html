@@ -280,6 +280,8 @@
       [side]="side || 'front'"
       [placements]="placementsForSide(side || 'front')"
       [files]="canvasFiles"
+      [imageClipPath]="layout.imageClipPath"
+      [imageBorderRadiusPx]="layout.imageBorderRadiusPx"
       [interactive]="canvasInteractive"
       (placementsChange)="onSheetPlacementsChange(side || 'front', $event)">
     </app-ph-canvas-sheet>
