@@ -89,7 +89,17 @@ $ph-preview-duplex-stack-gap-px: 0;
 
 
 .ph-print-preview-duplex-item--canvas {
-  overflow: visible !important;
+  overflow: hidden !important;
+  position: relative;
+  isolation: isolate;
+}
+
+.ph-print-preview-duplex-item--front.ph-print-preview-duplex-item--canvas {
+  z-index: 2;
+}
+
+.ph-print-preview-duplex-item--back.ph-print-preview-duplex-item--canvas {
+  z-index: 1;
 }
 
 .ph-print-preview-duplex-item {

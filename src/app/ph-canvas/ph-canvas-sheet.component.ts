@@ -42,6 +42,10 @@ const OVERFLOW_PAD_MAX_PX = 2400;
 const FOCUS_OUTSIDE_OPACITY = 0.2;
 /** Minimum overlap (px) between image and sheet when dragging/scaling. */
 const SHEET_MIN_OVERLAP_PX = 1;
+/** Small tolerance for selecting near anti-aliased / transformed image edges. */
+const SELECTION_HIT_TOLERANCE_PX = 24;
+/** Verbose selection / z-order logging (console). */
+const SELECTION_DEBUG = true;
 
 type PhFabricImage = FabricObject & {
   phPlacement?: PhCanvasPlacement;
@@ -49,6 +53,7 @@ type PhFabricImage = FabricObject & {
   _phOverflowRender?: boolean;
   _phSheetClip?: FabricObject;
   _phSheetClipKey?: string;
+  _phOrigContainsPoint?: (point: { x: number; y: number }) => boolean;
 };
 
 /**
@@ -114,9 +119,17 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
         this.dismissSelectionIfOutside(event);
       }),
     );
+    this.interactionSub.add(
+      this.interactionService.hoverSide$.subscribe((hoverSide) => {
+        this.applyDuplexPointerPassThrough(hoverSide);
+      }),
+    );
+    this.registerWithInteractionService();
     this.observeResize();
     this.model = this.clonePlacements(this.placements);
-    void this.syncObjectsFromModel();
+    void this.syncObjectsFromModel().then(() => {
+      requestAnimationFrame(() => this.syncCanvasPointerLayout());
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -151,6 +164,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     }
     this.resizeObserver?.disconnect();
     this.interactionSub?.unsubscribe();
+    this.interactionService.unregisterSheet(this.side);
     this.canvas?.dispose();
     this.canvas = null;
   }
@@ -164,6 +178,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       selection: false,
       preserveObjectStacking: true,
       backgroundColor: 'transparent',
+      perPixelTargetFind: false,
       // Always scale proportionally from the corners (no modifier override).
       uniformScaling: true,
     });
@@ -189,6 +204,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     this.bindFocusHandlers();
     this.refreshAccentGreen();
     this.applyInteractivity();
+    this.syncCanvasPointerLayout();
   }
 
   private bindFocusHandlers(): void {
@@ -199,15 +215,58 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       if (!this.interactive) {
         return;
       }
-      const target = opt.target as FabricObject | undefined;
-      if (target) {
-        this.interactionService.claim(this.side);
-        this.canvas!.setActiveObject(target);
-        this.captureGestureStartPlacement(target);
-      } else {
-        this.clearActiveSelection();
+      const event = opt.e as PointerEvent;
+      if (!this.isPointerActiveForThisSheet(event)) {
+        this.logSelection('mouse:down → ignored (other duplex sheet)', {
+          hoverSide: this.interactionService.getHoverSide(),
+        });
+        return;
       }
+      const fabricTarget = opt.target as FabricObject | undefined;
+      const resolved = this.resolveImageTarget(event);
+      this.logSelection('mouse:down', {
+        fabricTargetKey: this.placementKeyForObject(fabricTarget),
+        resolvedTargetKey: this.placementKeyForObject(resolved),
+        activeBefore: this.activePlacementKey(),
+        scenePoint: this.describeScenePoint(event),
+        zOrder: this.describeZOrder(),
+      });
+      const target = resolved ?? (fabricTarget instanceof FabricImage ? fabricTarget : null);
+      if (target) {
+        const active = this.canvas!.getActiveObject();
+        if (target === active) {
+          this.captureGestureStartPlacement(target);
+          this.logSelection('mouse:down → keep active (drag ready)', {
+            key: this.placementKeyForObject(target),
+          });
+        } else {
+          this.selectPlacementObject(target);
+        }
+        return;
+      }
+      this.logPointerMiss(event, fabricTarget);
+      const active = this.canvas!.getActiveObject();
+      if (active && this.pointerHitsObject(event, active)) {
+        this.captureGestureStartPlacement(active);
+        this.logSelection('mouse:down → keep active (full-bbox hit, no fabric target)', {
+          key: this.placementKeyForObject(active),
+        });
+        return;
+      }
+      this.clearActiveSelection();
       this.syncFocusChrome();
+    });
+    this.canvas.on('mouse:move', (opt) => {
+      if (!this.interactive || !this.canvas) {
+        return;
+      }
+      const event = opt.e as PointerEvent;
+      if (!this.isPointerActiveForThisSheet(event)) {
+        this.canvas.hoverCursor = 'default';
+        return;
+      }
+      const hoverTarget = this.resolveImageTarget(event);
+      this.canvas.hoverCursor = hoverTarget ? 'move' : 'default';
     });
     this.canvas.on('selection:created', () => this.syncFocusChrome());
     this.canvas.on('selection:updated', () => this.syncFocusChrome());
@@ -229,6 +288,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     if (!this.canvas?.getActiveObject()) {
       return;
     }
+    this.logSelection('releaseFocusFromOtherSheet', { prev: this.activePlacementKey() });
     this.clearActiveSelection();
     this.syncFocusChrome();
   }
@@ -238,38 +298,489 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     if (!this.interactive || !this.canvas) {
       return;
     }
+    if (!this.isPointerActiveForThisSheet(event)) {
+      return;
+    }
     const active = this.canvas.getActiveObject();
     if (!active) {
       return;
     }
-    if (this.isPointerOnActiveObject(event, active)) {
+
+    const activeKey = this.placementKeyForObject(active);
+    const onSheetHost = this.rootRef.nativeElement.contains(event.target as Node);
+    const onUpperCanvas = this.canvas.upperCanvasEl.contains(event.target as Node);
+    const pointerTarget = onUpperCanvas ? this.resolveImageTarget(event) : null;
+    const pointerKey = this.placementKeyForObject(pointerTarget ?? undefined);
+
+    this.logSelection('pointerdown:capture', {
+      activeKey,
+      onSheetHost,
+      onUpperCanvas,
+      pointerKey,
+      scenePoint: onUpperCanvas ? this.describeScenePoint(event) : null,
+      zOrder: this.describeZOrder(),
+    });
+
+    if (!onSheetHost) {
+      this.logSelection('pointerdown:capture → clear (outside sheet host)');
+      this.clearActiveSelection();
+      this.deferSyncFocusChrome();
       return;
     }
+
+    if (!onUpperCanvas) {
+      this.logSelection('pointerdown:capture → clear (on host, not canvas)');
+      this.clearActiveSelection();
+      this.deferSyncFocusChrome();
+      return;
+    }
+
+    if (pointerTarget === active || this.pointerHitsObject(event, active)) {
+      this.logSelection('pointerdown:capture → keep (same object)', {
+        viaFindTarget: pointerTarget === active,
+        viaFullBbox: pointerTarget !== active,
+      });
+      return;
+    }
+
+    if (pointerTarget instanceof FabricImage) {
+      this.logSelection('pointerdown:capture → switch', {
+        from: activeKey,
+        to: pointerKey,
+      });
+      this.selectPlacementObject(pointerTarget);
+      return;
+    }
+
+    this.logSelection('pointerdown:capture → clear (empty canvas hit)');
     this.clearActiveSelection();
+    this.deferSyncFocusChrome();
+  }
+
+  /** Select a placement object, bring it to front, and refresh focus chrome. */
+  private selectPlacementObject(obj: FabricObject): void {
+    if (!this.canvas) {
+      return;
+    }
+    const key = this.placementKeyForObject(obj);
+    const prev = this.activePlacementKey();
+    this.interactionService.claim(this.side);
+    this.bringObjectToFront(obj);
+    this.canvas.setActiveObject(obj);
+    this.captureGestureStartPlacement(obj);
     this.syncFocusChrome();
+    this.logSelection('select', {
+      key,
+      prev,
+      zOrderAfter: this.describeZOrder(),
+    });
+  }
+
+  /** Move object to top of stack and sync zIndex in the model. */
+  private bringObjectToFront(obj: FabricObject): void {
+    if (!this.canvas) {
+      return;
+    }
+    const objects = this.canvas.getObjects();
+    const topIndex = objects.length - 1;
+    const currentIndex = objects.indexOf(obj);
+    if (currentIndex < 0 || currentIndex === topIndex) {
+      return;
+    }
+    this.logSelection('bringToFront', {
+      key: this.placementKeyForObject(obj),
+      fromIndex: currentIndex,
+      toIndex: topIndex,
+    });
+    this.canvas.moveObjectTo(obj, topIndex);
+    this.syncModelZOrderFromCanvas(true);
+  }
+
+  /** Keep model zIndex aligned with Fabric object stack order. */
+  private syncModelZOrderFromCanvas(emit: boolean): void {
+    if (!this.canvas) {
+      return;
+    }
+    const objects = this.canvas.getObjects() as PhFabricImage[];
+    const next: PhCanvasPlacement[] = [];
+    objects.forEach((obj, index) => {
+      if (!obj.phPlacement) {
+        return;
+      }
+      const updated = { ...obj.phPlacement, zIndex: index };
+      obj.phPlacement = updated;
+      next.push(updated);
+    });
+    this.model = next;
+    if (emit) {
+      this.emitChange();
+    }
+  }
+
+  private deferSyncFocusChrome(): void {
+    queueMicrotask(() => this.syncFocusChrome());
   }
 
   private clearActiveSelection(): void {
     if (!this.canvas) {
       return;
     }
+    const prev = this.activePlacementKey();
+    if (!prev) {
+      return;
+    }
+    this.logSelection('clear', { prev });
     this.interactionService.release(this.side);
     this.canvas.discardActiveObject();
     this.gestureStartPlacement = null;
   }
 
-  /** True when the event hits the active Fabric object (body or corner controls). */
-  private isPointerOnActiveObject(event: PointerEvent, active: FabricObject): boolean {
-    const sheetHost = this.rootRef.nativeElement;
-    if (!sheetHost.contains(event.target as Node)) {
+  /** Resolve the topmost image under the pointer. */
+  private resolveImageTarget(event: PointerEvent): FabricImage | null {
+    if (!this.canvas?.upperCanvasEl.contains(event.target as Node)) {
+      return null;
+    }
+    if (!this.isPointerActiveForThisSheet(event)) {
+      return null;
+    }
+    if (!this.containsImageLayerPoint(event.clientX, event.clientY)) {
+      return null;
+    }
+    this.syncAllObjectCoords();
+
+    // Primary: hit-test via printable image-layer + normalized placements (matches what the user sees).
+    const placementHit = this.findTopImageByPlacement(event);
+    if (placementHit) {
+      this.logSelection('resolveImageTarget → placement hit', {
+        key: this.placementKeyForObject(placementHit),
+        norm: this.roundPoint(this.getSheetNormalizedPointer(event)),
+      });
+      return placementHit;
+    }
+
+    // Secondary: Fabric's own findTarget.
+    const fabricTarget = this.canvas.findTarget(event).target;
+    if (fabricTarget instanceof FabricImage) {
+      return fabricTarget;
+    }
+
+    // Fallback: manual scene-point hit-test.
+    for (const candidate of this.getPointerCandidates(event)) {
+      const match = this.findTopImageAtScenePoint(candidate.point, candidate.tolerance);
+      if (match) {
+        this.logSelection('resolveImageTarget → scene hit', {
+          candidate: candidate.kind,
+          point: this.roundPoint(candidate.point),
+          key: this.placementKeyForObject(match),
+        });
+        return match;
+      }
+    }
+    return null;
+  }
+
+  /** Map pointer to 0..1 coordinates within the printable image layer. */
+  private getSheetNormalizedPointer(event: PointerEvent): { x: number; y: number } | null {
+    const layer = this.getImageLayerEl();
+    if (!layer) {
+      return null;
+    }
+    const rect = layer.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      return null;
+    }
+    return {
+      x: (event.clientX - rect.left) / rect.width,
+      y: (event.clientY - rect.top) / rect.height,
+    };
+  }
+
+  private isNormalizedPointInPlacement(
+    point: { x: number; y: number },
+    placement: PhCanvasPlacement,
+    sheetW: number,
+    sheetH: number,
+    tolerancePx = SELECTION_HIT_TOLERANCE_PX,
+  ): boolean {
+    const tolX = tolerancePx / sheetW;
+    const tolY = tolerancePx / sheetH;
+    return (
+      point.x >= placement.x - tolX &&
+      point.x <= placement.x + placement.width + tolX &&
+      point.y >= placement.y - tolY &&
+      point.y <= placement.y + placement.height + tolY
+    );
+  }
+
+  /** Topmost image whose normalized placement box contains the pointer. */
+  private findTopImageByPlacement(event: PointerEvent): FabricImage | null {
+    if (!this.canvas) {
+      return null;
+    }
+    const norm = this.getSheetNormalizedPointer(event);
+    if (!norm) {
+      return null;
+    }
+    const { sheetW, sheetH } = this.getSheetMetrics();
+    const objects = this.canvas.getObjects() as PhFabricImage[];
+    for (let index = objects.length - 1; index >= 0; index -= 1) {
+      const obj = objects[index];
+      const placement = obj.phPlacement;
+      if (!(obj instanceof FabricImage) || !placement || !obj.evented || !obj.visible) {
+        continue;
+      }
+      if (this.isNormalizedPointInPlacement(norm, placement, sheetW, sheetH)) {
+        return obj;
+      }
+    }
+    return null;
+  }
+
+  private findTopImageAtScenePoint(
+    pointer: { x: number; y: number },
+    tolerance = 0,
+  ): FabricImage | null {
+    if (!this.canvas) {
+      return null;
+    }
+    const objects = this.canvas.getObjects();
+    for (let index = objects.length - 1; index >= 0; index -= 1) {
+      const obj = objects[index];
+      if (!(obj instanceof FabricImage) || !obj.evented || !obj.visible) {
+        continue;
+      }
+      obj.setCoords();
+      if (
+        this.isPointInObjectSelectionArea(obj, pointer) ||
+        (tolerance > 0 && this.isPointNearObjectBounds(obj, pointer, tolerance))
+      ) {
+        return obj;
+      }
+    }
+    return null;
+  }
+
+  private isPointNearObjectBounds(
+    obj: FabricObject,
+    pointer: { x: number; y: number },
+    tolerance: number,
+  ): boolean {
+    const rect = obj.getBoundingRect();
+    return (
+      pointer.x >= rect.left - tolerance &&
+      pointer.x <= rect.left + rect.width + tolerance &&
+      pointer.y >= rect.top - tolerance &&
+      pointer.y <= rect.top + rect.height + tolerance
+    );
+  }
+
+  private isPointInObjectSelectionArea(
+    obj: FabricObject,
+    pointer: { x: number; y: number },
+  ): boolean {
+    const canvas = this.canvas as unknown as {
+      _pointIsInObjectSelectionArea: (target: FabricObject, point: { x: number; y: number }) => boolean;
+    };
+    return canvas._pointIsInObjectSelectionArea(obj, pointer);
+  }
+
+  private syncAllObjectCoords(): void {
+    if (!this.canvas) {
+      return;
+    }
+    for (const obj of this.canvas.getObjects()) {
+      obj.setCoords();
+    }
+  }
+
+  /** Keep Fabric pointer mapping aligned after host/canvas geometry changes. */
+  private syncCanvasPointerLayout(): void {
+    if (!this.canvas) {
+      return;
+    }
+    const { canvasW, canvasH } = this.getSheetMetrics();
+    if (canvasW < 1 || canvasH < 1) {
+      return;
+    }
+    this.canvas.setDimensions({ width: canvasW, height: canvasH });
+    this.canvas.calcOffset();
+  }
+
+  /**
+   * Fabric scene point from upper-canvas DOM (same formula as Fabric's _getPointerImpl).
+   */
+  private getDirectScenePoint(event: PointerEvent): { x: number; y: number } | null {
+    const upperCanvas = this.canvas?.upperCanvasEl;
+    if (!upperCanvas || !this.canvas) {
+      return null;
+    }
+    const bounds = upperCanvas.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) {
+      return null;
+    }
+    this.canvas.calcOffset();
+    const offset = (this.canvas as unknown as { _offset: { left: number; top: number } })._offset;
+    let x = event.clientX - offset.left;
+    let y = event.clientY - offset.top;
+    const retinaScaling = this.canvas.getRetinaScaling();
+    if (retinaScaling !== 1) {
+      x /= retinaScaling;
+      y /= retinaScaling;
+    }
+    const cssScaleX = upperCanvas.width / bounds.width;
+    const cssScaleY = upperCanvas.height / bounds.height;
+    return { x: x * cssScaleX, y: y * cssScaleY };
+  }
+
+  private getPointerCandidates(event: PointerEvent): Array<{
+    kind: string;
+    point: { x: number; y: number };
+    tolerance: number;
+  }> {
+    if (!this.canvas) {
+      return [];
+    }
+    const candidates: Array<{
+      kind: string;
+      point: { x: number; y: number };
+      tolerance: number;
+    }> = [];
+
+    // Primary: direct DOM measurement of the upper-canvas (no stale calcOffset cache).
+    const direct = this.getDirectScenePoint(event);
+    if (direct) {
+      candidates.push({ kind: 'direct', point: direct, tolerance: 0 });
+      candidates.push({ kind: 'direct+tol', point: direct, tolerance: SELECTION_HIT_TOLERANCE_PX });
+    }
+
+    // Fallback: Fabric's own calcOffset-based scene point.
+    const fabric = this.canvas.getScenePoint(event);
+    candidates.push({ kind: 'fabric', point: fabric, tolerance: 0 });
+    candidates.push({ kind: 'fabric+tol', point: fabric, tolerance: SELECTION_HIT_TOLERANCE_PX });
+
+    return candidates;
+  }
+
+  private roundPoint(point: { x: number; y: number } | null): { x: number; y: number } | null {
+    return point
+      ? { x: Math.round(point.x * 10) / 10, y: Math.round(point.y * 10) / 10 }
+      : null;
+  }
+
+  private describeScenePoint(event: PointerEvent): {
+    norm: { x: number; y: number } | null;
+    direct: { x: number; y: number } | null;
+    fabric: { x: number; y: number } | null;
+  } | null {
+    if (!this.canvas) {
+      return null;
+    }
+    return {
+      norm: this.roundPoint(this.getSheetNormalizedPointer(event)),
+      direct: this.roundPoint(this.getDirectScenePoint(event)),
+      fabric: this.roundPoint(this.canvas.getScenePoint(event)),
+    };
+  }
+
+  private logPointerMiss(event: PointerEvent, fabricTarget: FabricObject | undefined): void {
+    if (!this.canvas) {
+      return;
+    }
+    this.syncCanvasPointerLayout();
+    const norm = this.getSheetNormalizedPointer(event);
+    const { sheetW, sheetH } = this.getSheetMetrics();
+    const candidates = this.getPointerCandidates(event);
+    const objectBounds = (this.canvas.getObjects() as PhFabricImage[]).map((obj) => {
+      obj.setCoords();
+      const rect = obj.getBoundingRect();
+      const placement = obj.phPlacement;
+      return {
+        key: this.placementKeyForObject(obj),
+        left: Math.round(rect.left),
+        top: Math.round(rect.top),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+        placement: placement
+          ? {
+              x: Math.round(placement.x * 1000) / 1000,
+              y: Math.round(placement.y * 1000) / 1000,
+              w: Math.round(placement.width * 1000) / 1000,
+              h: Math.round(placement.height * 1000) / 1000,
+            }
+          : null,
+        hitPlacement:
+          norm && placement
+            ? this.isNormalizedPointInPlacement(norm, placement, sheetW, sheetH)
+            : false,
+        hits: candidates.map((candidate) => ({
+          kind: candidate.kind,
+          point: this.roundPoint(candidate.point),
+          hit:
+            this.isPointInObjectSelectionArea(obj, candidate.point) ||
+            (candidate.tolerance > 0 &&
+              this.isPointNearObjectBounds(obj, candidate.point, candidate.tolerance)),
+        })),
+      };
+    });
+    this.logSelection('pointer miss', {
+      scenePoint: this.describeScenePoint(event),
+      fabricTargetKey: this.placementKeyForObject(fabricTarget),
+      objectBounds,
+    });
+  }
+
+  private placementKeyForObject(obj: FabricObject | null | undefined): string | null {
+    const placement = (obj as PhFabricImage | undefined)?.phPlacement;
+    return placement ? this.placementKey(placement) : null;
+  }
+
+  private describeZOrder(): Array<{ key: string; zIndex: number; canvasIndex: number }> {
+    if (!this.canvas) {
+      return [];
+    }
+    const objects = this.canvas.getObjects() as PhFabricImage[];
+    return objects.map((obj, canvasIndex) => ({
+      key: this.placementKeyForObject(obj) ?? '?',
+      zIndex: obj.phPlacement?.zIndex ?? -1,
+      canvasIndex,
+    }));
+  }
+
+  /** Full bounding-box hit test (ignores sheet-only restriction). */
+  private pointerHitsObject(event: PointerEvent, obj: FabricObject): boolean {
+    if (!this.canvas) {
       return false;
     }
-    const upperCanvas = this.canvas!.upperCanvasEl;
-    if (!upperCanvas.contains(event.target as Node)) {
-      return false;
+    const placement = (obj as PhFabricImage).phPlacement;
+    const norm = this.getSheetNormalizedPointer(event);
+    if (norm && placement) {
+      const { sheetW, sheetH } = this.getSheetMetrics();
+      if (this.isNormalizedPointInPlacement(norm, placement, sheetW, sheetH)) {
+        return true;
+      }
     }
-    const { target } = this.canvas!.findTarget(event);
-    return target === active;
+    this.ensureOriginalContainsPoint(obj as PhFabricImage);
+    const extended = obj as PhFabricImage;
+    return this.getPointerCandidates(event).some(
+      (candidate) =>
+        extended._phOrigContainsPoint!(candidate.point) ||
+        (candidate.tolerance > 0 &&
+          this.isPointNearObjectBounds(obj, candidate.point, candidate.tolerance)),
+    );
+  }
+
+  private ensureOriginalContainsPoint(img: PhFabricImage): void {
+    if (!img._phOrigContainsPoint) {
+      img._phOrigContainsPoint = img.containsPoint.bind(img);
+    }
+  }
+
+  private logSelection(message: string, detail?: Record<string, unknown>): void {
+    if (!SELECTION_DEBUG) {
+      return;
+    }
+    const payload = detail ? JSON.stringify(detail) : '';
+    console.log(`[PhCanvasSelection:${this.side}] ${message}${payload ? ' ' + payload : ''}`);
   }
 
   /** Controls + per-image visual state (clip vs 20% overflow) for the active image. */
@@ -293,6 +804,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
   private applyImageVisualState(img: FabricImage, focused: boolean): void {
     const extended = img as PhFabricImage;
     img.objectCaching = false;
+    img.perPixelTargetFind = false;
 
     if (extended._phOrigRender) {
       img._render = extended._phOrigRender;
@@ -309,7 +821,14 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       img.opacity = 1;
       img.clipPath = shapeClip;
     }
+    this.restoreFullHitTesting(extended);
     extended._phOverflowRender = focused;
+  }
+
+  /** Restore Fabric's default containsPoint (never sheet-restrict the active object). */
+  private restoreFullHitTesting(img: PhFabricImage): void {
+    this.ensureOriginalContainsPoint(img);
+    img.containsPoint = img._phOrigContainsPoint!;
   }
 
   private ensureSheetFabricClip(
@@ -358,6 +877,43 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
   /** The printable image layer (parent of this component) — not the expanded host. */
   private getImageLayerEl(): HTMLElement | null {
     return this.rootRef.nativeElement.parentElement;
+  }
+
+  private registerWithInteractionService(): void {
+    this.interactionService.registerSheet({
+      side: this.side,
+      containsImageLayerPoint: (clientX, clientY) =>
+        this.containsImageLayerPoint(clientX, clientY),
+      getImageLayerRect: () => this.getImageLayerEl()?.getBoundingClientRect() ?? null,
+    });
+  }
+
+  private containsImageLayerPoint(clientX: number, clientY: number): boolean {
+    const layer = this.getImageLayerEl();
+    if (!layer) {
+      return false;
+    }
+    const rect = layer.getBoundingClientRect();
+    return (
+      clientX >= rect.left &&
+      clientX <= rect.right &&
+      clientY >= rect.top &&
+      clientY <= rect.bottom
+    );
+  }
+
+  private isPointerActiveForThisSheet(event: PointerEvent): boolean {
+    return this.interactionService.isPointerOnSide(event.clientX, event.clientY, this.side);
+  }
+
+  /** In duplex, only the hovered sheet receives pointer events. */
+  private applyDuplexPointerPassThrough(hoverSide: PhCanvasSideName | null): void {
+    if (!this.interactionService.isDuplex) {
+      this.hostRef.nativeElement.style.pointerEvents = '';
+      return;
+    }
+    const active = hoverSide === null || hoverSide === this.side;
+    this.hostRef.nativeElement.style.pointerEvents = active ? 'auto' : 'none';
   }
 
   private applyHostOverflowInset(): void {
@@ -440,6 +996,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
         this.applyImageVisualState(obj as FabricImage, obj === active);
       }
     }
+    this.syncCanvasPointerLayout();
   }
 
   private getSheetMetrics(): {
@@ -575,6 +1132,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     }
     this.canvas.setDimensions({ width: canvasW, height: canvasH });
     this.relayoutObjects();
+    this.syncCanvasPointerLayout();
     this.syncFocusChrome();
   }
 
@@ -653,6 +1211,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
         );
         this.applyPlacementToImage(img as FabricImage, repaired);
         this.applyObjectControls(img, false);
+        img.set({ perPixelTargetFind: false, objectCaching: false });
         img.phPlacement = repaired;
         this.updateModelPlacement(placement, repaired);
         this.canvas.add(img);
@@ -941,9 +1500,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       (obj) => obj.phPlacement && this.placementKey(obj.phPlacement) === this.placementKey(placement),
     );
     if (added) {
-      this.interactionService.claim(this.side);
-      this.canvas!.setActiveObject(added);
-      this.syncFocusChrome();
+      this.selectPlacementObject(added);
     }
     this.emitChange();
   }
