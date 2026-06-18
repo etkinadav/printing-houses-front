@@ -1,5 +1,8 @@
 import { FabricObject, Path, Rect } from 'fabric';
 
+/** Matches `.ph-print-preview-base-frame` green outline — keep image clip inside it. */
+export const SHEET_FRAME_INSET_PX = 1;
+
 export type PhSheetClipSpec =
   | { type: 'rect' }
   | { type: 'rounded'; radiusPx: number }
@@ -35,6 +38,44 @@ function parsePolygonPairs(raw: string): Array<{ x: number; y: number }> {
   });
 }
 
+/** Printable area inside the green frame (inset from the image layer box). */
+export function getSheetClipRect(
+  pad: number,
+  sheetW: number,
+  sheetH: number,
+  inset = SHEET_FRAME_INSET_PX,
+): { left: number; top: number; width: number; height: number } {
+  const clampedInset = Math.min(inset, Math.floor(sheetW / 2) - 1, Math.floor(sheetH / 2) - 1);
+  const safeInset = Math.max(0, clampedInset);
+  return {
+    left: pad + safeInset,
+    top: pad + safeInset,
+    width: Math.max(1, sheetW - 2 * safeInset),
+    height: Math.max(1, sheetH - 2 * safeInset),
+  };
+}
+
+/** Shrink a convex polygon slightly inward (chamfer / bleed outlines). */
+function insetPolygonPoints(
+  points: Array<{ x: number; y: number }>,
+  inset: number,
+): Array<{ x: number; y: number }> {
+  if (inset <= 0 || points.length < 3) {
+    return points;
+  }
+  const cx = points.reduce((sum, point) => sum + point.x, 0) / points.length;
+  const cy = points.reduce((sum, point) => sum + point.y, 0) / points.length;
+  return points.map((point) => {
+    const dx = cx - point.x;
+    const dy = cy - point.y;
+    const len = Math.hypot(dx, dy) || 1;
+    return {
+      x: point.x + (dx / len) * inset,
+      y: point.y + (dy / len) * inset,
+    };
+  });
+}
+
 function polygonToPathD(points: Array<{ x: number; y: number }>, pad: number): string {
   if (!points.length) {
     return '';
@@ -51,26 +92,33 @@ export function createFabricSheetClip(
   pad: number,
   sheetW: number,
   sheetH: number,
+  inset = SHEET_FRAME_INSET_PX,
 ): FabricObject {
+  const clip = getSheetClipRect(pad, sheetW, sheetH, inset);
   switch (spec.type) {
-    case 'rounded':
+    case 'rounded': {
+      const radius = Math.max(0, spec.radiusPx - inset);
       return new Rect({
-        left: pad,
-        top: pad,
-        width: sheetW,
-        height: sheetH,
-        rx: spec.radiusPx,
-        ry: spec.radiusPx,
+        left: clip.left,
+        top: clip.top,
+        width: clip.width,
+        height: clip.height,
+        rx: radius,
+        ry: radius,
         originX: 'left',
         originY: 'top',
         absolutePositioned: true,
       });
+    }
     case 'polygon':
-      return new Path(polygonToPathD(spec.points, pad), {
-        originX: 'left',
-        originY: 'top',
-        absolutePositioned: true,
-      });
+      return new Path(
+        polygonToPathD(insetPolygonPoints(spec.points, inset), pad),
+        {
+          originX: 'left',
+          originY: 'top',
+          absolutePositioned: true,
+        },
+      );
     case 'path':
       return new Path(spec.pathD, {
         left: pad,
@@ -81,10 +129,10 @@ export function createFabricSheetClip(
       });
     default:
       return new Rect({
-        left: pad,
-        top: pad,
-        width: sheetW,
-        height: sheetH,
+        left: clip.left,
+        top: clip.top,
+        width: clip.width,
+        height: clip.height,
         originX: 'left',
         originY: 'top',
         absolutePositioned: true,
@@ -99,14 +147,16 @@ export function applySheetClipToContext(
   pad: number,
   sheetW: number,
   sheetH: number,
+  inset = SHEET_FRAME_INSET_PX,
 ): void {
+  const clip = getSheetClipRect(pad, sheetW, sheetH, inset);
   switch (spec.type) {
     case 'rounded': {
-      const x = pad;
-      const y = pad;
-      const w = sheetW;
-      const h = sheetH;
-      const r = Math.min(spec.radiusPx, w / 2, h / 2);
+      const x = clip.left;
+      const y = clip.top;
+      const w = clip.width;
+      const h = clip.height;
+      const r = Math.min(Math.max(0, spec.radiusPx - inset), w / 2, h / 2);
       ctx.beginPath();
       if (typeof ctx.roundRect === 'function') {
         ctx.roundRect(x, y, w, h, r);
@@ -127,8 +177,9 @@ export function applySheetClipToContext(
     }
     case 'polygon': {
       ctx.beginPath();
-      for (let index = 0; index < spec.points.length; index += 1) {
-        const point = spec.points[index];
+      const points = insetPolygonPoints(spec.points, inset);
+      for (let index = 0; index < points.length; index += 1) {
+        const point = points[index];
         const px = point.x + pad;
         const py = point.y + pad;
         if (index === 0) {
@@ -143,15 +194,18 @@ export function applySheetClipToContext(
     }
     case 'path': {
       ctx.save();
-      ctx.translate(pad, pad);
+      ctx.translate(pad + inset, pad + inset);
       const path = new Path2D(spec.pathD);
       ctx.clip(path);
       ctx.restore();
+      ctx.beginPath();
+      ctx.rect(clip.left, clip.top, clip.width, clip.height);
+      ctx.clip();
       break;
     }
     default:
       ctx.beginPath();
-      ctx.rect(pad, pad, sheetW, sheetH);
+      ctx.rect(clip.left, clip.top, clip.width, clip.height);
       ctx.clip();
   }
 }

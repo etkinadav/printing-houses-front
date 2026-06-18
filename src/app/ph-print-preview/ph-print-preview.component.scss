@@ -725,7 +725,8 @@ $ph-preview-duplex-stack-gap-px: 0;
   z-index: 3;
   position: relative;
   border: none;
-  box-shadow: inset 0 0 0 1px var(--zx-green);
+  /* Outer stroke — aligns with the image clip edge (not inset over the printable area). */
+  box-shadow: 0 0 0 1px var(--zx-green);
   background: transparent;
 }
 

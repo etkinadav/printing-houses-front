@@ -10,12 +10,15 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { Canvas, FabricImage, FabricObject } from 'fabric';
 
 import { PhPrintingFile } from '../ph-printing-files/ph-printing-file.model';
+import { PhCanvasInteractionService } from './ph-canvas-interaction.service';
 import {
   applySheetClipToContext,
   createFabricSheetClip,
+  getSheetClipRect,
   resolveSheetClipSpec,
   sheetClipSpecKey,
 } from './ph-canvas-sheet-clip.util';
@@ -37,6 +40,8 @@ const OVERFLOW_PAD_PX = 120;
 const OVERFLOW_PAD_MAX_PX = 2400;
 /** Opacity for the focused image outside the printable sheet bounds. */
 const FOCUS_OUTSIDE_OPACITY = 0.2;
+/** Minimum overlap (px) between image and sheet when dragging/scaling. */
+const SHEET_MIN_OVERLAP_PX = 1;
 
 type PhFabricImage = FabricObject & {
   phPlacement?: PhCanvasPlacement;
@@ -72,7 +77,10 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
   @ViewChild('host', { static: true }) hostRef!: ElementRef<HTMLDivElement>;
   @ViewChild('canvasEl', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
 
-  constructor(private readonly rootRef: ElementRef<HTMLElement>) {}
+  constructor(
+    private readonly rootRef: ElementRef<HTMLElement>,
+    private readonly interactionService: PhCanvasInteractionService,
+  ) {}
 
   /** Internal source of truth — normalized placements rendered onto the canvas. */
   private model: PhCanvasPlacement[] = [];
@@ -85,11 +93,27 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
   private modelNeedsPersistAfterRepair = false;
   /** Dynamic margin around the sheet; grows while a selected image extends outside. */
   private overflowPad = OVERFLOW_PAD_PX;
+  /** Placement snapshot at the start of a move/scale/rotate gesture. */
+  private gestureStartPlacement: PhCanvasPlacement | null = null;
+  private interactionSub?: Subscription;
 
   ngAfterViewInit(): void {
     this.viewReady = true;
     this.applyHostOverflowInset();
     this.initCanvas();
+    this.interactionSub = new Subscription();
+    this.interactionSub.add(
+      this.interactionService.releaseOthers$.subscribe((activeSide) => {
+        if (activeSide !== this.side) {
+          this.releaseFocusFromOtherSheet();
+        }
+      }),
+    );
+    this.interactionSub.add(
+      this.interactionService.pointerDownCapture$.subscribe((event) => {
+        this.dismissSelectionIfOutside(event);
+      }),
+    );
     this.observeResize();
     this.model = this.clonePlacements(this.placements);
     void this.syncObjectsFromModel();
@@ -126,6 +150,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       clearTimeout(this.persistTimer);
     }
     this.resizeObserver?.disconnect();
+    this.interactionSub?.unsubscribe();
     this.canvas?.dispose();
     this.canvas = null;
   }
@@ -145,14 +170,22 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     // Prevent the uniform-scaling modifier key from toggling to free scaling.
     (this.canvas as unknown as { uniScaleKey: string | null }).uniScaleKey = null;
 
-    this.canvas.on('object:modified', () => this.onObjectsChanged());
-    this.canvas.on('object:moving', () => {
+    this.canvas.on('object:modified', (event) => this.onObjectModified(event.target as FabricObject));
+    this.canvas.on('object:moving', (event) => {
+      this.interactionService.claim(this.side);
+      this.constrainActiveObjectToSheet(event.target as FabricObject);
       this.syncOverflowPadFromActive(true);
     });
-    this.canvas.on('object:scaling', () => {
+    this.canvas.on('object:scaling', (event) => {
+      this.interactionService.claim(this.side);
+      this.constrainActiveObjectToSheet(event.target as FabricObject);
       this.syncOverflowPadFromActive(true);
     });
-    this.canvas.on('object:rotating', () => this.canvas?.requestRenderAll());
+    this.canvas.on('object:rotating', (event) => {
+      this.interactionService.claim(this.side);
+      this.constrainActiveObjectToSheet(event.target as FabricObject);
+      this.canvas?.requestRenderAll();
+    });
     this.bindFocusHandlers();
     this.refreshAccentGreen();
     this.applyInteractivity();
@@ -168,9 +201,11 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       }
       const target = opt.target as FabricObject | undefined;
       if (target) {
+        this.interactionService.claim(this.side);
         this.canvas!.setActiveObject(target);
+        this.captureGestureStartPlacement(target);
       } else {
-        this.canvas!.discardActiveObject();
+        this.clearActiveSelection();
       }
       this.syncFocusChrome();
     });
@@ -187,6 +222,54 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     this.accentGreen =
       getComputedStyle(this.hostRef.nativeElement).getPropertyValue('--zx-green').trim() ||
       '#26a69a';
+  }
+
+  /** Clear selection when the other duplex side claims interaction. */
+  private releaseFocusFromOtherSheet(): void {
+    if (!this.canvas?.getActiveObject()) {
+      return;
+    }
+    this.clearActiveSelection();
+    this.syncFocusChrome();
+  }
+
+  /** Dismiss focus when the user clicks anywhere except the currently active image. */
+  private dismissSelectionIfOutside(event: PointerEvent): void {
+    if (!this.interactive || !this.canvas) {
+      return;
+    }
+    const active = this.canvas.getActiveObject();
+    if (!active) {
+      return;
+    }
+    if (this.isPointerOnActiveObject(event, active)) {
+      return;
+    }
+    this.clearActiveSelection();
+    this.syncFocusChrome();
+  }
+
+  private clearActiveSelection(): void {
+    if (!this.canvas) {
+      return;
+    }
+    this.interactionService.release(this.side);
+    this.canvas.discardActiveObject();
+    this.gestureStartPlacement = null;
+  }
+
+  /** True when the event hits the active Fabric object (body or corner controls). */
+  private isPointerOnActiveObject(event: PointerEvent, active: FabricObject): boolean {
+    const sheetHost = this.rootRef.nativeElement;
+    if (!sheetHost.contains(event.target as Node)) {
+      return false;
+    }
+    const upperCanvas = this.canvas!.upperCanvasEl;
+    if (!upperCanvas.contains(event.target as Node)) {
+      return false;
+    }
+    const { target } = this.canvas!.findTarget(event);
+    return target === active;
   }
 
   /** Controls + per-image visual state (clip vs 20% overflow) for the active image. */
@@ -367,8 +450,8 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     canvasH: number;
   } {
     const layer = this.getImageLayerEl();
-    const sheetW = Math.max(1, layer?.clientWidth || 1);
-    const sheetH = Math.max(1, layer?.clientHeight || 1);
+    const sheetW = Math.round(Math.max(1, layer?.clientWidth || 1));
+    const sheetH = Math.round(Math.max(1, layer?.clientHeight || 1));
     const pad = this.overflowPad;
     return {
       pad,
@@ -858,6 +941,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       (obj) => obj.phPlacement && this.placementKey(obj.phPlacement) === this.placementKey(placement),
     );
     if (added) {
+      this.interactionService.claim(this.side);
       this.canvas!.setActiveObject(added);
       this.syncFocusChrome();
     }
@@ -883,6 +967,126 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
   }
 
   // --- Change capture --------------------------------------------------------
+
+  private captureGestureStartPlacement(obj: FabricObject): void {
+    const placement = (obj as PhFabricImage).phPlacement;
+    this.gestureStartPlacement = placement ? { ...placement } : null;
+  }
+
+  private getObjectAxisBounds(obj: FabricObject): {
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+  } | null {
+    obj.setCoords();
+    const coords = obj.aCoords;
+    if (!coords) {
+      return null;
+    }
+    const xs = Object.values(coords).map((pt) => pt.x);
+    const ys = Object.values(coords).map((pt) => pt.y);
+    return {
+      left: Math.min(...xs),
+      right: Math.max(...xs),
+      top: Math.min(...ys),
+      bottom: Math.max(...ys),
+    };
+  }
+
+  private intersectsSheet(
+    obj: FabricObject,
+    pad: number,
+    sheetW: number,
+    sheetH: number,
+    minOverlap = SHEET_MIN_OVERLAP_PX,
+  ): boolean {
+    const bounds = this.getObjectAxisBounds(obj);
+    if (!bounds) {
+      return false;
+    }
+    const clip = getSheetClipRect(pad, sheetW, sheetH);
+    const sheetLeft = clip.left;
+    const sheetTop = clip.top;
+    const sheetRight = clip.left + clip.width;
+    const sheetBottom = clip.top + clip.height;
+    const overlapW = Math.min(bounds.right, sheetRight) - Math.max(bounds.left, sheetLeft);
+    const overlapH = Math.min(bounds.bottom, sheetBottom) - Math.max(bounds.top, sheetTop);
+    return overlapW >= minOverlap && overlapH >= minOverlap;
+  }
+
+  /** Keep at least `SHEET_MIN_OVERLAP_PX` of the image inside the printable sheet. */
+  private constrainObjectToSheet(obj: FabricObject): boolean {
+    const { pad, sheetW, sheetH } = this.getSheetMetrics();
+    const clip = getSheetClipRect(pad, sheetW, sheetH);
+    const sheetLeft = clip.left;
+    const sheetTop = clip.top;
+    const sheetRight = clip.left + clip.width;
+    const sheetBottom = clip.top + clip.height;
+    let adjusted = false;
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      if (this.intersectsSheet(obj, pad, sheetW, sheetH)) {
+        return adjusted;
+      }
+      const bounds = this.getObjectAxisBounds(obj);
+      if (!bounds) {
+        return adjusted;
+      }
+
+      let dx = 0;
+      let dy = 0;
+      if (bounds.right <= sheetLeft) {
+        dx = sheetLeft + SHEET_MIN_OVERLAP_PX - bounds.right;
+      } else if (bounds.left >= sheetRight) {
+        dx = sheetRight - SHEET_MIN_OVERLAP_PX - bounds.left;
+      }
+      if (bounds.bottom <= sheetTop) {
+        dy = sheetTop + SHEET_MIN_OVERLAP_PX - bounds.bottom;
+      } else if (bounds.top >= sheetBottom) {
+        dy = sheetBottom - SHEET_MIN_OVERLAP_PX - bounds.top;
+      }
+      if (dx === 0 && dy === 0) {
+        break;
+      }
+      obj.set({
+        left: (obj.left ?? 0) + dx,
+        top: (obj.top ?? 0) + dy,
+      });
+      adjusted = true;
+    }
+
+    obj.setCoords();
+    return adjusted;
+  }
+
+  private constrainActiveObjectToSheet(obj: FabricObject | undefined): void {
+    if (!obj) {
+      return;
+    }
+    this.constrainObjectToSheet(obj);
+  }
+
+  private restoreGestureStartPlacement(obj: FabricObject): void {
+    if (!this.gestureStartPlacement || !(obj instanceof FabricImage)) {
+      return;
+    }
+    this.applyPlacementToImage(obj, this.gestureStartPlacement);
+    (obj as PhFabricImage).phPlacement = { ...this.gestureStartPlacement };
+    obj.setCoords();
+  }
+
+  private onObjectModified(obj: FabricObject | undefined): void {
+    if (!this.canvas || !obj) {
+      return;
+    }
+    const { pad, sheetW, sheetH } = this.getSheetMetrics();
+    if (!this.intersectsSheet(obj, pad, sheetW, sheetH)) {
+      this.restoreGestureStartPlacement(obj);
+    }
+    this.gestureStartPlacement = null;
+    this.onObjectsChanged();
+  }
 
   private onObjectsChanged(): void {
     if (this.suppressEmit || !this.canvas) {
