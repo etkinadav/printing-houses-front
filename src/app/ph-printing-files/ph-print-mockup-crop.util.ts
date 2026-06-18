@@ -1086,7 +1086,15 @@ export function buildMockupQuadCropGuideSvgModel(
   const bbox = computePointsBoundingBox(canvasPoints);
   const shiftX = -bbox.minX;
   const shiftY = -bbox.minY;
-  const shiftedOuterWarpQuad = buildOuterWarpQuad(crop, extCorners, shiftX, shiftY);
+  // When there are no crop extensions buildOuterWarpQuad returns null, so fall back
+  // to the slot corners — this preserves perspective warp for composite images that
+  // already exactly fill the slot (no bleed extensions needed).
+  const shiftedOuterWarpQuad = buildOuterWarpQuad(crop, extCorners, shiftX, shiftY) ?? {
+    topLeft: { x: nw.x + shiftX, y: nw.y + shiftY },
+    topRight: { x: ne.x + shiftX, y: ne.y + shiftY },
+    bottomRight: { x: se.x + shiftX, y: se.y + shiftY },
+    bottomLeft: { x: sw.x + shiftX, y: sw.y + shiftY },
+  };
 
   const slotRect: MockupCropGuideRect = {
     x: shiftX,

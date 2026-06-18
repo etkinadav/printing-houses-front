@@ -29,7 +29,6 @@ import {
   buildMockupPrintImageWarp,
   buildMockupQuadCropGuideSvgModel,
   computeMockupCoverCrop,
-  mockupCoverCropHasExtensions,
   resolveMockupOuterWarpQuad,
   MockupCropGuideSvgModel,
   MockupPrintImageWarpModel,
@@ -464,14 +463,9 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       return;
     }
 
-    if (!mockupCoverCropHasExtensions(crop)) {
-      this.cropGuideSvg = null;
-      this.printImageWarp = null;
-      this.printSlotClipPathCss = null;
-      this.mockupSlotShapedOutlinePathD = null;
-      return;
-    }
-
+    // Always build the crop-guide model even when the image exactly fills the slot
+    // (no extensions). This ensures printSlotClipPathCss is set, the print image
+    // layer renders, and for perspective (quad) mockups the 3-D warp is still applied.
     this.cropGuideSvg = this.quadOverlay
       ? buildMockupQuadCropGuideSvgModel(
           this.quadCornersPx(this.quadOverlay),
