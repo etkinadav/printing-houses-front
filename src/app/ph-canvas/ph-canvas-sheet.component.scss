@@ -4,7 +4,7 @@
   /* Dynamic margin — updated while a selected image extends outside the sheet. */
   inset: calc(-1 * var(--ph-canvas-overflow-pad, 120px));
   overflow: visible;
-  z-index: 4;
+  z-index: 1;
   pointer-events: none;
 }
 
