@@ -1,10 +1,10 @@
 :host {
   display: block;
   position: absolute;
-  /* Extend beyond the sheet so images and corner brackets can draw outside the clip area. */
-  inset: -120px;
+  /* Dynamic margin — updated while a selected image extends outside the sheet. */
+  inset: calc(-1 * var(--ph-canvas-overflow-pad, 120px));
   overflow: visible;
-  z-index: 2;
+  z-index: 4;
   pointer-events: none;
 }
 
@@ -27,5 +27,9 @@
   inset: 0;
   width: 100% !important;
   height: 100% !important;
+  overflow: visible !important;
+}
+
+:host ::ng-deep .upper-canvas {
   overflow: visible !important;
 }

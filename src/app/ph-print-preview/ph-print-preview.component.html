@@ -152,8 +152,8 @@
             ? layout.bleedPx + 'px ' + layout.baseHeightPx + 'px ' + layout.bleedPx + 'px'
             : layout.baseHeightPx + 'px'
         "
-        [style.clip-path]="layout.sheetClipPath"
-        [style.border-radius.px]="layout.sheetBorderRadiusPx">
+        [style.clip-path]="canvasMode ? null : layout.sheetClipPath"
+        [style.border-radius.px]="canvasMode ? null : layout.sheetBorderRadiusPx">
 
         <ng-container
           *ngTemplateOutlet="previewSheetImage; context: { sheetImageUrl: sheetImageUrl, side: side }">

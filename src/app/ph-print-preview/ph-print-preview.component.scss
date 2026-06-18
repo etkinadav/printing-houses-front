@@ -42,7 +42,7 @@ $ph-preview-duplex-stack-gap-px: 0;
 }
 
 .ph-print-preview-host--canvas {
-  overflow: visible;
+  overflow: visible !important;
 }
 
 .ph-print-preview-host--canvas.ph-print-preview-host--duplex {
@@ -89,7 +89,7 @@ $ph-preview-duplex-stack-gap-px: 0;
 
 
 .ph-print-preview-duplex-item--canvas {
-  overflow: visible;
+  overflow: visible !important;
 }
 
 .ph-print-preview-duplex-item {
@@ -506,7 +506,8 @@ $ph-preview-duplex-stack-gap-px: 0;
 
 
 .ph-print-preview-sheet--canvas {
-  overflow: visible;
+  overflow: visible !important;
+  clip-path: none !important;
 }
 
 .ph-print-preview-sheet {
@@ -536,7 +537,7 @@ $ph-preview-duplex-stack-gap-px: 0;
 
 
 .ph-print-preview-image-layer--canvas {
-  overflow: visible;
+  overflow: visible !important;
   clip-path: none !important;
 }
 
@@ -593,9 +594,6 @@ $ph-preview-duplex-stack-gap-px: 0;
 
 .ph-print-preview-canvas-sheet {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
   z-index: 1;
   overflow: visible;
 }

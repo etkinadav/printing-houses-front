@@ -10,7 +10,7 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
-import { Canvas, FabricImage, FabricObject } from 'fabric';
+import { Canvas, FabricImage, FabricObject, Rect } from 'fabric';
 
 import { PhPrintingFile } from '../ph-printing-files/ph-printing-file.model';
 import {
@@ -28,12 +28,15 @@ const FOCUS_CORNER_STROKE_PX = 2;
 const PLACEMENT_EPS = 0.0001;
 /** Extra canvas margin so selected images and corner brackets can draw outside the sheet. */
 const OVERFLOW_PAD_PX = 120;
+const OVERFLOW_PAD_MAX_PX = 2400;
 /** Opacity for the focused image outside the printable sheet bounds. */
 const FOCUS_OUTSIDE_OPACITY = 0.7;
 
 type PhFabricImage = FabricObject & {
   phPlacement?: PhCanvasPlacement;
   _phOrigRender?: (ctx: CanvasRenderingContext2D) => void;
+  _phOverflowRender?: boolean;
+  _phSheetClip?: Rect;
 };
 
 /**
@@ -58,6 +61,8 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
   @ViewChild('host', { static: true }) hostRef!: ElementRef<HTMLDivElement>;
   @ViewChild('canvasEl', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
 
+  constructor(private readonly rootRef: ElementRef<HTMLElement>) {}
+
   /** Internal source of truth — normalized placements rendered onto the canvas. */
   private model: PhCanvasPlacement[] = [];
   private canvas: Canvas | null = null;
@@ -67,9 +72,12 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
   private viewReady = false;
   private accentGreen = '';
   private modelNeedsPersistAfterRepair = false;
+  /** Dynamic margin around the sheet; grows while a selected image extends outside. */
+  private overflowPad = OVERFLOW_PAD_PX;
 
   ngAfterViewInit(): void {
     this.viewReady = true;
+    this.applyHostOverflowInset();
     this.initCanvas();
     this.observeResize();
     this.model = this.clonePlacements(this.placements);
@@ -121,8 +129,12 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     (this.canvas as unknown as { uniScaleKey: string | null }).uniScaleKey = null;
 
     this.canvas.on('object:modified', () => this.onObjectsChanged());
-    this.canvas.on('object:moving', () => this.canvas?.requestRenderAll());
-    this.canvas.on('object:scaling', () => this.canvas?.requestRenderAll());
+    this.canvas.on('object:moving', () => {
+      this.syncOverflowPadFromActive(true);
+    });
+    this.canvas.on('object:scaling', () => {
+      this.syncOverflowPadFromActive(true);
+    });
     this.canvas.on('object:rotating', () => this.canvas?.requestRenderAll());
     this.bindFocusHandlers();
     this.refreshAccentGreen();
@@ -148,7 +160,10 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     this.canvas.on('selection:created', () => this.syncFocusChrome());
     this.canvas.on('selection:updated', () => this.syncFocusChrome());
     this.canvas.on('selection:cleared', () => this.syncFocusChrome());
-    this.canvas.on('after:render', (opt) => this.drawFocusCornerBrackets(opt.ctx));
+    this.canvas.on('after:render', (opt) => {
+      this.drawFocusedImageInterior(opt.ctx);
+      this.drawFocusCornerBrackets(opt.ctx);
+    });
   }
 
   private refreshAccentGreen(): void {
@@ -157,44 +172,176 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       '#26a69a';
   }
 
-  /** Invisible Fabric controls only on the focused image; green L-brackets drawn in after:render. */
+  /** Controls + per-image visual state (clip vs 70% overflow) for the active image. */
   private syncFocusChrome(): void {
     if (!this.canvas) {
       return;
     }
     const active = this.canvas.getActiveObject();
     for (const obj of this.canvas.getObjects()) {
-      this.applyObjectControls(obj, obj === active);
+      const focused = obj === active;
+      this.applyObjectControls(obj, focused);
+      if (obj instanceof FabricImage) {
+        this.applyImageVisualState(obj as FabricImage, focused);
+      }
     }
+    this.syncOverflowPadFromActive();
     this.canvas.requestRenderAll();
   }
 
-  /**
-   * Always draw the full image: 100% opacity inside the sheet, 70% outside.
-   * Never clip — cover placements stay visible after refresh without selection.
-   */
-  private applySheetOverflowVisual(img: FabricImage): void {
+  /** Selected: 70% outside / 100% inside (interior pass in after:render). Others: sheet clip. */
+  private applyImageVisualState(img: FabricImage, focused: boolean): void {
     const extended = img as PhFabricImage;
     img.objectCaching = false;
-    img.clipPath = undefined;
 
     if (extended._phOrigRender) {
+      img._render = extended._phOrigRender;
+    }
+
+    if (focused) {
+      img.opacity = FOCUS_OUTSIDE_OPACITY;
+      img.clipPath = undefined;
+    } else {
+      img.opacity = 1;
+      const { pad, sheetW, sheetH } = this.getSheetMetrics();
+      let clip = extended._phSheetClip;
+      if (!clip) {
+        clip = new Rect({
+          left: pad,
+          top: pad,
+          width: sheetW,
+          height: sheetH,
+          originX: 'left',
+          originY: 'top',
+          absolutePositioned: true,
+        });
+        extended._phSheetClip = clip;
+      } else {
+        clip.set({
+          left: pad,
+          top: pad,
+          width: sheetW,
+          height: sheetH,
+        });
+      }
+      img.clipPath = clip;
+    }
+    extended._phOverflowRender = focused;
+  }
+
+  /** Re-draw the focused image at full opacity inside the printable sheet bounds. */
+  private drawFocusedImageInterior(ctx: CanvasRenderingContext2D): void {
+    if (!this.canvas) {
       return;
     }
-    extended._phOrigRender = img._render.bind(img);
-    const orig = extended._phOrigRender;
-    img._render = (ctx) => {
+    const active = this.canvas.getActiveObject();
+    if (!(active instanceof FabricImage) || !(active as PhFabricImage)._phOverflowRender) {
+      return;
+    }
+    const vpt = this.canvas.viewportTransform;
+    if (!vpt) {
+      return;
+    }
+    const { pad, sheetW, sheetH } = this.getSheetMetrics();
+
+    ctx.save();
+    ctx.transform(vpt[0], vpt[1], vpt[2], vpt[3], vpt[4], vpt[5]);
+    ctx.beginPath();
+    ctx.rect(pad, pad, sheetW, sheetH);
+    ctx.clip();
+
+    const prevOpacity = active.opacity;
+    active.opacity = 1;
+    active.render(ctx);
+    active.opacity = prevOpacity;
+    ctx.restore();
+  }
+
+  /** The printable image layer (parent of this component) — not the expanded host. */
+  private getImageLayerEl(): HTMLElement | null {
+    return this.rootRef.nativeElement.parentElement;
+  }
+
+  private applyHostOverflowInset(): void {
+    this.rootRef.nativeElement.style.setProperty(
+      '--ph-canvas-overflow-pad',
+      `${this.overflowPad}px`,
+    );
+  }
+
+  /** Expand the Fabric canvas when the selected image extends beyond the sheet. */
+  private syncOverflowPadFromActive(duringGesture = false): void {
+    const active = this.canvas?.getActiveObject();
+    if (!active) {
+      if (this.overflowPad === OVERFLOW_PAD_PX) {
+        return;
+      }
+      const oldPad = this.overflowPad;
+      this.overflowPad = OVERFLOW_PAD_PX;
+      this.applyOverflowPadChange(oldPad, null, false);
+      return;
+    }
+
+    let needed = OVERFLOW_PAD_PX;
+    if (active.aCoords) {
       const { pad, sheetW, sheetH } = this.getSheetMetrics();
-      img.opacity = FOCUS_OUTSIDE_OPACITY;
-      orig(ctx);
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(pad, pad, sheetW, sheetH);
-      ctx.clip();
-      img.opacity = 1;
-      orig(ctx);
-      ctx.restore();
-    };
+      const sheetLeft = pad;
+      const sheetTop = pad;
+      const sheetRight = pad + sheetW;
+      const sheetBottom = pad + sheetH;
+      for (const pt of Object.values(active.aCoords)) {
+        needed = Math.max(
+          needed,
+          sheetLeft - pt.x + FOCUS_CORNER_ARM_PX + 12,
+          pt.x - sheetRight + FOCUS_CORNER_ARM_PX + 12,
+          sheetTop - pt.y + FOCUS_CORNER_ARM_PX + 12,
+          pt.y - sheetBottom + FOCUS_CORNER_ARM_PX + 12,
+        );
+      }
+    }
+    needed = Math.min(OVERFLOW_PAD_MAX_PX, Math.ceil(needed));
+    if (needed === this.overflowPad) {
+      return;
+    }
+    const oldPad = this.overflowPad;
+    this.overflowPad = needed;
+    this.applyOverflowPadChange(oldPad, active, duringGesture);
+  }
+
+  /** Keep objects visually fixed when the overflow margin grows or shrinks. */
+  private applyOverflowPadChange(
+    oldPad: number,
+    active: FabricObject | null | undefined,
+    duringGesture: boolean,
+  ): void {
+    this.applyHostOverflowInset();
+    if (!this.canvas) {
+      return;
+    }
+
+    const padDelta = this.overflowPad - oldPad;
+    if (padDelta !== 0) {
+      for (const obj of this.canvas.getObjects()) {
+        obj.set({
+          left: (obj.left ?? 0) + padDelta,
+          top: (obj.top ?? 0) + padDelta,
+        });
+        obj.setCoords();
+      }
+    }
+
+    const { canvasW, canvasH } = this.getSheetMetrics();
+    this.canvas.setDimensions({ width: canvasW, height: canvasH });
+
+    if (!duringGesture) {
+      this.relayoutObjects();
+    }
+
+    for (const obj of this.canvas.getObjects()) {
+      if (obj instanceof FabricImage) {
+        this.applyImageVisualState(obj as FabricImage, obj === active);
+      }
+    }
   }
 
   private getSheetMetrics(): {
@@ -204,15 +351,16 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     canvasW: number;
     canvasH: number;
   } {
-    const host = this.hostRef.nativeElement;
-    const canvasW = host.clientWidth || 1;
-    const canvasH = host.clientHeight || 1;
+    const layer = this.getImageLayerEl();
+    const sheetW = Math.max(1, layer?.clientWidth || 1);
+    const sheetH = Math.max(1, layer?.clientHeight || 1);
+    const pad = this.overflowPad;
     return {
-      pad: OVERFLOW_PAD_PX,
-      sheetW: Math.max(1, canvasW - 2 * OVERFLOW_PAD_PX),
-      sheetH: Math.max(1, canvasH - 2 * OVERFLOW_PAD_PX),
-      canvasW,
-      canvasH,
+      pad,
+      sheetW,
+      sheetH,
+      canvasW: sheetW + 2 * pad,
+      canvasH: sheetH + 2 * pad,
     };
   }
 
@@ -311,19 +459,25 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       return;
     }
     this.resizeObserver = new ResizeObserver(() => this.onResize());
-    this.resizeObserver.observe(this.hostRef.nativeElement);
+    const layer = this.getImageLayerEl();
+    if (layer) {
+      this.resizeObserver.observe(layer);
+    } else {
+      this.resizeObserver.observe(this.hostRef.nativeElement);
+    }
   }
 
   private onResize(): void {
     if (!this.canvas) {
       return;
     }
-    const { width, height } = this.measureHost();
-    if (width < 1 || height < 1) {
+    const { canvasW, canvasH } = this.getSheetMetrics();
+    if (canvasW < 1 || canvasH < 1) {
       return;
     }
-    this.canvas.setDimensions({ width, height });
+    this.canvas.setDimensions({ width: canvasW, height: canvasH });
     this.relayoutObjects();
+    this.syncFocusChrome();
   }
 
   /** Update geometry of existing Fabric objects from the normalized model (no image reload). */
@@ -382,7 +536,6 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
           img.height || 1,
         );
         this.applyPlacementToImage(img, repaired);
-        this.applySheetOverflowVisual(img);
         existing.phPlacement = repaired;
         this.updateModelPlacement(placement, repaired);
         continue;
@@ -402,7 +555,6 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
         );
         this.applyPlacementToImage(img as FabricImage, repaired);
         this.applyObjectControls(img, false);
-        this.applySheetOverflowVisual(img as FabricImage);
         img.phPlacement = repaired;
         this.updateModelPlacement(placement, repaired);
         this.canvas.add(img);
