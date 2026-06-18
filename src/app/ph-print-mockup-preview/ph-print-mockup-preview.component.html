@@ -101,6 +101,7 @@
     class="ph-print-mockup-print-area-guide"
     [attr.viewBox]="guide.viewBox"
     preserveAspectRatio="none"
+    overflow="visible"
     aria-hidden="true">
     <rect
       *ngIf="guide.topRect as topRect"
@@ -178,13 +179,14 @@
       stroke-width="2"
       stroke-dasharray="8 6"
       vector-effect="non-scaling-stroke" />
+    <!-- Slot outline: expand 1 SVG unit outward so the stroke is fully outside the image area -->
     <rect
       *ngIf="!quad && !mockupSlotShapedOutlinePathD"
       class="ph-print-mockup-print-area-guide__slot"
-      [attr.x]="guide.slotRect.x"
-      [attr.y]="guide.slotRect.y"
-      [attr.width]="guide.slotRect.width"
-      [attr.height]="guide.slotRect.height"
+      [attr.x]="guide.slotRect.x - 1"
+      [attr.y]="guide.slotRect.y - 1"
+      [attr.width]="guide.slotRect.width + 2"
+      [attr.height]="guide.slotRect.height + 2"
       fill="none"
       stroke-width="2"
       stroke-dasharray="8 6"
@@ -228,14 +230,16 @@
       class="ph-print-mockup-print-area-guide"
       viewBox="0 0 100 100"
       preserveAspectRatio="none"
+      overflow="visible"
       aria-hidden="true">
+      <!-- Outset by 1 SVG unit so the stroke is fully outside the slot boundary -->
       <rect
         *ngIf="!quad && !mockupSimpleSlotShapedOutlinePathD"
         class="ph-print-mockup-print-area-guide__slot"
-        x="1"
-        y="1"
-        width="98"
-        height="98"
+        x="-1"
+        y="-1"
+        width="102"
+        height="102"
         fill="none"
         stroke-width="2"
         stroke-dasharray="8 6"
