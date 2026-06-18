@@ -30,7 +30,7 @@ const PLACEMENT_EPS = 0.0001;
 const OVERFLOW_PAD_PX = 120;
 const OVERFLOW_PAD_MAX_PX = 2400;
 /** Opacity for the focused image outside the printable sheet bounds. */
-const FOCUS_OUTSIDE_OPACITY = 0.7;
+const FOCUS_OUTSIDE_OPACITY = 0.2;
 
 type PhFabricImage = FabricObject & {
   phPlacement?: PhCanvasPlacement;
@@ -172,7 +172,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       '#26a69a';
   }
 
-  /** Controls + per-image visual state (clip vs 70% overflow) for the active image. */
+  /** Controls + per-image visual state (clip vs 20% overflow) for the active image. */
   private syncFocusChrome(): void {
     if (!this.canvas) {
       return;
@@ -189,7 +189,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     this.canvas.requestRenderAll();
   }
 
-  /** Selected: 70% outside / 100% inside (interior pass in after:render). Others: sheet clip. */
+  /** Selected: 20% outside / 100% inside (interior pass in after:render). Others: sheet clip. */
   private applyImageVisualState(img: FabricImage, focused: boolean): void {
     const extended = img as PhFabricImage;
     img.objectCaching = false;
