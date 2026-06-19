@@ -283,7 +283,9 @@
       [imageClipPath]="layout.imageClipPath"
       [imageBorderRadiusPx]="layout.imageBorderRadiusPx"
       [interactive]="canvasInteractive"
-      (placementsChange)="onSheetPlacementsChange(side || 'front', $event)">
+      [selectedPlacementInstanceId]="selectedInstanceIdForSide(side || 'front')"
+      (placementsChange)="onSheetPlacementsChange(side || 'front', $event)"
+      (selectionChange)="onCanvasSelectionChange(side || 'front', $event)">
     </app-ph-canvas-sheet>
     <ng-template #staticSheetImage>
       <div

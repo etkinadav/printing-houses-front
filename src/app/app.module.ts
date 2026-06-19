@@ -14,6 +14,7 @@ import { MainNavComponent } from './main-nav/main-nav.component';
 import { HomeComponent } from './home/home.component';
 
 import { BidiModule } from '@angular/cdk/bidi';
+import { DragDropModule } from '@angular/cdk/drag-drop';
 
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
@@ -79,6 +80,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
     HttpClientModule,
     AngularMaterialModule,
     BidiModule,
+    DragDropModule,
     TranslateModule.forRoot({
       loader: {
         provide: TranslateLoader,

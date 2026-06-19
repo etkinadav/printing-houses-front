@@ -27,6 +27,8 @@ import {
   PhCanvasPlacement,
   PhCanvasSideName,
   PH_CANVAS_DRAG_MIME,
+  phCanvasCreatePlacementId,
+  phCanvasPlacementInstanceId,
   phCanvasProxiedImageUrl,
 } from './ph-canvas.model';
 
@@ -76,8 +78,11 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
   @Input() imageBorderRadiusPx = 0;
   /** Disable interaction (e.g. when the canvas is read-only). */
   @Input() interactive = true;
+  /** Layer panel / external focus — select this placement instance on the sheet. */
+  @Input() selectedPlacementInstanceId: string | null = null;
 
   @Output() placementsChange = new EventEmitter<PhCanvasPlacement[]>();
+  @Output() selectionChange = new EventEmitter<string | null>();
 
   @ViewChild('host', { static: true }) hostRef!: ElementRef<HTMLDivElement>;
   @ViewChild('canvasEl', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
@@ -149,6 +154,9 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
         this.canvas.discardActiveObject();
       }
       this.applyInteractivity();
+    }
+    if (changes['selectedPlacementInstanceId'] && this.selectedPlacementInstanceId) {
+      void this.selectByInstanceId(this.selectedPlacementInstanceId);
     }
     if (
       (changes['imageClipPath'] || changes['imageBorderRadiusPx']) &&
@@ -310,6 +318,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     this.gestureStartPlacement = null;
     this.restoreStackOrderFromModel();
     this.syncFocusChrome();
+    this.emitSelectionChange(null);
   }
 
   /** Re-align Fabric stack order with persisted placement zIndex values. */
@@ -427,11 +436,75 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     this.canvas.setActiveObject(obj);
     this.captureGestureStartPlacement(obj);
     this.syncFocusChrome();
+    this.emitSelectionChange(key);
     this.logSelection('select', {
       key,
       prev,
       zOrderAfter: this.describeZOrder(),
     });
+  }
+
+  /** Parent-driven updates when the placements @Input array is mutated in place (e.g. layers z-order). */
+  applyExternalPlacements(placements: PhCanvasPlacement[]): void {
+    const incoming = placements ?? [];
+    if (!this.viewReady || !this.canvas) {
+      this.model = this.clonePlacements(incoming);
+      return;
+    }
+    if (this.placementsEquivalent(incoming, this.model)) {
+      return;
+    }
+    this.model = this.clonePlacements(incoming);
+    void this.syncObjectsFromModel();
+  }
+
+  /** Focus a placement from the layers panel (public API). */
+  async selectByInstanceId(instanceId: string): Promise<void> {
+    if (!this.canvas || !instanceId) {
+      return;
+    }
+    const key = instanceId.trim();
+    if (!key || this.activePlacementKey() === key) {
+      return;
+    }
+    let match = (this.canvas.getObjects() as PhFabricImage[]).find(
+      (obj) => obj.phPlacement && this.placementKey(obj.phPlacement) === key,
+    );
+    if (!match) {
+      await this.syncObjectsFromModel();
+      match = (this.canvas.getObjects() as PhFabricImage[]).find(
+        (obj) => obj.phPlacement && this.placementKey(obj.phPlacement) === key,
+      );
+    }
+    if (match) {
+      this.selectPlacementObject(match);
+    }
+  }
+
+  /** Remove one placement instance from the canvas (public API). */
+  removeByInstanceId(instanceId: string): void {
+    const key = instanceId?.trim();
+    if (!key) {
+      return;
+    }
+    const target = this.model.find((p) => this.placementKey(p) === key);
+    if (!target) {
+      return;
+    }
+    this.model = this.model.filter((p) => p !== target);
+    if (this.canvas) {
+      const obj = (this.canvas.getObjects() as PhFabricImage[]).find(
+        (candidate) =>
+          candidate.phPlacement && this.placementKey(candidate.phPlacement) === key,
+      );
+      if (obj) {
+        this.canvas.remove(obj);
+      }
+      this.canvas.discardActiveObject();
+      this.syncFocusChrome();
+    }
+    this.emitSelectionChange(null);
+    this.emitChange();
   }
 
   private deferSyncFocusChrome(): void {
@@ -1255,7 +1328,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
   }
 
   private placementKey(placement: PhCanvasPlacement): string {
-    return `${placement.fileId}:${placement.imageId}`;
+    return phCanvasPlacementInstanceId(placement);
   }
 
   private activePlacementKey(): string | null {
@@ -1270,17 +1343,19 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     if (a.length !== b.length) {
       return false;
     }
-    const sortedA = [...a].sort((left, right) => left.zIndex - right.zIndex);
-    const sortedB = [...b].sort((left, right) => left.zIndex - right.zIndex);
+    const sortedA = [...a].sort(
+      (left, right) => this.placementKey(left).localeCompare(this.placementKey(right)),
+    );
+    const sortedB = [...b].sort(
+      (left, right) => this.placementKey(left).localeCompare(this.placementKey(right)),
+    );
     for (let index = 0; index < sortedA.length; index += 1) {
       const left = sortedA[index];
       const right = sortedB[index];
-      if (
-        left.fileId !== right.fileId ||
-        left.imageId !== right.imageId ||
-        left.page !== right.page ||
-        left.zIndex !== right.zIndex
-      ) {
+      if (this.placementKey(left) !== this.placementKey(right)) {
+        return false;
+      }
+      if (left.zIndex !== right.zIndex) {
         return false;
       }
       if (
@@ -1491,6 +1566,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     const { nW, nH } = await this.resolveImagePixelSize(payload);
     const geometry = this.computeInitialPlacementGeometry(nW, nH, sheetW, sheetH);
     const placement: PhCanvasPlacement = {
+      _id: phCanvasCreatePlacementId(),
       fileId: payload.fileId,
       imageId: payload.imageId,
       page: payload.page ?? 1,
@@ -1698,5 +1774,9 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
 
   private clonePlacements(list: PhCanvasPlacement[]): PhCanvasPlacement[] {
     return (list ?? []).map((p) => ({ ...p }));
+  }
+
+  private emitSelectionChange(instanceId: string | null): void {
+    this.selectionChange.emit(instanceId);
   }
 }

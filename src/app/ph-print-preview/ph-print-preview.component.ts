@@ -27,6 +27,7 @@ import {
   PhCanvasPlacement,
   PhCanvasSideName,
 } from '../ph-canvas/ph-canvas.model';
+import { PhCanvasSheetComponent } from '../ph-canvas/ph-canvas-sheet.component';
 import { PhPrintingFile } from '../ph-printing-files/ph-printing-file.model';
 
 @Component({
@@ -72,14 +73,21 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   @Input() canvasInteractive = true;
   /** Duplex pager: which side is visible (front / back). */
   @Input() activeDuplexSide: PhCanvasSideName = 'front';
+  /** Layer panel selection — forwarded to the active canvas sheet. */
+  @Input() selectedPlacementInstanceId: string | null = null;
 
   @Output() placementsChange = new EventEmitter<{
     side: PhCanvasSideName;
     placements: PhCanvasPlacement[];
   }>();
+  @Output() placementSelectionChange = new EventEmitter<{
+    side: PhCanvasSideName;
+    instanceId: string | null;
+  }>();
 
   @ViewChild('measureHost') measureHost?: ElementRef<HTMLElement>;
   @ViewChildren('preloadImage') preloadImages?: QueryList<ElementRef<HTMLImageElement>>;
+  @ViewChildren(PhCanvasSheetComponent) canvasSheets?: QueryList<PhCanvasSheetComponent>;
 
   layout: PhPrintPreviewLayout | null = null;
   imageLoading = false;
@@ -179,6 +187,29 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
 
   onSheetPlacementsChange(side: PhCanvasSideName, placements: PhCanvasPlacement[]): void {
     this.placementsChange.emit({ side, placements });
+  }
+
+  onCanvasSelectionChange(side: PhCanvasSideName, instanceId: string | null): void {
+    this.placementSelectionChange.emit({ side, instanceId });
+  }
+
+  focusPlacementInstance(side: PhCanvasSideName, instanceId: string): void {
+    const sheet = this.canvasSheets?.find((entry) => entry.side === side);
+    void sheet?.selectByInstanceId(instanceId);
+  }
+
+  removePlacementInstance(side: PhCanvasSideName, instanceId: string): void {
+    const sheet = this.canvasSheets?.find((entry) => entry.side === side);
+    sheet?.removeByInstanceId(instanceId);
+  }
+
+  syncPlacementsFromParent(side: PhCanvasSideName, placements: PhCanvasPlacement[]): void {
+    const sheet = this.canvasSheets?.find((entry) => entry.side === side);
+    sheet?.applyExternalPlacements(placements);
+  }
+
+  selectedInstanceIdForSide(side: PhCanvasSideName): string | null {
+    return side === this.activeDuplexSide ? this.selectedPlacementInstanceId : null;
   }
 
   ngOnChanges(changes: SimpleChanges): void {

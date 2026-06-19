@@ -911,6 +911,89 @@
                     </div>
                     </div>
                   </section>
+
+                  <!-- Layers panel -->
+                  <section
+                    *ngIf="showLayersPanel"
+                    class="ph-print-settings-collapsible w-100"
+                    [class.ph-print-settings-collapsible--expanded]="layersPanelExpanded">
+                    <button
+                      type="button"
+                      class="ph-print-settings-collapsible__header w-100 d-flex align-items-center justify-content-between gap-2"
+                      [class.ph-print-settings-collapsible__header--collapsed]="!layersPanelExpanded"
+                      [attr.aria-expanded]="layersPanelExpanded"
+                      (click)="toggleLayersPanelExpanded()">
+                      <span class="ph-print-settings-collapsible__title zx-rtl">
+                        {{ 'ph-print.layers.title' | translate }}
+                      </span>
+                      <mat-icon
+                        class="ph-print-settings-collapsible__chevron flex-shrink-0"
+                        [class.ph-print-settings-collapsible__chevron--collapsed]="!layersPanelExpanded"
+                        aria-hidden="true">
+                        keyboard_arrow_up
+                      </mat-icon>
+                    </button>
+
+                    <div
+                      class="ph-print-settings-collapsible__body-wrap"
+                      [class.ph-print-settings-collapsible__body-wrap--collapsed]="!layersPanelExpanded">
+                      <div class="ph-print-settings-collapsible__body w-100 d-flex flex-column gap-2">
+                        <p
+                          *ngIf="layerRows.length === 0"
+                          class="mb-0 zx-text-tiny opacity-75 text-center ph-layers-empty">
+                          {{ 'ph-print.layers.empty' | translate }}
+                        </p>
+
+                        <div
+                          *ngIf="layerRows.length"
+                          class="ph-layers-list"
+                          cdkDropList
+                          (cdkDropListDropped)="onLayerDrop($event)">
+                          <article
+                            *ngFor="let layer of layerRows; trackBy: trackLayerRow"
+                            class="ph-layers-row"
+                            cdkDrag
+                            [class.ph-layers-row--selected]="selectedLayerInstanceId === layer.instanceId"
+                            [class.zx-border-gray-25-pr]="isDarkMode"
+                            [class.zx-page-obj-container-bg-darkmode]="isDarkMode">
+                            <button
+                              type="button"
+                              class="ph-layers-row__handle"
+                              cdkDragHandle
+                              [attr.aria-label]="'ph-print.layers.drag' | translate">
+                              <mat-icon aria-hidden="true">drag_indicator</mat-icon>
+                            </button>
+                            <img
+                              class="ph-layers-row__thumb"
+                              [src]="layer.thumbnailUrl"
+                              alt="" />
+                            <span
+                              class="ph-layers-row__label zx-text-tiny flex-grow-1 min-w-0"
+                              [class.zx-text-white]="isDarkMode">
+                              {{ layer.label }}
+                            </span>
+                            <button
+                              type="button"
+                              class="ph-layers-row__action text-green"
+                              [class.zx-text-white]="isDarkMode"
+                              [attr.aria-label]="'ph-print.layers.edit' | translate"
+                              (click)="onLayerEdit(layer)">
+                              <mat-icon aria-hidden="true">edit</mat-icon>
+                            </button>
+                            <button
+                              type="button"
+                              class="ph-layers-row__action text-red"
+                              [class.zx-text-white]="isDarkMode"
+                              [attr.aria-label]="'ph-print.layers.delete' | translate"
+                              (click)="onLayerDelete(layer)">
+                              <mat-icon aria-hidden="true">delete_outline</mat-icon>
+                            </button>
+                          </article>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
                   <span class="ph-print-settings-bottom-spacer" aria-hidden="true"></span>
                 </div>
               </div>
@@ -1026,7 +1109,9 @@
           [sheetBackgroundStyles]="previewSheetBackgroundStyles"
           [isRTL]="isRTL"
           [isDarkMode]="isDarkMode"
-          (placementsChange)="onSheetPlacementsChange($event)">
+          [selectedPlacementInstanceId]="selectedLayerInstanceId"
+          (placementsChange)="onSheetPlacementsChange($event)"
+          (placementSelectionChange)="onLayerSelectionChange($event)">
         </app-ph-print-preview>
 
         <app-ph-print-mockup-preview

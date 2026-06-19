@@ -61,3 +61,35 @@ export interface PhCanvasDragPayload {
 }
 
 export const PH_CANVAS_DRAG_MIME = 'application/x-ph-canvas-page';
+
+/** Stable instance key for a placement (supports duplicate file pages on one side). */
+export function phCanvasPlacementInstanceId(placement: PhCanvasPlacement): string {
+  const id = placement._id?.trim();
+  if (id) {
+    return id;
+  }
+  return `${placement.fileId}:${placement.imageId}:${placement.zIndex}`;
+}
+
+/** New Mongo-compatible ObjectId string for a freshly created placement instance. */
+export function phCanvasCreatePlacementId(): string {
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+export function phCanvasEnsurePlacementIds(
+  placements: PhCanvasPlacement[],
+): PhCanvasPlacement[] {
+  return (placements ?? []).map((placement) => ({
+    ...placement,
+    _id: placement._id?.trim() || phCanvasCreatePlacementId(),
+  }));
+}
+
+export function phCanvasNormalizeCanvasPlacements(canvas: PhCanvas): PhCanvas {
+  for (const side of canvas.sides ?? []) {
+    side.placements = phCanvasEnsurePlacementIds(side.placements ?? []);
+  }
+  return canvas;
+}

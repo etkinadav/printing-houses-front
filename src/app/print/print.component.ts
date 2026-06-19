@@ -1,5 +1,6 @@
 import { HttpEventType } from '@angular/common/http';
-import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { ActivatedRoute } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
@@ -57,8 +58,12 @@ import {
   PhCanvasSide,
   PhCanvasSideName,
   PH_CANVAS_DRAG_MIME,
+  phCanvasNormalizeCanvasPlacements,
+  phCanvasPlacementInstanceId,
+  phCanvasProxiedImageUrl,
 } from '../ph-canvas/ph-canvas.model';
 import { renderCanvasSideComposite } from '../ph-canvas/ph-canvas-composite.util';
+import { PhPrintPreviewComponent } from '../ph-print-preview/ph-print-preview.component';
 
 interface FixedDimensionOption {
   optionIndex: number;
@@ -81,6 +86,13 @@ const CANVAS_PLACEMENT_PERSIST_DEBOUNCE_MS = 0;
 export interface FileListDisplayEntry {
   file: PhPrintingFile;
   images: PhPrintingFileImage[];
+}
+
+export interface PhCanvasLayerRow {
+  instanceId: string;
+  placement: PhCanvasPlacement;
+  label: string;
+  thumbnailUrl: string;
 }
 
 export type SidebarDisplayItem =
@@ -139,6 +151,10 @@ export class PrintComponent implements OnInit, OnDestroy {
   readonly singleOptionToggleValue = 0;
   readonly productNameToggle = 0;
   printSettingsExpanded = true;
+  layersPanelExpanded = true;
+  selectedLayerInstanceId: string | null = null;
+
+  @ViewChild(PhPrintPreviewComponent) private printPreview?: PhPrintPreviewComponent;
 
   private directionSub?: Subscription;
   private darkModeSub?: Subscription;
@@ -332,6 +348,18 @@ export class PrintComponent implements OnInit, OnDestroy {
     return this.getSide('back')?.placements ?? [];
   }
 
+  get showLayersPanel(): boolean {
+    return !!this.canvas;
+  }
+
+  get layerRows(): PhCanvasLayerRow[] {
+    const placements =
+      this.previewDuplexSide === 'back' ? this.backPlacements : this.frontPlacements;
+    return [...placements]
+      .sort((left, right) => right.zIndex - left.zIndex)
+      .map((placement) => this.buildLayerRow(placement));
+  }
+
   // --- Preview dimensions / extras ------------------------------------------
 
   get previewBaseWidthCm(): number {
@@ -374,6 +402,7 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   onPreviewDuplexSideChange(side: PhCanvasSideName): void {
     this.previewDuplexSide = side;
+    this.selectedLayerInstanceId = null;
   }
 
   get previewMarginCm(): number {
@@ -956,6 +985,64 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.printSettingsExpanded = !this.printSettingsExpanded;
   }
 
+  toggleLayersPanelExpanded(): void {
+    this.layersPanelExpanded = !this.layersPanelExpanded;
+  }
+
+  trackLayerRow(_index: number, row: PhCanvasLayerRow): string {
+    return row.instanceId;
+  }
+
+  onLayerSelectionChange(payload: { side: PhCanvasSideName; instanceId: string | null }): void {
+    if (payload.side !== this.previewDuplexSide) {
+      return;
+    }
+    this.selectedLayerInstanceId = payload.instanceId;
+  }
+
+  onLayerEdit(row: PhCanvasLayerRow): void {
+    this.selectedLayerInstanceId = row.instanceId;
+    this.printPreview?.focusPlacementInstance(this.previewDuplexSide, row.instanceId);
+  }
+
+  onLayerDelete(row: PhCanvasLayerRow): void {
+    this.printPreview?.removePlacementInstance(this.previewDuplexSide, row.instanceId);
+    if (this.selectedLayerInstanceId === row.instanceId) {
+      this.selectedLayerInstanceId = null;
+    }
+  }
+
+  onLayerDrop(event: CdkDragDrop<PhCanvasLayerRow[]>): void {
+    const rows = [...this.layerRows];
+    moveItemInArray(rows, event.previousIndex, event.currentIndex);
+    const count = rows.length;
+    const nextPlacements = rows.map((row, displayIndex) => ({
+      ...row.placement,
+      zIndex: count - 1 - displayIndex,
+    }));
+    this.onSheetPlacementsChange({
+      side: this.previewDuplexSide,
+      placements: nextPlacements,
+    });
+  }
+
+  private buildLayerRow(placement: PhCanvasPlacement): PhCanvasLayerRow {
+    const file = this.files.find((entry) => entry._id === placement.fileId);
+    const image = file?.images?.find((entry) => entry._id === placement.imageId);
+    const name = file
+      ? this.getDisplayFileName(file)
+      : this.translateService.instant('printing-table.file');
+    const page = placement.page ?? image?.page ?? 1;
+    return {
+      instanceId: phCanvasPlacementInstanceId(placement),
+      placement,
+      label: this.translateService.instant('ph-print.file-page-label', { name, page }),
+      thumbnailUrl:
+        phCanvasProxiedImageUrl(image?.thumbnailUrl?.trim() || '') ||
+        'assets/images/no-img.svg',
+    };
+  }
+
   onMockupClick(event?: Event): void {
     event?.stopPropagation();
     const mockup = this.resolvedPrintMockup;
@@ -1097,6 +1184,7 @@ export class PrintComponent implements OnInit, OnDestroy {
         { side: payload.side, placements: [...payload.placements] },
       ];
     }
+    this.printPreview?.syncPlacementsFromParent(payload.side, payload.placements);
     this.persistSidePlacements(payload.side, payload.placements);
     if (this.mockupViewActive) {
       this.rebuildComposites();
@@ -1267,7 +1355,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   private applyCanvasFromServer(canvas: PhCanvas, syncUi = false): void {
-    this.canvas = canvas;
+    this.canvas = phCanvasNormalizeCanvasPlacements(canvas);
     if (syncUi) {
       this.syncSettingsUiFromSettings(canvas.printSettings ?? {});
     }
