@@ -139,6 +139,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   readonly expressFileAccept = EXPRESS_FILE_ACCEPT;
   readonly singleOptionToggleValue = 0;
   readonly productNameToggle = 0;
+  printSettingsExpanded = true;
 
   private directionSub?: Subscription;
   private darkModeSub?: Subscription;
@@ -954,6 +955,10 @@ export class PrintComponent implements OnInit, OnDestroy {
     for (const file of picked) {
       this.uploadFile(file);
     }
+  }
+
+  togglePrintSettingsExpanded(): void {
+    this.printSettingsExpanded = !this.printSettingsExpanded;
   }
 
   onMockupClick(event?: Event): void {

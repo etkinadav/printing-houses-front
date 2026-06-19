@@ -192,6 +192,57 @@
   opacity: 0.58;
 }
 
+.ph-print-settings-collapsible {
+  width: 100%;
+}
+
+.ph-print-settings-collapsible__header {
+  cursor: pointer;
+  text-align: inherit;
+  color: var(--zx-green);
+  font-weight: 600;
+}
+
+.ph-print-settings-collapsible__title {
+  min-width: 0;
+  font-weight: 600;
+  text-align: start;
+  color: var(--zx-green);
+}
+
+.ph-print-settings-collapsible__body-wrap {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 280ms ease, opacity 220ms ease;
+  overflow: hidden;
+}
+
+.ph-print-settings-collapsible__body-wrap--collapsed {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ph-print-settings-collapsible__body {
+  min-height: 0;
+  overflow: hidden;
+  padding-top: 12px;
+}
+
+.ph-print-settings-collapsible__chevron {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  font-size: 24px;
+  line-height: 24px;
+  color: var(--zx-green);
+  transition: transform 280ms ease;
+}
+
+.ph-print-settings-collapsible__chevron--collapsed {
+  transform: rotate(180deg);
+}
+
 .ph-print-settings-divider {
   display: block;
   width: 100%;
@@ -724,8 +775,14 @@
   z-index: 2;
 }
 
-.ph-print-duplex-side-toggle ::ng-deep mat-button-toggle.mat-button-toggle-checked {
-  color: var(--zx-green);
+.ph-print-duplex-side-toggle ::ng-deep mat-button-toggle.mat-button-toggle-checked:not(.mat-button-toggle-disabled) {
+  font-weight: 600;
+  color: inherit;
+}
+
+.ph-print-duplex-side-toggle ::ng-deep mat-button-toggle.mat-button-toggle-checked .mat-button-toggle-button {
+  background-color: transparent !important;
+  color: inherit;
 }
 
 .preview-button {

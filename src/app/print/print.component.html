@@ -423,38 +423,30 @@
                     </div>
                   </article>
 
-                  <!-- Product name (display only) -->
-                  <article
-                    *ngIf="showPrintSettingsPanel && productName"
-                    class="ph-print-settings-product w-100 d-flex align-items-center ph-settings-row"
-                    [class.ph-settings-row--stacked]="productSettingsWrap"
-                    [class.justify-content-between]="!productSettingsWrap"
-                    [class.zx-min-h-50]="!productSettingsWrap">
-                    <span>{{ 'printing-table.product' | translate }}</span>
+                  <!-- Collapsible print settings -->
+                  <section
+                    *ngIf="showPrintSettingsPanel"
+                    class="ph-print-settings-collapsible w-100">
+                    <button
+                      type="button"
+                      class="ph-print-settings-collapsible__header w-100 d-flex align-items-center justify-content-between gap-2 border-0 bg-transparent p-0 zx-min-h-50"
+                      [attr.aria-expanded]="printSettingsExpanded"
+                      (click)="togglePrintSettingsExpanded()">
+                      <span class="ph-print-settings-collapsible__title zx-rtl">
+                        {{ 'printing-table.printing-settings' | translate }}
+                      </span>
+                      <mat-icon
+                        class="ph-print-settings-collapsible__chevron flex-shrink-0"
+                        [class.ph-print-settings-collapsible__chevron--collapsed]="!printSettingsExpanded"
+                        aria-hidden="true">
+                        keyboard_arrow_up
+                      </mat-icon>
+                    </button>
+
                     <div
-                      class="d-flex position-relative ph-settings-toggle-host"
-                      [class.justify-content-center]="productSettingsWrap"
-                      [class.justify-content-end]="!productSettingsWrap">
-                      <mat-button-toggle-group
-                        class="ph-settings-single-option-toggle ph-settings-display-toggle"
-                        [style.width]="'auto'"
-                        [style.max-width]="productSettingsWrap ? '100%' : 'none'"
-                        name="product-name"
-                        [disabled]="true"
-                        [ngModel]="productNameToggle">
-                        <mat-button-toggle
-                          class="zx-rtl position-relative"
-                          [value]="0"
-                          [class.zx-text-white]="isDarkMode">
-                          <span>{{ productName }}</span>
-                        </mat-button-toggle>
-                      </mat-button-toggle-group>
-                    </div>
-                  </article>
-                  <hr
-                    *ngIf="showPrintSettingsPanel && productName"
-                    class="ph-print-settings-divider"
-                    aria-hidden="true" />
+                      class="ph-print-settings-collapsible__body-wrap"
+                      [class.ph-print-settings-collapsible__body-wrap--collapsed]="!printSettingsExpanded">
+                      <div class="ph-print-settings-collapsible__body w-100 d-flex flex-column gap-3">
 
                   <!-- Fixed: type — single option (display only) -->
                   <article
@@ -923,6 +915,9 @@
                       </div>
                     </article>
                   </ng-container>
+                    </div>
+                    </div>
+                  </section>
                   <span class="ph-print-settings-bottom-spacer" aria-hidden="true"></span>
                 </div>
               </div>
@@ -994,18 +989,26 @@
       <div
         *ngIf="isDoubleSided && canvas"
         class="ph-print-duplex-side-toggle w-100 d-flex justify-content-center">
-        <mat-button-toggle-group
-          name="preview-duplex-side"
-          [attr.aria-label]="'printing-table.sides' | translate"
-          [ngModel]="previewDuplexSide"
-          (ngModelChange)="onPreviewDuplexSideChange($event)">
-          <mat-button-toggle class="zx-rtl position-relative" value="front">
-            <span>{{ 'printing-table.preview-side-front' | translate }}</span>
-          </mat-button-toggle>
-          <mat-button-toggle class="zx-rtl position-relative" value="back">
-            <span>{{ 'printing-table.preview-side-back' | translate }}</span>
-          </mat-button-toggle>
-        </mat-button-toggle-group>
+        <div class="ph-settings-toggle-host">
+          <mat-button-toggle-group
+            name="preview-duplex-side"
+            [attr.aria-label]="'printing-table.sides' | translate"
+            [ngModel]="previewDuplexSide"
+            (ngModelChange)="onPreviewDuplexSideChange($event)">
+            <mat-button-toggle
+              class="zx-rtl position-relative"
+              value="front"
+              [class.zx-text-white]="isDarkMode">
+              <span>{{ 'printing-table.preview-side-front' | translate }}</span>
+            </mat-button-toggle>
+            <mat-button-toggle
+              class="zx-rtl position-relative"
+              value="back"
+              [class.zx-text-white]="isDarkMode">
+              <span>{{ 'printing-table.preview-side-back' | translate }}</span>
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
       </div>
       <div
         id="preview-container"
