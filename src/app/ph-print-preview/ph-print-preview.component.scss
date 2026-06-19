@@ -12,7 +12,6 @@ $ph-preview-dim-top-gutter-px: $ph-preview-dim-band-px + $ph-preview-dim-top-lab
 $ph-preview-bundle-pad-bottom-px: 24px;
 $ph-preview-bundle-pad-opposite-x-px: 12px;
 $ph-preview-dim-side-label-offset-px: 15px;
-$ph-preview-duplex-stack-gap-px: 0;
 
 :host {
   display: block;
@@ -70,42 +69,21 @@ $ph-preview-duplex-stack-gap-px: 0;
   flex-direction: column;
   overflow: hidden;
   align-items: stretch;
-  justify-content: stretch;
+  justify-content: center;
 }
 
-
-
-.ph-print-preview-duplex-stack {
+.ph-print-preview-single-pane {
   display: flex;
-  flex-direction: column;
   flex: 1 1 auto;
-  height: 100%;
   min-height: 0;
-  width: 100%;
-  gap: $ph-preview-duplex-stack-gap-px;
-  box-sizing: border-box;
-}
-
-
-
-.ph-print-preview-duplex-item--canvas {
-  overflow: hidden !important;
-  position: relative;
-  isolation: isolate;
-  z-index: 1;
-}
-
-.ph-print-preview-duplex-item--canvas.ph-print-preview-duplex-item--elevated {
-  z-index: 2;
-}
-
-.ph-print-preview-duplex-item {
-  flex: 1 1 0;
-  min-height: 0;
-  display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;
+}
+
+.ph-print-preview-single-pane--duplex {
+  width: 100%;
+  height: 100%;
 }
 
 

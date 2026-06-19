@@ -989,17 +989,34 @@
 
     <!-- Preview pane [desktop] — always shows the canvas -->
     <article
-      class="d-none d-md-flex flex-grow-1 h-100 zx-p-preview-container position-relative"
+      class="d-none d-md-flex flex-grow-1 h-100 zx-p-preview-container position-relative flex-column"
       [class.bg-white]="!isDarkMode">
       <div
+        *ngIf="isDoubleSided && canvas"
+        class="ph-print-duplex-side-toggle w-100 d-flex justify-content-center">
+        <mat-button-toggle-group
+          name="preview-duplex-side"
+          [attr.aria-label]="'printing-table.sides' | translate"
+          [ngModel]="previewDuplexSide"
+          (ngModelChange)="onPreviewDuplexSideChange($event)">
+          <mat-button-toggle class="zx-rtl position-relative" value="front">
+            <span>{{ 'printing-table.preview-side-front' | translate }}</span>
+          </mat-button-toggle>
+          <mat-button-toggle class="zx-rtl position-relative" value="back">
+            <span>{{ 'printing-table.preview-side-back' | translate }}</span>
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+      </div>
+      <div
         id="preview-container"
-        class="d-flex w-100 h-100 justify-content-center align-items-center">
+        class="d-flex w-100 flex-grow-1 min-h-0 justify-content-center align-items-center">
 
         <app-ph-print-preview
           *ngIf="canvas && !showMockupPreview"
           class="w-100 h-100"
           [canvasMode]="true"
           [canvasSides]="canvasSides"
+          [activeDuplexSide]="previewDuplexSide"
           [frontPlacements]="frontPlacements"
           [backPlacements]="backPlacements"
           [canvasFiles]="files"
@@ -1016,39 +1033,22 @@
           (placementsChange)="onSheetPlacementsChange($event)">
         </app-ph-print-preview>
 
-        <div *ngIf="showMockupPreview" class="w-100 h-100 d-flex flex-column">
-          <app-ph-print-mockup-preview
-            class="w-100 flex-grow-1 ph-mockup-composite-surface"
-            [mockup]="resolvedPrintMockup"
-            [printImageUrl]="frontCompositeUrl"
-            [baseWidthCm]="previewBaseWidthCm"
-            [baseHeightCm]="previewBaseHeightCm"
-            [marginCm]="previewMarginCm"
-            [cornerType]="previewCornerType"
-            [cornerRadiusCm]="previewCornerRadiusCm"
-            [foldingCount]="previewFoldingCount"
-            [foldingOffsetCm]="previewFoldingOffsetCm"
-            [sheetBackgroundStyles]="previewSheetBackgroundStyles"
-            [isRTL]="isRTL"
-            [isDarkMode]="isDarkMode">
-          </app-ph-print-mockup-preview>
-          <app-ph-print-mockup-preview
-            *ngIf="isDoubleSided"
-            class="w-100 flex-grow-1 ph-mockup-composite-surface"
-            [mockup]="resolvedPrintMockup"
-            [printImageUrl]="backCompositeUrl"
-            [baseWidthCm]="previewBaseWidthCm"
-            [baseHeightCm]="previewBaseHeightCm"
-            [marginCm]="previewMarginCm"
-            [cornerType]="previewCornerType"
-            [cornerRadiusCm]="previewCornerRadiusCm"
-            [foldingCount]="previewFoldingCount"
-            [foldingOffsetCm]="previewFoldingOffsetCm"
-            [sheetBackgroundStyles]="previewSheetBackgroundStyles"
-            [isRTL]="isRTL"
-            [isDarkMode]="isDarkMode">
-          </app-ph-print-mockup-preview>
-        </div>
+        <app-ph-print-mockup-preview
+          *ngIf="showMockupPreview"
+          class="w-100 h-100 ph-mockup-composite-surface"
+          [mockup]="resolvedPrintMockup"
+          [printImageUrl]="previewMockupCompositeUrl"
+          [baseWidthCm]="previewBaseWidthCm"
+          [baseHeightCm]="previewBaseHeightCm"
+          [marginCm]="previewMarginCm"
+          [cornerType]="previewCornerType"
+          [cornerRadiusCm]="previewCornerRadiusCm"
+          [foldingCount]="previewFoldingCount"
+          [foldingOffsetCm]="previewFoldingOffsetCm"
+          [sheetBackgroundStyles]="previewSheetBackgroundStyles"
+          [isRTL]="isRTL"
+          [isDarkMode]="isDarkMode">
+        </app-ph-print-mockup-preview>
       </div>
       <div
         *ngIf="canvas"

@@ -718,6 +718,16 @@
   overflow: hidden;
 }
 
+.ph-print-duplex-side-toggle {
+  flex-shrink: 0;
+  padding-bottom: 8px;
+  z-index: 2;
+}
+
+.ph-print-duplex-side-toggle ::ng-deep mat-button-toggle.mat-button-toggle-checked {
+  color: var(--zx-green);
+}
+
 .preview-button {
   position: absolute;
   bottom: 8px;

@@ -657,6 +657,8 @@
 	"printing-table.sides": "Sides",
 	"printing-table.sides-one": "Single",
 	"printing-table.sides-two": "Dubble",
+	"printing-table.preview-side-front": "Front",
+	"printing-table.preview-side-back": "Back",
 	"printing-table.size": "Size",
 	"printing-table.size-original": "Original",
 	"printing-table.size-maximal": "Fit to Scale",

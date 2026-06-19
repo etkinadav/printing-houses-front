@@ -113,6 +113,8 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   /** When true, the preview pane shows the composite mockup instead of the editable sheet. */
   mockupViewActive = false;
+  /** Duplex preview / mockup: visible side in the preview pane. */
+  previewDuplexSide: PhCanvasSideName = 'front';
   /** Composite raster of each side's placements, fed to the mockup. */
   frontCompositeUrl: string | null = null;
   backCompositeUrl: string | null = null;
@@ -368,6 +370,14 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   get showMockupPreview(): boolean {
     return this.mockupViewActive && !!this.resolvedPrintMockup;
+  }
+
+  get previewMockupCompositeUrl(): string | null {
+    return this.previewDuplexSide === 'back' ? this.backCompositeUrl : this.frontCompositeUrl;
+  }
+
+  onPreviewDuplexSideChange(side: PhCanvasSideName): void {
+    this.previewDuplexSide = side;
   }
 
   get previewMarginCm(): number {

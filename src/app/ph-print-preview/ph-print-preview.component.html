@@ -28,33 +28,20 @@
   </div>
 
   <div
-    *ngIf="isDuplexStack && layout && !imageLoading"
-    class="ph-print-preview-duplex-stack w-100 h-100">
-    <div
-      class="ph-print-preview-duplex-item ph-print-preview-duplex-item--front"
-      [class.ph-print-preview-duplex-item--canvas]="canvasMode"
-      [class.ph-print-preview-duplex-item--elevated]="isDuplexItemElevated('front')">
-      <ng-container
-        *ngTemplateOutlet="previewBundle; context: { sheetImageUrl: activeImageUrls[0], isDuplexFront: true, side: 'front' }">
-      </ng-container>
-    </div>
-    <div
-      class="ph-print-preview-duplex-item ph-print-preview-duplex-item--back"
-      [class.ph-print-preview-duplex-item--canvas]="canvasMode"
-      [class.ph-print-preview-duplex-item--elevated]="isDuplexItemElevated('back')">
-      <ng-container
-        *ngTemplateOutlet="previewBundle; context: { sheetImageUrl: activeImageUrls[1], isDuplexFront: false, side: 'back' }">
-      </ng-container>
-    </div>
-  </div>
-
-  <ng-container *ngIf="!isDuplexStack && layout && activeImageUrls.length && (!imageLoading || compactSheetOnly)">
-    <ng-container *ngIf="!compactSheetOnly">
-      <ng-container
-        *ngTemplateOutlet="previewBundle; context: { sheetImageUrl: activeImageUrls[0], isDuplexFront: false, side: 'front' }">
-      </ng-container>
+    *ngIf="shouldShowPreviewBundle"
+    class="ph-print-preview-single-pane w-100 h-100"
+    [class.ph-print-preview-single-pane--duplex]="isDuplexStack && !compactSheetOnly">
+    <ng-container
+      *ngTemplateOutlet="
+        previewBundle;
+        context: {
+          sheetImageUrl: visibleSheetImageUrl,
+          isDuplexFront: visibleIsDuplexFront,
+          side: visiblePreviewSide
+        }
+      ">
     </ng-container>
-  </ng-container>
+  </div>
 </div>
 
 <ng-template #previewBundle let-sheetImageUrl="sheetImageUrl" let-isDuplexFront="isDuplexFront" let-side="side">

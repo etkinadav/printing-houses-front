@@ -16,7 +16,6 @@ import {
 import { CornerType } from '../ph-products/ph-product.model';
 import {
   computePhPrintPreviewLayout,
-  PH_PREVIEW_DUPLEX_STACK_GAP_PX,
   PhPrintPreviewLayout,
 } from '../ph-printing-files/ph-print-preview-layout.util';
 import {
@@ -28,8 +27,6 @@ import {
   PhCanvasSideName,
 } from '../ph-canvas/ph-canvas.model';
 import { PhPrintingFile } from '../ph-printing-files/ph-printing-file.model';
-import { PhCanvasInteractionService } from '../ph-canvas/ph-canvas-interaction.service';
-import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-ph-print-preview',
@@ -72,6 +69,8 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   @Input() backPlacements: PhCanvasPlacement[] = [];
   @Input() canvasFiles: PhPrintingFile[] = [];
   @Input() canvasInteractive = true;
+  /** Duplex pager: which side is visible (front / back). */
+  @Input() activeDuplexSide: PhCanvasSideName = 'front';
 
   @Output() placementsChange = new EventEmitter<{
     side: PhCanvasSideName;
@@ -84,8 +83,6 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   layout: PhPrintPreviewLayout | null = null;
   imageLoading = false;
   activeImageUrls: string[] = [];
-  /** Duplex canvas: side with the selected image — elevated above the other sheet. */
-  canvasActiveSide: PhCanvasSideName | null = null;
 
   private resizeObserver?: ResizeObserver;
   private measureRetryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -93,15 +90,38 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   private imageLoadRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private loadedImageUrls = new Set<string>();
   private trackedImageUrlsKey = '';
-  private canvasActiveSideSub?: Subscription;
-
-  constructor(
-    private cdr: ChangeDetectorRef,
-    private readonly canvasInteraction: PhCanvasInteractionService,
-  ) {}
+  constructor(private cdr: ChangeDetectorRef) {}
 
   get isDuplexStack(): boolean {
     return this.activeImageUrls.length > 1;
+  }
+
+  get visiblePreviewSide(): PhCanvasSideName {
+    return this.isDuplexStack ? this.activeDuplexSide : 'front';
+  }
+
+  get visibleSheetImageUrl(): string {
+    if (!this.activeImageUrls.length) {
+      return '';
+    }
+    if (this.visiblePreviewSide === 'back' && this.activeImageUrls.length > 1) {
+      return this.activeImageUrls[1];
+    }
+    return this.activeImageUrls[0];
+  }
+
+  get visibleIsDuplexFront(): boolean {
+    return this.visiblePreviewSide === 'front';
+  }
+
+  get shouldShowPreviewBundle(): boolean {
+    if (!this.layout || !this.activeImageUrls.length) {
+      return false;
+    }
+    if (this.compactSheetOnly) {
+      return true;
+    }
+    return !this.imageLoading;
   }
 
   ngAfterViewInit(): void {
@@ -119,10 +139,6 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
     this.scheduleLayoutRefresh();
     if (this.canvasMode) {
       this.syncCanvasActiveSurfaces();
-      this.canvasActiveSideSub = this.canvasInteraction.activeSide$.subscribe((side) => {
-        this.canvasActiveSide = side;
-        this.cdr.markForCheck();
-      });
     } else {
       this.scheduleImageLoadSync();
       if (this.compactSheetOnly && this.imageUrl?.trim()) {
@@ -149,29 +165,18 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
     this.placementsChange.emit({ side, placements });
   }
 
-  /** Raise the duplex item that has (or last had) the selected image above the other sheet. */
-  isDuplexItemElevated(side: PhCanvasSideName): boolean {
-    if (!this.canvasMode || !this.isDuplexStack) {
-      return false;
-    }
-    const active = this.canvasActiveSide;
-    if (active) {
-      return active === side;
-    }
-    return side === 'front';
-  }
-
   ngOnChanges(changes: SimpleChanges): void {
     if (this.canvasMode) {
       if (
         changes['canvasMode'] ||
         changes['canvasSides'] ||
         changes['frontPlacements'] ||
-        changes['backPlacements']
+        changes['backPlacements'] ||
+        changes['activeDuplexSide']
       ) {
         this.syncCanvasActiveSurfaces();
       }
-    } else if (changes['imageUrl'] || changes['secondImageUrl']) {
+    } else if (changes['imageUrl'] || changes['secondImageUrl'] || changes['activeDuplexSide']) {
       this.beginImagesLoad();
     }
     if (changes['canvasMode'] && this.canvasMode) {
@@ -199,7 +204,6 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
 
   ngOnDestroy(): void {
     this.resizeObserver?.disconnect();
-    this.canvasActiveSideSub?.unsubscribe();
     if (this.measureRetryTimer) {
       clearTimeout(this.measureRetryTimer);
     }
@@ -223,13 +227,6 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   onPreviewImageLoaded(url: string): void {
     this.loadedImageUrls.add(url);
     this.syncImageLoadingState();
-  }
-
-  private getActiveSurfaceCount(): number {
-    if (this.canvasMode) {
-      return this.canvasSides?.length ? this.canvasSides.length : 1;
-    }
-    return this.buildActiveImageUrls().length;
   }
 
   private buildActiveImageUrls(): string[] {
@@ -379,14 +376,9 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
 
     this.measureRetryCount = 0;
 
-    const isDuplex = this.getActiveSurfaceCount() > 1;
-    const layoutHeightPx = isDuplex
-      ? Math.max(40, (containerHeightPx - PH_PREVIEW_DUPLEX_STACK_GAP_PX) / 2)
-      : containerHeightPx;
-
     const nextLayout = computePhPrintPreviewLayout({
       containerWidthPx,
-      containerHeightPx: this.compactSheetOnly ? containerHeightPx : layoutHeightPx,
+      containerHeightPx,
       baseWidthCm: this.baseWidthCm,
       baseHeightCm: this.baseHeightCm,
       marginCm: this.marginCm,
