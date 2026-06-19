@@ -24,6 +24,7 @@ import {
   MockupPrintOverlayRect,
 } from '../ph-printing-files/ph-print-mockup.util';
 import {
+  PhCanvasDragPayload,
   PhCanvasPlacement,
   PhCanvasSideName,
 } from '../ph-canvas/ph-canvas.model';
@@ -221,6 +222,11 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   syncPlacementsFromParent(side: PhCanvasSideName, placements: PhCanvasPlacement[]): void {
     const sheet = this.canvasSheets?.find((entry) => entry.side === side);
     sheet?.applyExternalPlacements(placements);
+  }
+
+  addPageFromPayload(side: PhCanvasSideName, payload: PhCanvasDragPayload): void {
+    const sheet = this.canvasSheets?.find((entry) => entry.side === side);
+    void sheet?.addFromPayload(payload);
   }
 
   selectedInstanceIdForSide(side: PhCanvasSideName): string | null {

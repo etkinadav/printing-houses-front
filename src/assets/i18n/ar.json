@@ -73,6 +73,7 @@
     "ph-print.layers.delete": "إزالة من اللوحة",
     "ph-print.layers.delete-for-good": "احذف هذه الطبقة",
     "ph-print.layers.drag": "اسحب لإعادة الترتيب",
+    "ph-print.add-to-canvas": "أضف إلى اللوحة",
     "management.printing-house.edit-product": "تعديل",
     "management.printing-house.delete-product": "حذف",
     "management.printing-house.delete-product-confirm": "حذف المنتج \"{{name}}\"؟",

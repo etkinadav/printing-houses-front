@@ -236,7 +236,7 @@
                                 <div class="zx-img-obj-container">
                                   <img [src]="image.thumbnailUrl" class="zx-img-obj" alt="" draggable="false" />
                                   <div
-                                    class="position-absolute d-flex px-2 zx-pb-12 rounded-pill bottom-0 zx-z-index-1 w-100">
+                                    class="position-absolute d-flex justify-content-between align-items-center px-2 zx-pb-12 rounded-pill bottom-0 zx-z-index-1 w-100">
                                     <div
                                       matRipple
                                       [matMenuTriggerFor]="deleteReadyMenu"
@@ -246,6 +246,18 @@
                                         delete_outline
                                       </mat-icon>
                                     </div>
+                                    <button
+                                      *ngIf="canvas"
+                                      type="button"
+                                      matRipple
+                                      class="ph-add-to-canvas-button ph-add-to-canvas-button-fix-mobile d-flex justify-content-center align-items-center zx-bg-light c-pointer"
+                                      [class.zx-text-white]="isDarkMode"
+                                      [attr.aria-label]="'ph-print.add-to-canvas' | translate"
+                                      (click)="onAddPageToCanvas(item.entry.file, image, $event)">
+                                      <mat-icon class="text-green" [class.zx-text-white]="isDarkMode">
+                                        add
+                                      </mat-icon>
+                                    </button>
                                     <mat-menu #deleteReadyMenu="matMenu">
                                       <button
                                         *ngIf="canDeletePageFromFile(item.entry.file)"

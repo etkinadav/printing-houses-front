@@ -1576,6 +1576,11 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     return null;
   }
 
+  /** Add a sidebar page to this sheet (same as drop). */
+  async addFromPayload(payload: PhCanvasDragPayload): Promise<void> {
+    await this.addPlacement(payload);
+  }
+
   /** Add a new placement, sized to cover the sheet or at native px size, then persist. */
   private async addPlacement(payload: PhCanvasDragPayload): Promise<void> {
     const nextZ = this.model.reduce((max, p) => Math.max(max, p.zIndex), -1) + 1;

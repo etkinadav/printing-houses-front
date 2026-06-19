@@ -604,7 +604,34 @@ export class PrintComponent implements OnInit, OnDestroy {
     if (!event.dataTransfer) {
       return;
     }
-    const payload: PhCanvasDragPayload = {
+    const payload = this.buildCanvasDragPayload(file, image);
+    const json = JSON.stringify(payload);
+    event.dataTransfer.setData(PH_CANVAS_DRAG_MIME, json);
+    event.dataTransfer.setData('text/plain', json);
+    event.dataTransfer.effectAllowed = 'copy';
+  }
+
+  onAddPageToCanvas(
+    file: PhPrintingFile,
+    image: PhPrintingFileImage,
+    event?: Event,
+  ): void {
+    event?.stopPropagation();
+    event?.preventDefault();
+    if (!this.canvas) {
+      return;
+    }
+    this.printPreview?.addPageFromPayload(
+      this.previewDuplexSide,
+      this.buildCanvasDragPayload(file, image),
+    );
+  }
+
+  private buildCanvasDragPayload(
+    file: PhPrintingFile,
+    image: PhPrintingFileImage,
+  ): PhCanvasDragPayload {
+    return {
       fileId: file._id,
       imageId: image._id,
       page: image.page ?? 1,
@@ -613,10 +640,6 @@ export class PrintComponent implements OnInit, OnDestroy {
       imageHeight: image.imageHeight ?? null,
       origImageDPI: image.origImageDPI ?? null,
     };
-    const json = JSON.stringify(payload);
-    event.dataTransfer.setData(PH_CANVAS_DRAG_MIME, json);
-    event.dataTransfer.setData('text/plain', json);
-    event.dataTransfer.effectAllowed = 'copy';
   }
 
   canDeletePageFromFile(file: PhPrintingFile): boolean {

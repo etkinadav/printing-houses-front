@@ -1160,6 +1160,52 @@
   border: 1px solid var(--zx-red);
 }
 
+.ph-add-to-canvas-button {
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 250ms;
+  border: 1px solid var(--zx-white-20-pr);
+  padding: 2px;
+  line-height: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: fit-content;
+  align-self: flex-end;
+}
+
+:host ::ng-deep .ph-add-to-canvas-button .mat-icon {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1;
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ph-add-to-canvas-button-fix-mobile {
+  opacity: 1;
+}
+
+@media only screen and (min-width: 768px) {
+  .ph-add-to-canvas-button-fix-mobile {
+    opacity: 0;
+  }
+}
+
+.zx-img-obj-container:hover .ph-add-to-canvas-button {
+  opacity: 1;
+}
+
+.ph-add-to-canvas-button:hover {
+  border: 1px solid var(--zx-green);
+}
+
 .zx-duplex-pair-container {
   position: relative;
   width: 150px;

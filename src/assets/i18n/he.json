@@ -73,6 +73,7 @@
     "ph-print.layers.delete": "מחיקה מהקנבס",
     "ph-print.layers.delete-for-good": "מחק שכבה זאת",
     "ph-print.layers.drag": "גרירה לשינוי סדר",
+    "ph-print.add-to-canvas": "הוסף לקנבס",
     "management.printing-house.edit-product": "עריכה",
     "management.printing-house.delete-product": "מחיקה",
     "management.printing-house.delete-product-confirm": "למחוק את המוצר \"{{name}}\"?",
