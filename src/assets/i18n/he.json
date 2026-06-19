@@ -71,6 +71,7 @@
     "ph-print.layers.empty": "אין תמונות על הקנבס",
     "ph-print.layers.edit": "עריכת מיקום",
     "ph-print.layers.delete": "מחיקה מהקנבס",
+    "ph-print.layers.delete-for-good": "מחק שכבה זאת",
     "ph-print.layers.drag": "גרירה לשינוי סדר",
     "management.printing-house.edit-product": "עריכה",
     "management.printing-house.delete-product": "מחיקה",

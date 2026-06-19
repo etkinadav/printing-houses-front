@@ -312,12 +312,6 @@
                             [class.zx-text-white]="isDarkMode">
                             {{ 'printing-table.clear-all-files' | translate }}
                           </h6>
-                          <mat-icon
-                            class="ph-clear-all-files-btn__icon mx-0 p-0 c-pointer"
-                            [class.zx-text-white]="isDarkMode"
-                            aria-hidden="true">
-                            delete_outline
-                          </mat-icon>
                         </div>
                       </article>
                       <mat-menu #clearAllFilesMenu="matMenu">
@@ -955,7 +949,8 @@
                             cdkDrag
                             [class.ph-layers-row--selected]="selectedLayerInstanceId === layer.instanceId"
                             [class.zx-border-gray-25-pr]="isDarkMode"
-                            [class.zx-page-obj-container-bg-darkmode]="isDarkMode">
+                            [class.zx-page-obj-container-bg-darkmode]="isDarkMode"
+                            (click)="onLayerRowClick($event, layer)">
                             <button
                               type="button"
                               class="ph-layers-row__handle"
@@ -984,10 +979,29 @@
                               type="button"
                               class="ph-layers-row__action text-red"
                               [class.zx-text-white]="isDarkMode"
+                              [matMenuTriggerFor]="deleteLayerMenu"
                               [attr.aria-label]="'ph-print.layers.delete' | translate"
-                              (click)="onLayerDelete(layer)">
+                              (click)="$event.stopPropagation()">
                               <mat-icon aria-hidden="true">delete_outline</mat-icon>
                             </button>
+                            <mat-menu #deleteLayerMenu="matMenu">
+                              <button
+                                class="d-flex align-items-center gap-1 px-2"
+                                mat-menu-item
+                                [class.zx-ltr]="!isRTL"
+                                (click)="onLayerDelete(layer); $event.stopPropagation()">
+                                <b
+                                  class="text-red zx-text-small m-0"
+                                  [class.zx-text-white]="isDarkMode">
+                                  {{ 'ph-print.layers.delete-for-good' | translate }}
+                                </b>
+                                <mat-icon
+                                  class="text-red mx-1 p-0 zx-pt-small"
+                                  [class.zx-text-white]="isDarkMode">
+                                  delete_outline
+                                </mat-icon>
+                              </button>
+                            </mat-menu>
                           </article>
                         </div>
                       </div>

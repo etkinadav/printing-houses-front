@@ -71,6 +71,7 @@
     "ph-print.layers.empty": "لا توجد صور على اللوحة",
     "ph-print.layers.edit": "تحرير الموضع",
     "ph-print.layers.delete": "إزالة من اللوحة",
+    "ph-print.layers.delete-for-good": "احذف هذه الطبقة",
     "ph-print.layers.drag": "اسحب لإعادة الترتيب",
     "management.printing-house.edit-product": "تعديل",
     "management.printing-house.delete-product": "حذف",

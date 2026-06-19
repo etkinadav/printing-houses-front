@@ -71,6 +71,7 @@
 	"ph-print.layers.empty": "No images on the canvas",
 	"ph-print.layers.edit": "Edit placement",
 	"ph-print.layers.delete": "Remove from canvas",
+	"ph-print.layers.delete-for-good": "Delete this layer",
 	"ph-print.layers.drag": "Drag to reorder",
 	"management.printing-house.edit-product": "Edit",
 	"management.printing-house.delete-product": "Delete",

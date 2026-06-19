@@ -1005,6 +1005,13 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.printPreview?.focusPlacementInstance(this.previewDuplexSide, row.instanceId);
   }
 
+  onLayerRowClick(event: MouseEvent, row: PhCanvasLayerRow): void {
+    if ((event.target as HTMLElement).closest('button')) {
+      return;
+    }
+    this.onLayerEdit(row);
+  }
+
   onLayerDelete(row: PhCanvasLayerRow): void {
     this.printPreview?.removePlacementInstance(this.previewDuplexSide, row.instanceId);
     if (this.selectedLayerInstanceId === row.instanceId) {

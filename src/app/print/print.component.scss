@@ -358,7 +358,7 @@
   border-radius: 8px;
   background-color: #fff;
   box-shadow: 0 0 5px rgba(85, 85, 85, 0.1);
-  cursor: default;
+  cursor: pointer;
 }
 
 .ph-layers-row--selected {
@@ -884,41 +884,6 @@
   margin: 0;
   white-space: nowrap;
   line-height: 1;
-}
-
-.ph-clear-all-files-btn__icon {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0;
-  width: 16px;
-  height: 16px;
-  font-size: 16px;
-  line-height: 1;
-  transform: translateY(2px);
-}
-
-:host ::ng-deep .ph-clear-all-files-btn__icon.mat-icon {
-  margin: 0 !important;
-  padding: 0 !important;
-  width: 16px !important;
-  height: 16px !important;
-  font-size: 16px !important;
-  line-height: 16px !important;
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  overflow: visible !important;
-  transform: translateY(2px);
-}
-
-:host ::ng-deep .ph-clear-all-files-btn__icon svg {
-  width: 16px;
-  height: 16px;
-  display: block;
-  overflow: visible;
 }
 
 @media only screen and (min-width: 768px) {
