@@ -52,7 +52,9 @@ import {
   applyMockupQuadCornerHandleDrag,
   applyMockupRectCornerHandleDrag,
   buildMockupQuadCornerOutlinePathD,
+  buildMockupQuadCornerSideOutlinePathD,
   buildMockupRectCornerOutlinePathD,
+  buildMockupRectCornerSideOutlinePathD,
   cloneMockupRectCorners,
   createDefaultMockupRectCorners,
   getMockupQuadCornerHandleViews,
@@ -63,6 +65,21 @@ import {
   MockupRectCornersParams,
   syncQuadBulgeControlPoints,
 } from './mockup-rect-corners.util';
+import {
+  buildMockupFoldingBottomPath,
+  buildMockupFoldingBoundaryPathD,
+  buildMockupFoldingTopPath,
+  cloneMockupFoldingPairs,
+  createDefaultMockupFoldingPairs,
+  getMockupFoldingHandleViews,
+  MockupFoldingHandleSide,
+  MockupFoldingHandleView,
+  MockupFoldingPair,
+  phPrintFoldingToMockupPairs,
+  readPhMockupPrintFoldingForSave,
+  resizeMockupFoldingPairs,
+  resolveMockupFoldingFromProduct,
+} from './mockup-folding.util';
 
 interface MockupRect {
   x: number;
@@ -90,6 +107,8 @@ interface ProductMockupState {
   rectCornerHandles: MockupRectCornersParams | null;
   printCornersEnabled: boolean;
   printCornerType: CornerType;
+  printFoldingCount: number | null;
+  printFoldingPairs: MockupFoldingPair[] | null;
 }
 
 type MockupCorner = 'nw' | 'ne' | 'sw' | 'se';
@@ -99,9 +118,12 @@ type MockupScope = ExtraSettingKey | 'node';
 interface MockupPointerDrag {
   group: AbstractControl;
   scope: MockupScope;
-  mode: 'draw' | 'move' | 'resize' | 'corner-handle';
+  mode: 'draw' | 'move' | 'resize' | 'corner-handle' | 'fold-handle';
   corner?: MockupCorner;
   cornerHandle?: MockupRectCornerHandleId;
+  foldHandleIndex?: number;
+  foldHandleSide?: MockupFoldingHandleSide;
+  origFoldingPairs?: MockupFoldingPair[];
   startX: number;
   startY: number;
   origRect: MockupRect | null;
@@ -155,6 +177,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   mockupFullscreenImageLoading = false;
   mockupFullscreenCornersEnabled = false;
   mockupFullscreenCornerType: CornerType = 'rounded';
+  mockupFullscreenFoldingEnabled = false;
+  mockupFullscreenFoldingCount: number | null = null;
   private readonly mockupDefaultRectSize = 0.22;
   private readonly mockupMinRectSize = 0.04;
   readonly mockupQuadCorners: MockupCorner[] = ['nw', 'ne', 'sw', 'se'];
@@ -499,6 +523,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     state.rectCornerHandles = null;
     state.printCornersEnabled = false;
     state.printCornerType = 'rounded';
+    state.printFoldingCount = null;
+    state.printFoldingPairs = null;
     this.refreshMockupValidationState();
 
     setTimeout(() => {
@@ -564,6 +590,8 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         state.rectCornerHandles = null;
         state.printCornersEnabled = false;
         state.printCornerType = 'rounded';
+        state.printFoldingCount = null;
+        state.printFoldingPairs = null;
         state.imageLoading = true;
         this.finishMockupUpload(scopeKey);
         this.refreshMockupValidationState();
@@ -701,6 +729,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     const state = this.getMockupState(group, settingKey);
     this.mockupFullscreenCornersEnabled = state.printCornersEnabled;
     this.mockupFullscreenCornerType = state.printCornerType;
+    this.mockupFullscreenFoldingEnabled = state.printFoldingCount != null;
+    this.mockupFullscreenFoldingCount = state.printFoldingCount;
+    this.ensureMockupFoldingPairs(group, settingKey, this.mockupFullscreenFoldingCount, false);
     if (state.printCornersEnabled) {
       this.ensureMockupRectCornerHandles(group, settingKey);
     }
@@ -717,6 +748,19 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     interactive?: boolean,
   ): void {
     if (interactive === false) {
+      return;
+    }
+
+    const foldHandle = this.resolveMockupFoldHandleFromEvent(event);
+    if (foldHandle && this.isMockupPrintFoldingEditing(group, settingKey ?? null)) {
+      this.onMockupFoldHandlePointerDown(
+        event,
+        group,
+        foldHandle.pairIndex,
+        foldHandle.side,
+        settingKey ?? null,
+        interactive,
+      );
       return;
     }
 
@@ -742,6 +786,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
     if (this.isMockupPrintCornersEditing(group, settingKey ?? null)) {
       this.logMockupCornerDrag('frame pointerdown ignored (corners editing, not a handle)');
+      return;
+    }
+    if (this.isMockupPrintFoldingEditing(group, settingKey ?? null)) {
       return;
     }
     this.logMockupCornerDrag('frame pointerdown -> draw check');
@@ -859,6 +906,14 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       }
     } else {
       state.rectCornerHandles = null;
+    }
+    state.printFoldingCount = this.mockupFullscreenFoldingEnabled
+      ? this.normalizeMockupPrintFoldingCount(this.mockupFullscreenFoldingCount) ?? 1
+      : null;
+    if (state.printFoldingCount != null) {
+      this.ensureMockupFoldingPairs(group, settingKey, state.printFoldingCount, false);
+    } else {
+      state.printFoldingPairs = null;
     }
     if (state.quad) {
       state.quad = this.cloneMockupQuad(state.quad);
@@ -1109,11 +1164,11 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     if (!quad || !handles) {
       return null;
     }
-    return buildMockupQuadCornerOutlinePathD(
-      quad,
-      handles,
-      this.getMockupPrintCornerType(group, settingKey),
-    );
+    const cornerType = this.getMockupPrintCornerType(group, settingKey);
+    if (this.isMockupPrintFoldingActive(group, settingKey)) {
+      return buildMockupQuadCornerSideOutlinePathD(quad, handles, cornerType);
+    }
+    return buildMockupQuadCornerOutlinePathD(quad, handles, cornerType);
   }
 
   getMockupRectCornerOutlinePath(
@@ -1127,10 +1182,11 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     if (!handles) {
       return null;
     }
-    return buildMockupRectCornerOutlinePathD(
-      handles,
-      this.getMockupPrintCornerType(group, settingKey),
-    );
+    const cornerType = this.getMockupPrintCornerType(group, settingKey);
+    if (this.isMockupPrintFoldingActive(group, settingKey)) {
+      return buildMockupRectCornerSideOutlinePathD(handles, cornerType);
+    }
+    return buildMockupRectCornerOutlinePathD(handles, cornerType);
   }
 
   getMockupRectCornerHandleViewsForTemplate(
@@ -1313,6 +1369,10 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       this.applyMockupCornerHandleDrag(event, drag.frame, group, settingKey);
       return;
     }
+    if (drag.mode === 'fold-handle') {
+      this.applyMockupFoldHandleDrag(event, drag.frame, group, settingKey);
+      return;
+    }
     if (drag.mode === 'move' || drag.mode === 'resize') {
       this.applyMockupShapeDrag(event, drag.frame, group, settingKey);
     }
@@ -1478,6 +1538,51 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   private resetMockupFullscreenCornerOptions(): void {
     this.mockupFullscreenCornersEnabled = false;
     this.mockupFullscreenCornerType = 'rounded';
+    this.mockupFullscreenFoldingEnabled = false;
+    this.mockupFullscreenFoldingCount = null;
+  }
+
+  onMockupFullscreenFoldingEnabledChange(enabled: boolean): void {
+    this.mockupFullscreenFoldingEnabled = enabled;
+    if (!this.mockupFullscreenTarget) {
+      return;
+    }
+    const { group, scope } = this.mockupFullscreenTarget;
+    const settingKey = scope === 'node' ? null : scope;
+    if (enabled) {
+      const count = this.normalizeMockupPrintFoldingCount(this.mockupFullscreenFoldingCount) ?? 1;
+      this.mockupFullscreenFoldingCount = count;
+      this.ensureMockupFoldingPairs(group, settingKey, count, true);
+    } else {
+      const state = this.getMockupState(group, settingKey);
+      state.printFoldingCount = null;
+      state.printFoldingPairs = null;
+    }
+    this.cdr.detectChanges();
+  }
+
+  onMockupFullscreenFoldingCountInput(event: Event): void {
+    const raw = (event.target as HTMLInputElement).value;
+    const parsed = this.normalizeMockupPrintFoldingCount(raw);
+    this.mockupFullscreenFoldingCount = parsed;
+    if (!this.mockupFullscreenTarget || !this.mockupFullscreenFoldingEnabled || parsed == null) {
+      return;
+    }
+    const { group, scope } = this.mockupFullscreenTarget;
+    const settingKey = scope === 'node' ? null : scope;
+    this.ensureMockupFoldingPairs(group, settingKey, parsed, true);
+    this.cdr.detectChanges();
+  }
+
+  private normalizeMockupPrintFoldingCount(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+    const parsed = Math.floor(Number(value));
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      return null;
+    }
+    return parsed;
   }
 
   isMockupFullscreen(group: AbstractControl, settingKey?: ExtraSettingKey | null): boolean {
@@ -1863,6 +1968,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       } else if (this.mockupFullscreenCornersEnabled && this.isMockupFullscreen(group, settingKey)) {
         this.ensureMockupRectCornerHandles(group, settingKey);
       }
+      if (state.printFoldingCount != null) {
+        this.ensureMockupFoldingPairs(group, settingKey, state.printFoldingCount, false);
+      }
     }
 
     if (usesQuad && state.quad && this.mockupFullscreenCornersEnabled && this.isMockupFullscreen(group, settingKey)) {
@@ -1958,6 +2066,10 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
           : null,
         printCornersEnabled: state.printCornersEnabled,
         printCornerType: state.printCornerType,
+        printFoldingCount: state.printFoldingCount,
+        printFoldingPairs: state.printFoldingPairs
+          ? cloneMockupFoldingPairs(state.printFoldingPairs)
+          : null,
       });
       if (this.optionalMockupEnabled.has(key)) {
         this.optionalMockupEnabled.add(newKey);
@@ -1978,7 +2090,252 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       rectCornerHandles: null,
       printCornersEnabled: false,
       printCornerType: 'rounded',
+      printFoldingCount: null,
+      printFoldingPairs: null,
     };
+  }
+
+  private getMockupPrintAreaShape(
+    state: ProductMockupState,
+  ): MockupRect | MockupQuad | null {
+    return state.quad ?? state.rect;
+  }
+
+  private ensureMockupFoldingPairs(
+    group: AbstractControl,
+    settingKey: ExtraSettingKey | null | undefined,
+    count: number | null,
+    bumpRevision: boolean,
+  ): void {
+    const state = this.getMockupState(group, settingKey);
+    const printArea = this.getMockupPrintAreaShape(state);
+    if (count == null || count < 1) {
+      state.printFoldingCount = null;
+      state.printFoldingPairs = null;
+      return;
+    }
+    const safeCount = Math.max(1, Math.floor(count));
+    state.printFoldingCount = safeCount;
+    if (!printArea) {
+      state.printFoldingPairs = null;
+      return;
+    }
+    state.printFoldingPairs = resizeMockupFoldingPairs(
+      state.printFoldingPairs,
+      safeCount,
+      printArea,
+    );
+    if (bumpRevision) {
+      state.previewRevision += 1;
+    }
+  }
+
+  isMockupPrintFoldingActive(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): boolean {
+    const state = this.getMockupState(group, settingKey);
+    return state.printFoldingCount != null && !!state.printFoldingPairs?.length;
+  }
+
+  isMockupPrintFoldingEditing(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): boolean {
+    return (
+      this.isMockupPrintFoldingActive(group, settingKey) &&
+      this.isMockupShapeEditingActive(group, settingKey)
+    );
+  }
+
+  isMockupPrintFoldingPreview(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): boolean {
+    return (
+      this.isMockupPrintFoldingActive(group, settingKey) &&
+      !this.isMockupShapeEditingActive(group, settingKey)
+    );
+  }
+
+  isMockupFoldingOverlayVisible(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+    interactive?: boolean,
+  ): boolean {
+    if (!this.isMockupPrintFoldingActive(group, settingKey)) {
+      return false;
+    }
+    if (interactive) {
+      return this.isMockupPrintFoldingEditing(group, settingKey);
+    }
+    return this.isMockupPrintFoldingPreview(group, settingKey);
+  }
+
+  getMockupFoldingPairs(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): MockupFoldingPair[] {
+    return this.getMockupState(group, settingKey).printFoldingPairs ?? [];
+  }
+
+  getMockupFoldingHandleViewsForTemplate(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): MockupFoldingHandleView[] {
+    return getMockupFoldingHandleViews(this.getMockupFoldingPairs(group, settingKey));
+  }
+
+  getMockupFoldingTopPath(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): string {
+    const state = this.getMockupState(group, settingKey);
+    const printArea = this.getMockupPrintAreaShape(state);
+    const pairs = state.printFoldingPairs;
+    if (!printArea || !pairs?.length) {
+      return '';
+    }
+    return buildMockupFoldingTopPath(pairs, printArea);
+  }
+
+  getMockupFoldingBottomPath(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): string {
+    const state = this.getMockupState(group, settingKey);
+    const printArea = this.getMockupPrintAreaShape(state);
+    const pairs = state.printFoldingPairs;
+    if (!printArea || !pairs?.length) {
+      return '';
+    }
+    return buildMockupFoldingBottomPath(pairs, printArea);
+  }
+
+  getMockupFoldingFillPath(
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): string {
+    const state = this.getMockupState(group, settingKey);
+    const printArea = this.getMockupPrintAreaShape(state);
+    const pairs = state.printFoldingPairs;
+    if (!printArea || !pairs?.length) {
+      return '';
+    }
+    return buildMockupFoldingBoundaryPathD(pairs, printArea);
+  }
+
+  isMockupFoldHandleEngaged(
+    group: AbstractControl,
+    pairIndex: number,
+    side: MockupFoldingHandleSide,
+    settingKey?: ExtraSettingKey | null,
+  ): boolean {
+    const drag = this.mockupPointerDrag;
+    if (!drag || drag.mode !== 'fold-handle') {
+      return false;
+    }
+    return (
+      drag.group === group &&
+      drag.scope === this.resolveMockupScope(settingKey) &&
+      drag.foldHandleIndex === pairIndex &&
+      drag.foldHandleSide === side
+    );
+  }
+
+  onMockupFoldHandlePointerDown(
+    event: PointerEvent,
+    group: AbstractControl,
+    pairIndex: number,
+    side: MockupFoldingHandleSide,
+    settingKey?: ExtraSettingKey | null,
+    interactive?: boolean,
+  ): void {
+    event.stopPropagation();
+    event.preventDefault();
+    if (interactive === false || !this.isMockupPrintFoldingEditing(group, settingKey)) {
+      return;
+    }
+    const scope = this.resolveMockupScope(settingKey);
+    const frame = this.mockupFrameFromEvent(event);
+    const state = this.getMockupState(group, settingKey);
+    const pairs = state.printFoldingPairs;
+    if (!frame || !pairs?.[pairIndex]) {
+      return;
+    }
+    const point = this.mockupPointFromEvent(event, frame);
+    if (!point) {
+      return;
+    }
+    this.mockupPointerDrag = {
+      group,
+      scope,
+      mode: 'fold-handle',
+      foldHandleIndex: pairIndex,
+      foldHandleSide: side,
+      startX: point.x,
+      startY: point.y,
+      origRect: state.rect ? { ...state.rect } : null,
+      origQuad: state.quad ? this.cloneMockupQuad(state.quad) : null,
+      origFoldingPairs: cloneMockupFoldingPairs(pairs),
+      frame,
+      settingKey: settingKey ?? null,
+    };
+    frame.setPointerCapture(event.pointerId);
+    this.attachMockupDragDocumentListeners();
+  }
+
+  private resolveMockupFoldHandleFromEvent(
+    event: PointerEvent,
+  ): { pairIndex: number; side: MockupFoldingHandleSide } | null {
+    const el = (event.target as HTMLElement | null)?.closest(
+      '[data-mockup-fold-handle]',
+    ) as HTMLElement | null;
+    const raw = el?.getAttribute('data-mockup-fold-handle');
+    if (!raw) {
+      return null;
+    }
+    const [indexRaw, side] = raw.split(':');
+    const pairIndex = Number(indexRaw);
+    if (!Number.isFinite(pairIndex) || (side !== 'top' && side !== 'bottom')) {
+      return null;
+    }
+    return { pairIndex, side };
+  }
+
+  private applyMockupFoldHandleDrag(
+    event: PointerEvent,
+    frame: HTMLElement,
+    group: AbstractControl,
+    settingKey?: ExtraSettingKey | null,
+  ): void {
+    const drag = this.mockupPointerDrag;
+    if (
+      !drag ||
+      drag.mode !== 'fold-handle' ||
+      drag.foldHandleIndex == null ||
+      !drag.foldHandleSide ||
+      !drag.origFoldingPairs
+    ) {
+      return;
+    }
+    const point = this.mockupPointFromEvent(event, frame);
+    if (!point) {
+      return;
+    }
+    const state = this.getMockupState(group, settingKey);
+    const pairs = cloneMockupFoldingPairs(drag.origFoldingPairs);
+    const pair = pairs[drag.foldHandleIndex];
+    if (!pair) {
+      return;
+    }
+    pair[drag.foldHandleSide] = {
+      x: this.clampMockupCoord(point.x, 0, 1),
+      y: this.clampMockupCoord(point.y, 0, 1),
+    };
+    state.printFoldingPairs = pairs;
+    state.previewRevision += 1;
+    this.cdr.detectChanges();
   }
 
   private mockupPointInRectLocal(
@@ -3009,6 +3366,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
   ): PhMockup {
     const state = this.getMockupState(group, settingKey);
     const printCorners = this.readMockupPrintCornersForSave(state);
+    const printFoldingCount = this.readMockupPrintFoldingCountForSave(state);
+    const printFolding = this.readMockupPrintFoldingForSave(state);
+    const foldingFields = printFolding ? { printFolding } : {};
     if (this.usesMockupQuad(group)) {
       const quad = state.quad!;
       return {
@@ -3021,6 +3381,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
           se: { ...quad.se },
         },
         ...(printCorners ? { printCorners } : {}),
+        ...foldingFields,
       };
     }
 
@@ -3034,7 +3395,23 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         height: rect.height,
       },
       ...(printCorners ? { printCorners } : {}),
+      ...foldingFields,
     };
+  }
+
+  private readMockupPrintFoldingForSave(
+    state: ProductMockupState,
+  ): PhMockup['printFolding'] | undefined {
+    return readPhMockupPrintFoldingForSave(state.printFoldingCount, state.printFoldingPairs);
+  }
+
+  private readMockupPrintFoldingCountForSave(
+    state: ProductMockupState,
+  ): number | undefined {
+    if (state.printFoldingCount == null || state.printFoldingCount < 1) {
+      return undefined;
+    }
+    return Math.floor(state.printFoldingCount);
   }
 
   private readMockupPrintCornersForSave(
@@ -3112,6 +3489,16 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     }
 
     this.applyMockupPrintCornersToState(state, mockup.printCorners);
+    const printArea = this.getMockupPrintAreaShape(state);
+    const resolvedFolding = resolveMockupFoldingFromProduct(
+      mockup.printFolding,
+      mockup.printFoldingCount,
+      printArea,
+    );
+    state.printFoldingCount = resolvedFolding?.count ?? null;
+    state.printFoldingPairs = resolvedFolding
+      ? cloneMockupFoldingPairs(resolvedFolding.pairs)
+      : null;
     state.previewRevision += 1;
 
     if (settingKey !== null || this.isOptionalMockupOwner(group)) {

@@ -267,6 +267,28 @@ export function buildMockupQuadCornerOutlinePathD(
   return parts.join(' ');
 }
 
+/** Side edges only (no top/bottom) for folding overlay — image-normalized coordinates. */
+export function buildMockupQuadCornerSideOutlinePathD(
+  quad: MockupQuadPoints,
+  corners: MockupRectCornersParams,
+  cornerType: CornerType,
+): string {
+  const { nw, ne, se, sw } = corners;
+  const parts: string[] = [
+    `M ${pointStr(lerpPoint(quad.nw, quad.ne, 1 - ne.v))}`,
+  ];
+
+  appendQuadCornerSegment(parts, quad, cornerType, ne, 'ne');
+  parts.push(`L ${pointStr(lerpPoint(quad.ne, quad.se, 1 - se.v))}`);
+  appendQuadCornerSegment(parts, quad, cornerType, se, 'se');
+  parts.push(`M ${pointStr(lerpPoint(quad.sw, quad.se, sw.h))}`);
+  appendQuadCornerSegment(parts, quad, cornerType, sw, 'sw');
+  parts.push(`L ${pointStr(lerpPoint(quad.sw, quad.nw, 1 - nw.v))}`);
+  appendQuadCornerSegment(parts, quad, cornerType, nw, 'nw');
+
+  return parts.join(' ');
+}
+
 /** SVG path in rect-local coordinates (0–1). */
 export function buildMockupRectCornerOutlinePathD(
   corners: MockupRectCornersParams,
@@ -283,6 +305,25 @@ export function buildMockupRectCornerOutlinePathD(
   parts.push(`L 0 ${1 - nw.v}`);
   appendRectCornerSegment(parts, cornerType, nw, 'nw');
   parts.push('Z');
+
+  return parts.join(' ');
+}
+
+/** Side edges only (no top/bottom) for folding overlay — rect-local coordinates. */
+export function buildMockupRectCornerSideOutlinePathD(
+  corners: MockupRectCornersParams,
+  cornerType: CornerType,
+): string {
+  const { nw, ne, se, sw } = corners;
+  const parts: string[] = [`M ${1 - ne.v} 0`];
+
+  appendRectCornerSegment(parts, cornerType, ne, 'ne');
+  parts.push(`L 1 ${1 - se.v}`);
+  appendRectCornerSegment(parts, cornerType, se, 'se');
+  parts.push(`M ${sw.h} 1`);
+  appendRectCornerSegment(parts, cornerType, sw, 'sw');
+  parts.push(`L 0 ${1 - nw.v}`);
+  appendRectCornerSegment(parts, cornerType, nw, 'nw');
 
   return parts.join(' ');
 }

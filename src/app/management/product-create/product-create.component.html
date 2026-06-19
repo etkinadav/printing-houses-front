@@ -231,6 +231,27 @@
                 {{ 'management.product-create.corner-type.chamfer' | translate }}
               </mat-button-toggle>
             </mat-button-toggle-group>
+            <mat-checkbox
+              class="mockup-fullscreen-settings-menu__folding-check"
+              [checked]="mockupFullscreenFoldingEnabled"
+              (change)="onMockupFullscreenFoldingEnabledChange($event.checked)">
+              {{ 'management.product-create.mockup-fullscreen-folding' | translate }}
+            </mat-checkbox>
+            <mat-form-field
+              *ngIf="mockupFullscreenFoldingEnabled"
+              appearance="outline"
+              subscriptSizing="dynamic"
+              class="mockup-fullscreen-settings-menu__folding-field">
+              <mat-label>{{ 'management.product-create.folding-count' | translate }}</mat-label>
+              <input
+                matInput
+                type="number"
+                min="1"
+                step="1"
+                inputmode="numeric"
+                [value]="mockupFullscreenFoldingCount ?? 1"
+                (input)="onMockupFullscreenFoldingCountInput($event)" />
+            </mat-form-field>
           </div>
         </mat-menu>
       </div>
@@ -1109,6 +1130,8 @@
     [class.mockup-upload-preview__frame--pen-active]="interactive && isMockupShapeEditingActive(mockupGroup, mockupSetting)"
     [class.mockup-upload-preview__frame--corners-editing]="interactive && isMockupPrintCornersEditing(mockupGroup, mockupSetting)"
     [class.mockup-upload-preview__frame--corners-preview]="!interactive && isMockupPrintCornersPreview(mockupGroup, mockupSetting)"
+    [class.mockup-upload-preview__frame--folding-editing]="interactive && isMockupPrintFoldingEditing(mockupGroup, mockupSetting)"
+    [class.mockup-upload-preview__frame--folding-preview]="!interactive && isMockupPrintFoldingPreview(mockupGroup, mockupSetting)"
     [class.mockup-upload-preview__frame--readonly]="!interactive"
     [attr.data-mockup-preview-rev]="getMockupPreviewRevision(mockupGroup, mockupSetting)"
     (pointerdown)="onMockupFramePointerDown($event, mockupGroup, mockupSetting, interactive)"
@@ -1134,12 +1157,31 @@
           aria-hidden="true">
           <ng-container *ngIf="!isMockupPrintCornersOutlineVisible(mockupGroup, mockupSetting); else mockupQuadCornerOutlineTpl">
             <polygon
+              *ngIf="!isMockupPrintFoldingActive(mockupGroup, mockupSetting)"
               class="mockup-upload-preview__quad-fill"
               [attr.points]="getMockupQuadSvgPoints(mockupQuad)" />
-            <polygon
-              class="mockup-upload-preview__quad-outline"
-              [attr.points]="getMockupQuadSvgPoints(mockupQuad)"
-              (pointerdown)="onMockupQuadPointerDown($event, mockupGroup, mockupSetting, interactive)" />
+            <ng-container *ngIf="!isMockupPrintFoldingActive(mockupGroup, mockupSetting); else mockupQuadFoldingSideOutlineTpl">
+              <polygon
+                class="mockup-upload-preview__quad-outline"
+                [attr.points]="getMockupQuadSvgPoints(mockupQuad)"
+                (pointerdown)="onMockupQuadPointerDown($event, mockupGroup, mockupSetting, interactive)" />
+            </ng-container>
+            <ng-template #mockupQuadFoldingSideOutlineTpl>
+              <line
+                class="mockup-upload-preview__quad-outline"
+                [attr.x1]="mockupQuad.nw.x"
+                [attr.y1]="mockupQuad.nw.y"
+                [attr.x2]="mockupQuad.sw.x"
+                [attr.y2]="mockupQuad.sw.y"
+                (pointerdown)="onMockupQuadPointerDown($event, mockupGroup, mockupSetting, interactive)" />
+              <line
+                class="mockup-upload-preview__quad-outline"
+                [attr.x1]="mockupQuad.ne.x"
+                [attr.y1]="mockupQuad.ne.y"
+                [attr.x2]="mockupQuad.se.x"
+                [attr.y2]="mockupQuad.se.y"
+                (pointerdown)="onMockupQuadPointerDown($event, mockupGroup, mockupSetting, interactive)" />
+            </ng-template>
           </ng-container>
           <ng-template #mockupQuadCornerOutlineTpl>
             <path
@@ -1186,6 +1228,8 @@
         *ngIf="getMockupRect(mockupGroup, mockupSetting) as mockupRect"
         class="mockup-upload-preview__rect"
         [class.mockup-upload-preview__rect--shaped-corners]="isMockupPrintCornersOutlineVisible(mockupGroup, mockupSetting)"
+        [class.mockup-upload-preview__rect--folding]="isMockupPrintFoldingActive(mockupGroup, mockupSetting) && !isMockupPrintCornersOutlineVisible(mockupGroup, mockupSetting)"
+        [class.mockup-upload-preview__rect--folding-active]="isMockupPrintFoldingActive(mockupGroup, mockupSetting)"
         [style.left.%]="mockupRect.x * 100"
         [style.top.%]="mockupRect.y * 100"
         [style.width.%]="mockupRect.width * 100"
@@ -1233,6 +1277,39 @@
         </ng-container>
       </div>
     </ng-template>
+    <ng-container *ngIf="isMockupFoldingOverlayVisible(mockupGroup, mockupSetting, interactive)">
+      <svg
+        class="mockup-upload-preview__folding-overlay"
+        viewBox="0 0 1 1"
+        preserveAspectRatio="none"
+        aria-hidden="true">
+        <path
+          *ngIf="isMockupPrintFoldingActive(mockupGroup, mockupSetting)"
+          class="mockup-upload-preview__folding-fill"
+          [attr.d]="getMockupFoldingFillPath(mockupGroup, mockupSetting)" />
+        <path
+          class="mockup-upload-preview__folding-edge mockup-upload-preview__folding-edge--top"
+          [attr.d]="getMockupFoldingTopPath(mockupGroup, mockupSetting)" />
+        <path
+          class="mockup-upload-preview__folding-edge mockup-upload-preview__folding-edge--bottom"
+          [attr.d]="getMockupFoldingBottomPath(mockupGroup, mockupSetting)" />
+        <line
+          *ngFor="let pair of getMockupFoldingPairs(mockupGroup, mockupSetting)"
+          class="mockup-upload-preview__folding-pair-line"
+          [attr.x1]="pair.top.x"
+          [attr.y1]="pair.top.y"
+          [attr.x2]="pair.bottom.x"
+          [attr.y2]="pair.bottom.y" />
+      </svg>
+      <span
+        *ngFor="let handle of getMockupFoldingHandleViewsForTemplate(mockupGroup, mockupSetting)"
+        class="mockup-upload-preview__fold-handle mockup-upload-preview__corner-handle mockup-upload-preview__corner-handle--absolute"
+        [class.mockup-upload-preview__corner-handle--engaged]="isMockupFoldHandleEngaged(mockupGroup, handle.pairIndex, handle.side, mockupSetting)"
+        [attr.data-mockup-fold-handle]="handle.pairIndex + ':' + handle.side"
+        [style.left.%]="handle.x * 100"
+        [style.top.%]="handle.y * 100"
+        (pointerdown)="onMockupFoldHandlePointerDown($event, mockupGroup, handle.pairIndex, handle.side, mockupSetting, interactive)"></span>
+    </ng-container>
     </div>
     </div>
   </div>

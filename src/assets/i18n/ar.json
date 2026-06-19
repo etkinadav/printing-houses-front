@@ -181,6 +181,7 @@
     "management.product-create.mockup-fullscreen-close": "الخروج من ملء الشاشة",
     "management.product-create.mockup-fullscreen-save": "حفظ منطقة الطباعة",
     "management.product-create.mockup-fullscreen-corners": "زوايا",
+    "management.product-create.mockup-fullscreen-folding": "طيات",
     "management.product-create.mockup-replace": "استبدال صورة العرض",
     "management.product-create.mockup-upload-failed": "فشل رفع صورة العرض",
     "management.product-create.mockup-upload-invalid-type": "يرجى اختيار ملف صورة فقط",

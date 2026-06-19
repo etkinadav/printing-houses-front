@@ -1737,7 +1737,9 @@
 .mockup-upload-preview__frame--readonly .mockup-upload-preview__corner,
 .mockup-upload-preview__frame--readonly .mockup-upload-preview__corner-handle,
 .mockup-upload-preview__frame--corners-preview .mockup-upload-preview__corner,
-.mockup-upload-preview__frame--corners-preview .mockup-upload-preview__corner-handle {
+.mockup-upload-preview__frame--corners-preview .mockup-upload-preview__corner-handle,
+.mockup-upload-preview__frame--readonly .mockup-upload-preview__fold-handle,
+.mockup-upload-preview__frame--folding-preview .mockup-upload-preview__fold-handle {
   display: none !important;
 }
 
@@ -1783,6 +1785,27 @@
   border: none;
   background: transparent;
   pointer-events: auto;
+}
+
+.mockup-upload-preview__rect--folding {
+  border: none;
+  border-left: 1px dashed var(--zx-green, #26a69a);
+  border-right: 1px dashed var(--zx-green, #26a69a);
+}
+
+.mockup-upload-preview__rect--folding-active {
+  background: transparent;
+}
+
+.mockup-upload-preview__folding-fill {
+  fill: rgba(38, 166, 154, 0.08);
+  stroke: none;
+  pointer-events: none;
+}
+
+.mockup-upload-preview__frame--folding-preview .mockup-upload-preview__rect-outline-path--corner-preview,
+.mockup-upload-preview__frame--folding-preview .mockup-upload-preview__quad-outline--corner-preview {
+  fill: none;
 }
 
 .mockup-upload-preview__rect-outline {
@@ -1870,6 +1893,60 @@
 .mockup-upload-preview__frame--corners-editing .mockup-upload-preview__corner,
 .mockup-upload-preview__frame--corners-editing .mockup-upload-preview__corner-handle {
   pointer-events: auto;
+}
+
+.mockup-upload-preview__folding-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.mockup-upload-preview__folding-edge {
+  fill: none;
+  stroke: var(--zx-green, #26a69a);
+  stroke-width: 1;
+  stroke-dasharray: 6 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.mockup-upload-preview__folding-pair-line {
+  stroke: var(--zx-green, #26a69a);
+  stroke-width: 1;
+  stroke-dasharray: 6 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.mockup-upload-preview__fold-handle {
+  z-index: 5;
+}
+
+.mockup-upload-preview__frame--folding-editing .mockup-upload-preview__fold-handle {
+  pointer-events: auto;
+  cursor: grab;
+  transition: width 150ms ease, height 150ms ease, border-width 150ms ease, box-shadow 150ms ease;
+}
+
+.mockup-upload-preview__frame--folding-editing .mockup-upload-preview__fold-handle:hover,
+.mockup-upload-preview__frame--folding-editing .mockup-upload-preview__fold-handle:active,
+.mockup-upload-preview__frame--folding-editing .mockup-upload-preview__fold-handle.mockup-upload-preview__corner-handle--engaged {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.32);
+  cursor: grabbing;
+}
+
+.mockup-upload-preview__frame--folding-editing .mockup-upload-preview__fold-handle.mockup-upload-preview__corner-handle--engaged {
+  transition: none;
+}
+
+.mockup-upload-preview__frame--folding-preview .mockup-upload-preview__folding-overlay,
+.mockup-upload-preview__frame--readonly.mockup-upload-preview__frame--folding-preview .mockup-upload-preview__folding-overlay {
+  pointer-events: none;
 }
 
 .mockup-upload-preview__quad-outline--corner-edit {
@@ -2276,6 +2353,15 @@
   line-height: 32px;
   padding: 0 10px;
   font-size: 13px;
+}
+
+.mockup-fullscreen-settings-menu__folding-field {
+  width: 100%;
+  margin: 0;
+}
+
+:host ::ng-deep .mockup-fullscreen-settings-menu__folding-field .mat-mdc-form-field-subscript-wrapper {
+  display: none;
 }
 
 .mockup-fullscreen-overlay__save {

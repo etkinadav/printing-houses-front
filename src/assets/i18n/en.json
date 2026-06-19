@@ -181,6 +181,7 @@
 	"management.product-create.mockup-fullscreen-close": "Exit full screen",
 	"management.product-create.mockup-fullscreen-save": "Save print area",
 	"management.product-create.mockup-fullscreen-corners": "Corners",
+	"management.product-create.mockup-fullscreen-folding": "Folds",
 	"management.product-create.mockup-replace": "Replace mockup image",
 	"management.product-create.mockup-upload-failed": "Mockup image upload failed",
 	"management.product-create.mockup-upload-invalid-type": "Please choose an image file only",

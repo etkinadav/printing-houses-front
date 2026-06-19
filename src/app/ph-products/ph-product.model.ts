@@ -124,10 +124,32 @@ export interface PhMockupPrintCorners {
   se: PhMockupPrintCornerParams;
 }
 
+/** Normalized point on the mockup image (0–1). */
+export interface PhMockupPrintFoldingPoint {
+  x: number;
+  y: number;
+}
+
+/** Top/bottom fold handle pair — dashed guide connects top to bottom. */
+export interface PhMockupPrintFoldingPair {
+  top: PhMockupPrintFoldingPoint;
+  bottom: PhMockupPrintFoldingPoint;
+}
+
+/** Fold guides on mockup print area (editable orange handles). */
+export interface PhMockupPrintFolding {
+  enabled: boolean;
+  count: number;
+  pairs: PhMockupPrintFoldingPair[];
+}
+
 export interface PhMockup {
   url: string;
   printArea: PhMockupPrintArea;
   printCorners?: PhMockupPrintCorners;
+  printFolding?: PhMockupPrintFolding;
+  /** @deprecated use printFolding */
+  printFoldingCount?: number;
 }
 
 export interface PhSize extends PhTreeExtraSettings {

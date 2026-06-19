@@ -181,6 +181,7 @@
     "management.product-create.mockup-fullscreen-close": "יציאה ממסך מלא",
     "management.product-create.mockup-fullscreen-save": "שמור איזור הדפסה",
     "management.product-create.mockup-fullscreen-corners": "פינות",
+    "management.product-create.mockup-fullscreen-folding": "קיפולים",
     "management.product-create.mockup-replace": "החלף תמונת הדמיה",
     "management.product-create.mockup-upload-failed": "העלאת תמונת ההדמיה נכשלה",
     "management.product-create.mockup-upload-invalid-type": "יש לבחור קובץ תמונה בלבד",
