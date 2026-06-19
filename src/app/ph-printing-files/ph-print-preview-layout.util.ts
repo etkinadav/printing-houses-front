@@ -27,7 +27,12 @@ export interface PhPrintPreviewLayoutInput {
   skipDimGutters?: boolean;
   /** Lower minimum for mockup embed (print slot can be small). */
   minContainerPx?: number;
+  /** Cap sheet height (px) — preview stays centered when the host is taller. */
+  maxSheetHeightPx?: number;
 }
+
+/** Max printable sheet height in the desktop canvas preview pane. */
+export const PH_PREVIEW_MAX_SHEET_HEIGHT_PX = 450;
 
 export interface PhPrintPreviewLayout {
   stageWidthPx: number;
@@ -156,6 +161,11 @@ export function computePhPrintPreviewLayout(
     factor = availWidthPx / totalWidthCm;
   } else {
     factor = availHeightPx / totalHeightCm;
+  }
+
+  const maxSheetHeightPx = Number(input.maxSheetHeightPx);
+  if (maxSheetHeightPx > 0 && totalHeightCm * factor > maxSheetHeightPx) {
+    factor = maxSheetHeightPx / totalHeightCm;
   }
 
   const sheetWidthPx = totalWidthCm * factor;

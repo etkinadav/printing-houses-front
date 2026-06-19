@@ -16,6 +16,7 @@ import {
 import { CornerType } from '../ph-products/ph-product.model';
 import {
   computePhPrintPreviewLayout,
+  PH_PREVIEW_MAX_SHEET_HEIGHT_PX,
   PhPrintPreviewLayout,
 } from '../ph-printing-files/ph-print-preview-layout.util';
 import {
@@ -388,6 +389,8 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
       foldingOffsetCm: this.foldingOffsetCm,
       skipDimGutters,
       minContainerPx: this.compactSheetOnly ? 1 : undefined,
+      maxSheetHeightPx:
+        this.canvasMode && !this.compactSheetOnly ? PH_PREVIEW_MAX_SHEET_HEIGHT_PX : undefined,
     });
 
     this.layout = nextLayout;

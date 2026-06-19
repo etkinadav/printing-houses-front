@@ -19,6 +19,10 @@
 .ph-canvas-sheet-canvas {
   position: absolute;
   inset: 0;
+  display: block;
+  border: none;
+  margin: 0;
+  padding: 0;
 }
 
 /* Fabric injects a wrapper around the canvas; keep it filling the host. */
@@ -28,8 +32,16 @@
   width: 100% !important;
   height: 100% !important;
   overflow: visible !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
-:host ::ng-deep .upper-canvas {
+:host ::ng-deep .upper-canvas,
+:host ::ng-deep .lower-canvas {
+  display: block;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
   overflow: visible !important;
 }

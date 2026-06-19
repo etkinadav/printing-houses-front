@@ -1,6 +1,6 @@
 import { FabricObject, Path, Rect } from 'fabric';
 
-/** Align Fabric clip with the printable edge (green outline is drawn outside via box-shadow / SVG stroke). */
+/** Align Fabric clip with the printable edge. */
 export const SHEET_FRAME_INSET_PX = 0;
 
 export type PhSheetClipSpec =
@@ -38,7 +38,7 @@ function parsePolygonPairs(raw: string): Array<{ x: number; y: number }> {
   });
 }
 
-/** Printable area inside the green frame (inset from the image layer box). */
+/** Printable area — matches the image layer box (green stroke is drawn outside via CSS). */
 export function getSheetClipRect(
   pad: number,
   sheetW: number,
@@ -194,13 +194,10 @@ export function applySheetClipToContext(
     }
     case 'path': {
       ctx.save();
-      ctx.translate(pad + inset, pad + inset);
+      ctx.translate(pad, pad);
       const path = new Path2D(spec.pathD);
       ctx.clip(path);
       ctx.restore();
-      ctx.beginPath();
-      ctx.rect(clip.left, clip.top, clip.width, clip.height);
-      ctx.clip();
       break;
     }
     default:

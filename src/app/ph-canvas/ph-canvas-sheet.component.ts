@@ -308,7 +308,35 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     this.logSelection(reason, { prev: this.activePlacementKey(), side: this.side });
     this.canvas.discardActiveObject();
     this.gestureStartPlacement = null;
+    this.restoreStackOrderFromModel();
     this.syncFocusChrome();
+  }
+
+  /** Re-align Fabric stack order with persisted placement zIndex values. */
+  private restoreStackOrderFromModel(): void {
+    if (!this.canvas) {
+      return;
+    }
+    const objects = this.canvas.getObjects() as PhFabricImage[];
+    const ordered = objects
+      .filter((obj) => obj.phPlacement)
+      .sort((left, right) => left.phPlacement!.zIndex - right.phPlacement!.zIndex);
+    if (ordered.length < 2) {
+      return;
+    }
+    const desiredKeys = ordered.map((obj) => this.placementKeyForObject(obj)).join('|');
+    const currentKeys = objects
+      .filter((obj) => obj.phPlacement)
+      .map((obj) => this.placementKeyForObject(obj))
+      .join('|');
+    if (desiredKeys === currentKeys) {
+      return;
+    }
+    ordered.forEach((obj, index) => {
+      this.canvas!.moveObjectTo(obj, index);
+    });
+    this.logSelection('restoreStackOrder', { zOrder: this.describeZOrder() });
+    this.canvas.requestRenderAll();
   }
 
   /** Dismiss focus when the user clicks anywhere except the currently active image. */
@@ -387,7 +415,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     this.deferSyncFocusChrome();
   }
 
-  /** Select a placement object, bring it to front, and refresh focus chrome. */
+  /** Select a placement object and refresh focus chrome (stack order unchanged). */
   private selectPlacementObject(obj: FabricObject): void {
     if (!this.canvas) {
       return;
@@ -396,7 +424,6 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     this.interactionService.claim(this.side);
     const key = this.placementKeyForObject(obj);
     const prev = this.activePlacementKey();
-    this.bringObjectToFront(obj);
     this.canvas.setActiveObject(obj);
     this.captureGestureStartPlacement(obj);
     this.syncFocusChrome();
@@ -405,47 +432,6 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       prev,
       zOrderAfter: this.describeZOrder(),
     });
-  }
-
-  /** Move object to top of stack and sync zIndex in the model. */
-  private bringObjectToFront(obj: FabricObject): void {
-    if (!this.canvas) {
-      return;
-    }
-    const objects = this.canvas.getObjects();
-    const topIndex = objects.length - 1;
-    const currentIndex = objects.indexOf(obj);
-    if (currentIndex < 0 || currentIndex === topIndex) {
-      return;
-    }
-    this.logSelection('bringToFront', {
-      key: this.placementKeyForObject(obj),
-      fromIndex: currentIndex,
-      toIndex: topIndex,
-    });
-    this.canvas.moveObjectTo(obj, topIndex);
-    this.syncModelZOrderFromCanvas(true);
-  }
-
-  /** Keep model zIndex aligned with Fabric object stack order. */
-  private syncModelZOrderFromCanvas(emit: boolean): void {
-    if (!this.canvas) {
-      return;
-    }
-    const objects = this.canvas.getObjects() as PhFabricImage[];
-    const next: PhCanvasPlacement[] = [];
-    objects.forEach((obj, index) => {
-      if (!obj.phPlacement) {
-        return;
-      }
-      const updated = { ...obj.phPlacement, zIndex: index };
-      obj.phPlacement = updated;
-      next.push(updated);
-    });
-    this.model = next;
-    if (emit) {
-      this.emitChange();
-    }
   }
 
   private deferSyncFocusChrome(): void {
@@ -1025,8 +1011,8 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     canvasH: number;
   } {
     const layer = this.getImageLayerEl();
-    const sheetW = Math.round(Math.max(1, layer?.clientWidth || 1));
-    const sheetH = Math.round(Math.max(1, layer?.clientHeight || 1));
+    const sheetW = Math.max(1, layer?.clientWidth || 1);
+    const sheetH = Math.max(1, layer?.clientHeight || 1);
     const pad = this.overflowPad;
     return {
       pad,
@@ -1660,6 +1646,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       this.restoreGestureStartPlacement(obj);
     }
     this.gestureStartPlacement = null;
+    this.restoreStackOrderFromModel();
     this.onObjectsChanged();
   }
 
@@ -1686,7 +1673,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
         width: scaledW / sheetW,
         height: scaledH / sheetH,
         rotation: obj.angle ?? 0,
-        zIndex: index,
+        zIndex: base.zIndex,
       };
       obj.phPlacement = updated;
       next.push(updated);

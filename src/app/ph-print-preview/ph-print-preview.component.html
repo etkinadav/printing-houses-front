@@ -29,7 +29,8 @@
 
   <div
     *ngIf="shouldShowPreviewBundle"
-    class="ph-print-preview-single-pane w-100 h-100"
+    class="ph-print-preview-single-pane w-100"
+    [class.ph-print-preview-single-pane--canvas]="canvasMode && !compactSheetOnly"
     [class.ph-print-preview-single-pane--duplex]="isDuplexStack && !compactSheetOnly">
     <ng-container
       *ngTemplateOutlet="
