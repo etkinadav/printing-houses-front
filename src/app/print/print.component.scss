@@ -194,11 +194,12 @@
 
 .ph-print-settings-collapsible {
   width: 100%;
-  --ph-print-settings-radius: 14px;
+  --ph-print-settings-radius: 8px;
 }
 
 .ph-print-settings-collapsible--expanded {
-  padding-bottom: 8px;
+  box-shadow: 0 0 5px rgba(85, 85, 85, 0.1);
+  border-radius: var(--ph-print-settings-radius);
 }
 
 .ph-print-settings-collapsible__header {
@@ -287,7 +288,7 @@
   border: none;
   border-radius: 0 0 var(--ph-print-settings-radius) var(--ph-print-settings-radius);
   background-color: #fff;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
+  box-shadow: none;
 }
 
 .ph-print-settings-collapsible__chevron {
@@ -332,7 +333,7 @@
 .zx-settings-nav-dark .ph-print-settings-collapsible--expanded .ph-print-settings-collapsible__body {
   background-color: rgba(255, 255, 255, 0.04);
   border: none;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  box-shadow: none;
 }
 
 .ph-print-settings-collapsible__chevron--collapsed {
@@ -756,6 +757,76 @@
   transition: 300ms;
 }
 
+.zx-files-area-item-tiny.ph-clear-all-files-btn {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: auto;
+  min-width: 60px;
+  max-width: none;
+  padding-inline: 10px;
+  overflow: visible;
+}
+
+.ph-clear-all-files-btn__inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  line-height: 1;
+  min-width: 0;
+}
+
+.ph-clear-all-files-btn__label {
+  margin: 0;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.ph-clear-all-files-btn__icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  line-height: 1;
+  transform: translateY(2px);
+}
+
+:host ::ng-deep .ph-clear-all-files-btn__icon.mat-icon {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 16px !important;
+  height: 16px !important;
+  font-size: 16px !important;
+  line-height: 16px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  overflow: visible !important;
+  transform: translateY(2px);
+}
+
+:host ::ng-deep .ph-clear-all-files-btn__icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  overflow: visible;
+}
+
+@media only screen and (min-width: 768px) {
+  .zx-files-area-item-tiny.ph-clear-all-files-btn {
+    width: auto;
+    min-width: 150px;
+    max-width: none;
+  }
+}
+
 @media only screen and (min-width: 768px) {
   .zx-pt-md-17 {
     padding: 17px 0 0;
@@ -851,18 +922,20 @@
   }
 }
 
-/* Preview pane — clip canvas hit area so Fabric overflow cannot block settings buttons. */
+/* Preview pane — inset gap on all sides; overflow visible so canvas drop-shadow is not clipped. */
 .zx-p-preview-container {
-  padding: 40px 20px 20px;
+  --ph-preview-pane-gap: 12px;
+  padding: var(--ph-preview-pane-gap);
   min-width: 0;
   position: relative;
   z-index: 0;
   isolation: isolate;
-  overflow: hidden;
+  overflow: visible;
+  box-sizing: border-box;
 }
 
 .zx-p-preview-container #preview-container {
-  overflow: hidden;
+  overflow: visible;
 }
 
 .ph-print-duplex-side-toggle {

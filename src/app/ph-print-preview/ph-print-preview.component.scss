@@ -85,6 +85,7 @@ $ph-preview-dim-side-label-offset-px: 15px;
   flex: 1 1 auto;
   height: 100%;
   min-height: 0;
+  overflow: visible;
 }
 
 .ph-print-preview-single-pane--duplex {
@@ -499,6 +500,16 @@ $ph-preview-dim-side-label-offset-px: 15px;
 .ph-print-preview-sheet--canvas {
   overflow: visible !important;
   clip-path: none !important;
+  background: transparent;
+}
+
+.ph-print-preview-canvas-shadow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: #fff;
+  filter: drop-shadow(0 0 15px rgba(85, 85, 85, 0.3));
 }
 
 .ph-print-preview-sheet {
@@ -538,7 +549,7 @@ $ph-preview-dim-side-label-offset-px: 15px;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  z-index: 0;
+  z-index: 1;
 }
 
 .ph-print-preview-image-bg--static {

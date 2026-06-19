@@ -58,7 +58,11 @@
                             alt="" />
                         </div>
                         <div *ngIf="!uploading">
-                          <h6 class="mb-0 zx-text-small fw-bold zx-text-sm-medium zx-px-10 text-center">
+                          <h6
+                            class="mb-0 fw-bold zx-px-10 text-center"
+                            [class.zx-text-small]="!hasFiles"
+                            [class.zx-text-sm-medium]="!hasFiles"
+                            [class.zx-text-tiny]="hasFiles">
                             {{
                               (hasFiles
                                 ? 'printing-table.upload-file-next'
@@ -135,49 +139,6 @@
                         multiple
                         [attr.accept]="expressFileAccept"
                         (change)="onFilesSelected($event)" />
-
-                      <!-- Delete all files [start] -->
-                      <article
-                        *ngIf="hasFiles"
-                        matRipple
-                        tabindex="0"
-                        role="button"
-                        class="zx-files-area-item-tiny c-pointer w-100 rounded-3 p-2 m-lg-1 zx-border-gray-v-v-light shadow-85-light flex-shrink-0"
-                        [class.zx-border-gray-25-pr]="isDarkMode"
-                        [class.zx-page-obj-container-bg-darkmode]="isDarkMode"
-                        [matMenuTriggerFor]="clearAllFilesMenu">
-                        <h6
-                          class="mb-0 zx-text-small text-center"
-                          [class.zx-text-white]="isDarkMode">
-                          {{ 'printing-table.clear-all-files' | translate }}
-                        </h6>
-                        <div
-                          class="d-flex justify-content-center align-items-center c-pointer"
-                          [class.zx-bg-light]="!isDarkMode">
-                          <mat-icon class="mx-0 mt-0 mb-1 p-1 zx-text-medium c-pointer">
-                            delete_outline
-                          </mat-icon>
-                        </div>
-                      </article>
-                      <mat-menu #clearAllFilesMenu="matMenu">
-                        <button
-                          class="d-flex align-items-center gap-1 px-2"
-                          mat-menu-item
-                          [class.zx-ltr]="!isRTL"
-                          (click)="onDeleteAllFiles()">
-                          <b
-                            class="text-red zx-text-small m-0"
-                            [class.zx-text-white]="isDarkMode">
-                            {{ 'printing-table.clear-all-files-for-good' | translate }}
-                          </b>
-                          <mat-icon
-                            class="text-red mx-1 p-0 zx-pt-small"
-                            style="min-width: 35px"
-                            [class.zx-text-white]="isDarkMode">
-                            delete_outline
-                          </mat-icon>
-                        </button>
-                      </mat-menu>
 
                       <!-- File tiles -->
                       <ng-container
@@ -335,30 +296,31 @@
                         </article>
                       </ng-container>
 
-                      <!-- Delete all files [end — when many files] -->
+                      <!-- Delete all files — end of list -->
                       <article
-                        *ngIf="showEndDeleteAll"
+                        *ngIf="hasFiles"
                         matRipple
                         tabindex="0"
                         role="button"
-                        class="zx-files-area-item-tiny c-pointer w-100 rounded-3 p-2 m-lg-1 zx-border-gray-v-v-light shadow-85-light flex-shrink-0"
+                        class="zx-files-area-item-tiny ph-clear-all-files-btn c-pointer rounded-3 p-2 m-lg-1 zx-border-gray-v-v-light shadow-85-light flex-shrink-0"
                         [class.zx-border-gray-25-pr]="isDarkMode"
                         [class.zx-page-obj-container-bg-darkmode]="isDarkMode"
-                        [matMenuTriggerFor]="clearAllFilesMenuEnd">
-                        <h6
-                          class="mb-0 zx-text-small text-center"
-                          [class.zx-text-white]="isDarkMode">
-                          {{ 'printing-table.clear-all-files' | translate }}
-                        </h6>
-                        <div
-                          class="d-flex justify-content-center align-items-center c-pointer"
-                          [class.zx-bg-light]="!isDarkMode">
-                          <mat-icon class="mx-0 mt-0 mb-1 p-1 zx-text-medium c-pointer">
+                        [matMenuTriggerFor]="clearAllFilesMenu">
+                        <div class="ph-clear-all-files-btn__inner">
+                          <h6
+                            class="mb-0 fw-bold text-center zx-text-tiny ph-clear-all-files-btn__label"
+                            [class.zx-text-white]="isDarkMode">
+                            {{ 'printing-table.clear-all-files' | translate }}
+                          </h6>
+                          <mat-icon
+                            class="ph-clear-all-files-btn__icon mx-0 p-0 c-pointer"
+                            [class.zx-text-white]="isDarkMode"
+                            aria-hidden="true">
                             delete_outline
                           </mat-icon>
                         </div>
                       </article>
-                      <mat-menu #clearAllFilesMenuEnd="matMenu">
+                      <mat-menu #clearAllFilesMenu="matMenu">
                         <button
                           class="d-flex align-items-center gap-1 px-2"
                           mat-menu-item

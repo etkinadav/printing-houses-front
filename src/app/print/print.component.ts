@@ -71,7 +71,6 @@ import { PhUploadValidationService } from '../utils/ph-upload-validation.service
 
 const POLL_MS = 4000;
 /** Same threshold as mean-corse-01 printing-table additional controls at list end. */
-const FILES_END_CONTROLS_THRESHOLD = 6;
 /** Settings toggle groups wrap when label score exceeds this threshold. */
 const SETTINGS_BUTTONS_WRAP_SCORE_THRESHOLD = 30;
 /** Debounce for persisting canvas print settings to the API. */
@@ -174,10 +173,6 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   get hasFiles(): boolean {
     return this.files.length > 0;
-  }
-
-  get showEndDeleteAll(): boolean {
-    return this.files.length > FILES_END_CONTROLS_THRESHOLD;
   }
 
   get isFixedProduct(): boolean {

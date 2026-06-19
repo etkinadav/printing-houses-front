@@ -125,6 +125,21 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
     return !this.imageLoading;
   }
 
+  /** Canvas sheet shadow follows rounded radius or chamfer/bleed clip-path. */
+  get canvasShadowBorderRadiusPx(): number {
+    const layout = this.layout;
+    if (!layout) {
+      return 8;
+    }
+    if (layout.imageBorderRadiusPx > 0) {
+      return layout.imageBorderRadiusPx;
+    }
+    if (!layout.hasCornerShape) {
+      return 8;
+    }
+    return 0;
+  }
+
   ngAfterViewInit(): void {
     const host = this.measureHost?.nativeElement;
     if (!host || typeof ResizeObserver === 'undefined') {

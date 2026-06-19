@@ -53,8 +53,8 @@
     <div
       class="ph-print-preview-stage position-relative"
       [class.ph-print-preview-stage--canvas]="canvasMode"
-      [class.bg-white]="!layout.hasBleed && !layout.hasCornerShape"
-      [class.shadow-85-strong]="!layout.hasBleed && !layout.hasCornerShape"
+      [class.bg-white]="!canvasMode && !layout.hasBleed && !layout.hasCornerShape"
+      [class.shadow-85-strong]="!canvasMode && !layout.hasBleed && !layout.hasCornerShape"
       [class.ph-print-preview-stage--bleed]="layout.hasBleed"
       [style.width.px]="layout.sheetWidthPx"
       [style.height.px]="layout.sheetHeightPx">
@@ -261,6 +261,12 @@
     [style.grid-area]="compactSheetOnly ? null : (layout.hasBleed ? '1 / 1 / 4 / 4' : '1 / 1 / 2 / 2')"
     [style.clip-path]="canvasMode ? null : layout.imageClipPath"
     [style.border-radius.px]="canvasMode ? null : layout.imageBorderRadiusPx">
+    <div
+      *ngIf="canvasMode && !compactSheetOnly"
+      class="ph-print-preview-canvas-shadow"
+      aria-hidden="true"
+      [style.clip-path]="layout.imageClipPath"
+      [style.border-radius.px]="canvasShadowBorderRadiusPx"></div>
     <div
       *ngIf="canvasMode"
       class="ph-print-preview-image-bg"
