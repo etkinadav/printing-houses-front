@@ -455,7 +455,8 @@
                   <!-- Collapsible print settings -->
                   <section
                     *ngIf="showPrintSettingsPanel"
-                    class="ph-print-settings-collapsible w-100">
+                    class="ph-print-settings-collapsible w-100"
+                    [class.ph-print-settings-collapsible--expanded]="printSettingsExpanded">
                     <button
                       type="button"
                       class="ph-print-settings-collapsible__header w-100 d-flex align-items-center justify-content-between gap-2"

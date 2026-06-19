@@ -194,6 +194,11 @@
 
 .ph-print-settings-collapsible {
   width: 100%;
+  --ph-print-settings-radius: 14px;
+}
+
+.ph-print-settings-collapsible--expanded {
+  padding-bottom: 8px;
 }
 
 .ph-print-settings-collapsible__header {
@@ -205,21 +210,21 @@
   padding: 10px 18px;
   border: 1px solid var(--zx-green-vivid-m-light, rgba(72, 161, 148, 0.45));
   border-radius: 999px;
-  background-color: var(--zx-green-v-light, rgba(70, 162, 148, 0.1));
+  background-color: transparent;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   transition:
     background-color 180ms ease,
     border-color 180ms ease,
-    box-shadow 180ms ease;
+    box-shadow 180ms ease,
+    border-radius 180ms ease;
 
   &:hover {
-    background-color: var(--zx-green-vivid-v-v-light, rgba(70, 162, 148, 0.14));
     border-color: var(--zx-green-vivid-mid, #41d1c3);
     box-shadow: 0 0 0 1px var(--zx-green-vivid-light-no-oppacity, rgba(179, 216, 211, 0.45));
   }
 
   &:active {
-    background-color: var(--zx-green-vivid-v-light-no-oppacity, rgba(184, 223, 208, 0.5));
+    background-color: rgba(0, 0, 0, 0.03);
   }
 
   &:focus-visible {
@@ -228,9 +233,26 @@
   }
 }
 
+.ph-print-settings-collapsible--expanded .ph-print-settings-collapsible__header {
+  position: relative;
+  z-index: 1;
+  background-color: #fff;
+  border-radius: var(--ph-print-settings-radius) var(--ph-print-settings-radius) 0 0;
+  border-bottom: none;
+  box-shadow: none;
+
+  &:hover {
+    background-color: #fff;
+    box-shadow: none;
+  }
+
+  &:active {
+    background-color: #fff;
+  }
+}
+
 .ph-print-settings-collapsible__header--collapsed {
   border-color: var(--zx-green-vivid-mid, #41d1c3);
-  background-color: var(--zx-green-vivid-v-v-light, rgba(70, 162, 148, 0.12));
   box-shadow: 0 0 0 1px var(--zx-green-vivid-light-no-oppacity, rgba(179, 216, 211, 0.35));
 }
 
@@ -249,6 +271,11 @@
   overflow: hidden;
 }
 
+.ph-print-settings-collapsible--expanded
+  .ph-print-settings-collapsible__body-wrap:not(.ph-print-settings-collapsible__body-wrap--collapsed) {
+  overflow: visible;
+}
+
 .ph-print-settings-collapsible__body-wrap--collapsed {
   grid-template-rows: 0fr;
   opacity: 0;
@@ -258,7 +285,16 @@
 .ph-print-settings-collapsible__body {
   min-height: 0;
   overflow: hidden;
-  padding-top: 14px;
+}
+
+.ph-print-settings-collapsible--expanded .ph-print-settings-collapsible__body {
+  margin-top: -1px;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--zx-green-vivid-m-light, rgba(72, 161, 148, 0.45));
+  border-top: none;
+  border-radius: 0 0 var(--ph-print-settings-radius) var(--ph-print-settings-radius);
+  background-color: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
 }
 
 .ph-print-settings-collapsible__chevron {
@@ -275,24 +311,37 @@
 .zx-settings-nav-dark .ph-print-settings-collapsible__header {
   color: var(--zx-green-vivid-light, #56e1d3);
   border-color: rgba(72, 161, 148, 0.5);
-  background-color: rgba(72, 161, 148, 0.14);
+  background-color: transparent;
   box-shadow: none;
 
   &:hover {
-    background-color: rgba(72, 161, 148, 0.22);
     border-color: var(--zx-green-vivid-light, #56e1d3);
     box-shadow: 0 0 0 1px rgba(86, 225, 211, 0.25);
   }
 
   &:active {
-    background-color: rgba(72, 161, 148, 0.28);
+    background-color: rgba(255, 255, 255, 0.04);
+  }
+}
+
+.zx-settings-nav-dark .ph-print-settings-collapsible--expanded .ph-print-settings-collapsible__header {
+  background-color: rgba(255, 255, 255, 0.04);
+
+  &:hover,
+  &:active {
+    background-color: rgba(255, 255, 255, 0.04);
   }
 }
 
 .zx-settings-nav-dark .ph-print-settings-collapsible__header--collapsed {
   border-color: var(--zx-green-vivid-light, #56e1d3);
-  background-color: rgba(72, 161, 148, 0.2);
   box-shadow: 0 0 0 1px rgba(86, 225, 211, 0.2);
+}
+
+.zx-settings-nav-dark .ph-print-settings-collapsible--expanded .ph-print-settings-collapsible__body {
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(72, 161, 148, 0.5);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
 }
 
 .ph-print-settings-collapsible__chevron--collapsed {
