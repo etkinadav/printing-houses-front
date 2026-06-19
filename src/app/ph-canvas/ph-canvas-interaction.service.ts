@@ -17,6 +17,8 @@ export interface PhCanvasSheetRegistration {
 export class PhCanvasInteractionService {
   private activeSide: PhCanvasSideName | null = null;
   private hoverSide: PhCanvasSideName | null = null;
+  /** When set, only this side is interactable (front/back pager — not stacked duplex). */
+  private pagedSide: PhCanvasSideName | null = null;
   private readonly sheets = new Map<PhCanvasSideName, PhCanvasSheetRegistration>();
   private readonly releaseOthersSubject = new Subject<PhCanvasSideName>();
   private readonly pointerDownCaptureSubject = new Subject<PointerEvent>();
@@ -45,9 +47,9 @@ export class PhCanvasInteractionService {
   private onDocumentPointerDown = (event: PointerEvent): void => {
     this.updateHoverSide(event.clientX, event.clientY);
 
-    // Clicking a different duplex sheet — clear the previously active sheet immediately.
     const targetSide = this.resolveSideAtPointer(event.clientX, event.clientY);
-    if (this.activeSide && targetSide && targetSide !== this.activeSide) {
+    // Stacked duplex only — not front/back pager (single visible sheet).
+    if (this.isDuplex && this.activeSide && targetSide && targetSide !== this.activeSide) {
       if (INTERACTION_DEBUG) {
         console.log(
           `[PhCanvasInteraction] cross-sheet pointerdown ${JSON.stringify({
@@ -95,7 +97,27 @@ export class PhCanvasInteractionService {
   }
 
   get isDuplex(): boolean {
-    return this.sheets.size > 1;
+    return this.pagedSide === null && this.sheets.size > 1;
+  }
+
+  /** Front/back pager: one visible canvas side; disables stacked-duplex hover routing. */
+  setPagedSide(side: PhCanvasSideName | null): void {
+    this.pagedSide = side;
+    if (INTERACTION_DEBUG) {
+      console.log(`[PhCanvasInteraction] pagedSide ${JSON.stringify({ side })}`);
+    }
+    if (side && this.activeSide && this.activeSide !== side) {
+      this.clearAllExcept(null);
+      this.activeSide = null;
+      this.activeSideSubject.next(null);
+    }
+    if (side) {
+      this.hoverSide = side;
+      this.hoverSideSubject.next(side);
+    } else if (this.hoverSide !== null) {
+      this.hoverSide = null;
+      this.hoverSideSubject.next(null);
+    }
   }
 
   /** Side whose printable image layer contains the pointer (topmost when overlapping). */
@@ -137,7 +159,15 @@ export class PhCanvasInteractionService {
   }
 
   private updateHoverSide(clientX: number, clientY: number): void {
-    const next = this.isDuplex ? this.resolveSideAtPointer(clientX, clientY) : null;
+    let next: PhCanvasSideName | null;
+    if (this.pagedSide) {
+      const hit = this.resolveSideAtPointer(clientX, clientY);
+      next = hit === this.pagedSide ? this.pagedSide : null;
+    } else if (this.isDuplex) {
+      next = this.resolveSideAtPointer(clientX, clientY);
+    } else {
+      next = null;
+    }
     if (next === this.hoverSide) {
       return;
     }

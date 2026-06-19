@@ -106,6 +106,8 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
   /** Placement snapshot at the start of a move/scale/rotate gesture. */
   private gestureStartPlacement: PhCanvasPlacement | null = null;
   private interactionSub?: Subscription;
+  /** Side key used in PhCanvasInteractionService (updated when @Input side changes). */
+  private registeredSide: PhCanvasSideName | null = null;
 
   ngAfterViewInit(): void {
     this.viewReady = true;
@@ -129,7 +131,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
         this.applyDuplexPointerPassThrough(hoverSide);
       }),
     );
-    this.registerWithInteractionService();
+    this.syncInteractionRegistration();
     this.observeResize();
     this.model = this.clonePlacements(this.placements);
     void this.syncObjectsFromModel().then(() => {
@@ -140,6 +142,9 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
   ngOnChanges(changes: SimpleChanges): void {
     if (!this.viewReady) {
       return;
+    }
+    if (changes['side'] && !changes['side'].firstChange) {
+      this.syncInteractionRegistration();
     }
     if (changes['placements']) {
       const incoming = this.placements ?? [];
@@ -172,7 +177,11 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     }
     this.resizeObserver?.disconnect();
     this.interactionSub?.unsubscribe();
-    this.interactionService.unregisterSheet(this.side);
+    if (this.registeredSide) {
+      this.interactionService.unregisterSheet(this.registeredSide);
+      this.interactionService.release(this.registeredSide);
+      this.registeredSide = null;
+    }
     this.canvas?.dispose();
     this.canvas = null;
   }
@@ -354,8 +363,12 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       return;
     }
 
-    // Pointer on another duplex sheet — clear this sheet's selection immediately.
-    if (!this.isPointerActiveForThisSheet(event) && this.canvas.getActiveObject()) {
+    // Pointer on another stacked-duplex sheet — clear this sheet's selection immediately.
+    if (
+      this.interactionService.isDuplex &&
+      !this.isPointerActiveForThisSheet(event) &&
+      this.canvas.getActiveObject()
+    ) {
       this.logSelection('pointerdown:capture → clear (other duplex sheet)', {
         side: this.side,
         hoverSide: this.interactionService.getHoverSide(),
@@ -955,7 +968,11 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     return this.rootRef.nativeElement.parentElement;
   }
 
-  private registerWithInteractionService(): void {
+  private syncInteractionRegistration(): void {
+    if (this.registeredSide) {
+      this.interactionService.unregisterSheet(this.registeredSide);
+    }
+    this.registeredSide = this.side;
     this.interactionService.registerSheet({
       side: this.side,
       containsImageLayerPoint: (clientX, clientY) =>

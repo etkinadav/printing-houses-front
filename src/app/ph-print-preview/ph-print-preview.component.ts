@@ -28,6 +28,7 @@ import {
   PhCanvasSideName,
 } from '../ph-canvas/ph-canvas.model';
 import { PhCanvasSheetComponent } from '../ph-canvas/ph-canvas-sheet.component';
+import { PhCanvasInteractionService } from '../ph-canvas/ph-canvas-interaction.service';
 import { PhPrintingFile } from '../ph-printing-files/ph-printing-file.model';
 
 @Component({
@@ -99,7 +100,10 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   private imageLoadRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private loadedImageUrls = new Set<string>();
   private trackedImageUrlsKey = '';
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private interactionService: PhCanvasInteractionService,
+  ) {}
 
   get isDuplexStack(): boolean {
     return this.activeImageUrls.length > 1;
@@ -164,6 +168,7 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
     if (this.canvasMode) {
       this.syncCanvasActiveSurfaces();
     } else {
+      this.syncInteractionPagedSide();
       this.scheduleImageLoadSync();
       if (this.compactSheetOnly && this.imageUrl?.trim()) {
         this.beginImagesLoad();
@@ -177,8 +182,18 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
     const sides = this.canvasSides?.length ? this.canvasSides : ['front'];
     // Reuse activeImageUrls length so the stacked layout renders one row per side.
     this.activeImageUrls = sides.map((side) => `canvas:${side}`);
+    this.syncInteractionPagedSide();
     this.scheduleLayoutRefresh();
     this.cdr.markForCheck();
+  }
+
+  /** Pager duplex (front/back toggle): one visible sheet — not stacked hover routing. */
+  private syncInteractionPagedSide(): void {
+    if (!this.canvasMode) {
+      this.interactionService.setPagedSide(null);
+      return;
+    }
+    this.interactionService.setPagedSide(this.isDuplexStack ? this.activeDuplexSide : null);
   }
 
   placementsForSide(side: PhCanvasSideName): PhCanvasPlacement[] {
@@ -250,6 +265,7 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   }
 
   ngOnDestroy(): void {
+    this.interactionService.setPagedSide(null);
     this.resizeObserver?.disconnect();
     if (this.measureRetryTimer) {
       clearTimeout(this.measureRetryTimer);
