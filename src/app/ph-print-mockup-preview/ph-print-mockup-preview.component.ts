@@ -300,8 +300,28 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     return this.showSheetFillLayer && !this.hasPerspectiveImageWarp;
   }
 
-  get showPerspectiveSheetFillLayer(): boolean {
-    return !!(this.showSheetFillLayer && this.hasPerspectiveImageWarp);
+  /** Solid paper color — no texture warp needed (clip-path only). */
+  get isSolidSheetFill(): boolean {
+    const bgImage = this.sheetBackgroundStyles['backgroundImage'];
+    return !bgImage || bgImage === 'none';
+  }
+
+  get showPerspectiveSolidSheetFillLayer(): boolean {
+    return !!(
+      this.showSheetFillLayer &&
+      !this.showFoldedPrintLayers &&
+      this.hasPerspectiveImageWarp &&
+      this.isSolidSheetFill
+    );
+  }
+
+  get showPerspectiveWarpedSheetFillLayer(): boolean {
+    return !!(
+      this.showSheetFillLayer &&
+      !this.showFoldedPrintLayers &&
+      this.hasPerspectiveImageWarp &&
+      !this.isSolidSheetFill
+    );
   }
 
   /** Stretch texture to the warp canvas like the print image (object-fit: fill). */

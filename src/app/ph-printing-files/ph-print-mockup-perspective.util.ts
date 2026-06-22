@@ -337,7 +337,8 @@ export function buildRectToQuadBilinearWarpSlices(
     return [];
   }
 
-  const overlapNorm = height > 1 ? 1 / height : 0;
+  const overlapPx = Math.min(4, Math.max(2, Math.round(height / 64)));
+  const overlapNorm = height > 0 ? overlapPx / height : 0;
   const slices: RectToQuadBilinearSlice[] = [];
   for (let index = 0; index < sliceCount; index += 1) {
     const v0Base = index / sliceCount;

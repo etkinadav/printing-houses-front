@@ -6,7 +6,11 @@ import {
 } from '../management/product-create/mockup-folding.util';
 import { PhMockup, PhMockupPrintArea } from '../ph-products/ph-product.model';
 import { computePreviewFoldPanelBoundariesPx } from './ph-print-preview-layout.util';
-import { buildRectToQuadBilinearWarpSlices, RectToQuadBilinearSlice } from './ph-print-mockup-perspective.util';
+import {
+  buildRectToQuadBilinearWarpSlices,
+  buildRectToQuadWarpTransformLenient,
+  RectToQuadBilinearSlice,
+} from './ph-print-mockup-perspective.util';
 import { MockupPrintOverlay, MockupPrintOverlayRect } from './ph-print-mockup.util';
 
 export interface PhPrintMockupFoldingGuideModel {
@@ -33,8 +37,10 @@ export interface PhPrintMockupFoldPanelView {
   index: number;
   /** Panel boundary in slot-local px (matches dashed fold guides). */
   clipPath: string;
-  /** Bilinear warp slices: full canvas → this panel quad. */
+  /** Bilinear warp slices: full canvas → this panel quad (print image). */
   slices: RectToQuadBilinearSlice[];
+  /** Single homography for uniform sheet fill — covers full panel quad without slice seams. */
+  solidFillTransform: string;
 }
 
 export interface PhPrintMockupFoldingModel {
@@ -308,11 +314,20 @@ export function buildPrintMockupFoldingModel(
       dstBR,
       dstBL,
     );
+    const solidFillTransform = buildRectToQuadWarpTransformLenient(
+      imageLayout.canvasWidthPx,
+      imageLayout.canvasHeightPx,
+      dstTL,
+      dstTR,
+      dstBR,
+      dstBL,
+    );
 
     panels.push({
       index,
       clipPath: polygonToClipPath([dstTL, dstTR, dstBR, dstBL]),
       slices,
+      solidFillTransform,
     });
   }
 

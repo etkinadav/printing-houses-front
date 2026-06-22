@@ -59,7 +59,13 @@
     <div class="ph-print-mockup-sheet-fill" [ngStyle]="sheetFillStyles"></div>
   </div>
   <div
-    *ngIf="showPerspectiveSheetFillLayer && !showFoldedPrintLayers && printImageWarp as fillWarp"
+    *ngIf="showPerspectiveSolidSheetFillLayer"
+    class="ph-print-mockup-print-image-layer ph-print-mockup-sheet-fill-layer"
+    [style.clip-path]="printSlotClipPathCss">
+    <div class="ph-print-mockup-sheet-fill" [ngStyle]="sheetFillStyles"></div>
+  </div>
+  <div
+    *ngIf="showPerspectiveWarpedSheetFillLayer && printImageWarp as fillWarp"
     class="ph-print-mockup-print-image-layer ph-print-mockup-print-image-layer--warp ph-print-mockup-sheet-fill-layer"
     [style.clip-path]="printSlotClipPathCss">
     <ng-container *ngTemplateOutlet="bilinearWarp; context: {
@@ -78,7 +84,19 @@
       [style.height.px]="cropGuideSvg?.slotRect.height ?? folding.slotHeightPx">
       <ng-container *ngFor="let panel of folding.panels">
         <div
-          *ngIf="showSheetFillLayer"
+          *ngIf="showSheetFillLayer && isSolidSheetFill"
+          class="ph-print-mockup-fold-panel-layer ph-print-mockup-print-image-layer ph-print-mockup-print-image-layer--warp ph-print-mockup-sheet-fill-layer"
+          [style.clip-path]="panel.clipPath">
+          <div
+            class="ph-print-mockup-print-image-warp"
+            [style.width.px]="folding.canvasWidthPx"
+            [style.height.px]="folding.canvasHeightPx"
+            [style.transform]="panel.solidFillTransform">
+            <div class="ph-print-mockup-sheet-fill" [ngStyle]="sheetFillStyles"></div>
+          </div>
+        </div>
+        <div
+          *ngIf="showSheetFillLayer && !isSolidSheetFill"
           class="ph-print-mockup-fold-panel-layer ph-print-mockup-print-image-layer ph-print-mockup-print-image-layer--warp ph-print-mockup-sheet-fill-layer"
           [style.clip-path]="panel.clipPath">
           <ng-container *ngTemplateOutlet="bilinearWarp; context: {
