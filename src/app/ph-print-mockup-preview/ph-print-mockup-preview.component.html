@@ -179,33 +179,35 @@
       isFill: false
     }"></ng-container>
   </div>
-  <svg
-    *ngIf="foldingModel as folding"
-    class="ph-print-mockup-folding-overlay"
-    [attr.viewBox]="foldingOverlayViewBox"
-    [ngStyle]="foldingStageStyle"
-    preserveAspectRatio="none"
-    aria-hidden="true">
-    <path
-      *ngIf="folding.guide.fillPathD"
-      class="ph-print-mockup-folding-guide__fill"
-      [attr.d]="folding.guide.fillPathD" />
-    <path
-      *ngIf="folding.guide.topPathD"
-      class="ph-print-mockup-folding-guide__edge"
-      [attr.d]="folding.guide.topPathD" />
-    <path
-      *ngIf="folding.guide.bottomPathD"
-      class="ph-print-mockup-folding-guide__edge"
-      [attr.d]="folding.guide.bottomPathD" />
-    <line
-      *ngFor="let pairLine of folding.guide.pairLines"
-      class="ph-print-mockup-folding-guide__pair"
-      [attr.x1]="pairLine.x1"
-      [attr.y1]="pairLine.y1"
-      [attr.x2]="pairLine.x2"
-      [attr.y2]="pairLine.y2" />
-  </svg>
+  <ng-container *ngIf="foldingModel as folding">
+    <svg
+      *ngIf="!showFoldedPrintLayers"
+      class="ph-print-mockup-folding-overlay"
+      [attr.viewBox]="foldingOverlayViewBox"
+      [ngStyle]="foldingStageStyle"
+      preserveAspectRatio="none"
+      aria-hidden="true">
+      <path
+        *ngIf="folding.guide.fillPathD"
+        class="ph-print-mockup-folding-guide__fill"
+        [attr.d]="folding.guide.fillPathD" />
+      <path
+        *ngIf="folding.guide.topPathD"
+        class="ph-print-mockup-folding-guide__edge"
+        [attr.d]="folding.guide.topPathD" />
+      <path
+        *ngIf="folding.guide.bottomPathD"
+        class="ph-print-mockup-folding-guide__edge"
+        [attr.d]="folding.guide.bottomPathD" />
+      <line
+        *ngFor="let pairLine of folding.guide.pairLines"
+        class="ph-print-mockup-folding-guide__pair"
+        [attr.x1]="pairLine.x1"
+        [attr.y1]="pairLine.y1"
+        [attr.x2]="pairLine.x2"
+        [attr.y2]="pairLine.y2" />
+    </svg>
+  </ng-container>
   <svg
     *ngIf="cropGuideSvg as guide; else simplePrintAreaGuide"
     class="ph-print-mockup-print-area-guide"
