@@ -308,11 +308,21 @@ export interface RectToQuadBilinearSlice {
   srcTopPx: number;
   srcHeightPx: number;
   transform: string;
+  zIndex: number;
+}
+
+/** ~2px per slice, capped for performance. */
+export function resolveBilinearWarpSliceCount(heightPx: number): number {
+  if (heightPx <= 0) {
+    return 64;
+  }
+  return Math.min(128, Math.max(64, Math.ceil(heightPx / 2)));
 }
 
 /**
  * Bilinear rect→quad via horizontal slices: fraction v on the source height
  * lands at fraction v along the left and right destination edges.
+ * Adjacent slices overlap by 1px in source space to hide seam lines.
  */
 export function buildRectToQuadBilinearWarpSlices(
   width: number,
@@ -321,16 +331,20 @@ export function buildRectToQuadBilinearWarpSlices(
   topRight: PhMockupPoint,
   bottomRight: PhMockupPoint,
   bottomLeft: PhMockupPoint,
-  sliceCount = 48,
+  sliceCount = resolveBilinearWarpSliceCount(height),
 ): RectToQuadBilinearSlice[] {
   if (width <= 0 || height <= 0 || sliceCount < 1) {
     return [];
   }
 
+  const overlapNorm = height > 1 ? 1 / height : 0;
   const slices: RectToQuadBilinearSlice[] = [];
   for (let index = 0; index < sliceCount; index += 1) {
-    const v0 = index / sliceCount;
-    const v1 = (index + 1) / sliceCount;
+    const v0Base = index / sliceCount;
+    const v1Base = (index + 1) / sliceCount;
+    const v0 = index > 0 ? Math.max(0, v0Base - overlapNorm) : v0Base;
+    const v1 =
+      index < sliceCount - 1 ? Math.min(1, v1Base + overlapNorm) : v1Base;
     const srcTopPx = v0 * height;
     const srcHeightPx = (v1 - v0) * height;
     const dstTL = lerpPoint(topLeft, bottomLeft, v0);
@@ -349,7 +363,7 @@ export function buildRectToQuadBilinearWarpSlices(
       relY(dstBR),
       relY(dstBL),
     );
-    slices.push({ srcTopPx, srcHeightPx, transform });
+    slices.push({ srcTopPx, srcHeightPx, transform, zIndex: index + 1 });
   }
   return slices;
 }

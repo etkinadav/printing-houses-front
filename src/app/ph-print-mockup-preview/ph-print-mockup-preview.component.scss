@@ -194,6 +194,8 @@
 
   overflow: visible;
 
+  isolation: isolate;
+
 }
 
 
@@ -210,6 +212,10 @@
 
   will-change: transform;
 
+  backface-visibility: hidden;
+
+  -webkit-backface-visibility: hidden;
+
 }
 
 
@@ -221,6 +227,10 @@
   user-select: none;
 
   pointer-events: none;
+
+  border: none;
+
+  outline: none;
 
 }
 
