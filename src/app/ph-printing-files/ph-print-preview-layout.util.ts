@@ -361,6 +361,36 @@ export function computePreviewFoldBoundariesPx(
   return boundaries;
 }
 
+/** Panel edges only (excludes offset gaps) — N folds → N+1 panel boundaries. */
+export function computePreviewFoldPanelBoundariesPx(
+  foldCount: number | undefined,
+  offsetCm: number | undefined,
+  baseWidthPx: number,
+  baseWidthCm: number,
+): number[] {
+  const all = computePreviewFoldBoundariesPx(
+    foldCount,
+    offsetCm,
+    baseWidthPx,
+    baseWidthCm,
+  );
+  if (all.length < 2) {
+    return [];
+  }
+
+  const offsetCmVal = Math.max(0, Number(offsetCm) || 0);
+  if (offsetCmVal <= 0) {
+    return all;
+  }
+
+  const panelBounds = [all[0]];
+  for (let index = 1; index < all.length - 1; index += 2) {
+    panelBounds.push(all[index]);
+  }
+  panelBounds.push(all[all.length - 1]);
+  return panelBounds;
+}
+
 /** Snap fold guide x to half-pixels for consistent 1px stroke rendering. */
 function snapPreviewFoldLinePx(value: number): number {
   return Math.round(value * 2) / 2;

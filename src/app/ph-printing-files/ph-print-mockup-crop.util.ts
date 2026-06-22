@@ -1,4 +1,7 @@
-import { computeRectToQuadMatrix3d } from './ph-print-mockup-perspective.util';
+import {
+  buildRectToQuadBilinearWarpSlices,
+  RectToQuadBilinearSlice,
+} from './ph-print-mockup-perspective.util';
 import { CornerType, PhMockupPrintCorners } from '../ph-products/ph-product.model';
 import {
   buildMockupQuadCornerOutlinePathD,
@@ -1136,7 +1139,9 @@ export function buildMockupQuadCropGuideSvgModel(
 }
 
 export interface MockupPrintImageWarpModel {
+  /** Legacy single homography — prefer {@link slices}. */
   transform: string | null;
+  slices: RectToQuadBilinearSlice[];
   scaledWidthPx: number;
   scaledHeightPx: number;
   axisAlignedFill: MockupCropGuideRect | null;
@@ -1172,13 +1177,14 @@ export function buildMockupPrintImageWarp(
   if (isAxisAlignedOuterWarpQuad(outerWarpQuad)) {
     return {
       transform: null,
+      slices: [],
       scaledWidthPx: canvasWidthPx,
       scaledHeightPx: canvasHeightPx,
       axisAlignedFill: fill,
     };
   }
 
-  const transform = computeRectToQuadMatrix3d(
+  const slices = buildRectToQuadBilinearWarpSlices(
     canvasWidthPx,
     canvasHeightPx,
     outerWarpQuad.topLeft,
@@ -1188,7 +1194,8 @@ export function buildMockupPrintImageWarp(
   );
 
   return {
-    transform,
+    transform: null,
+    slices,
     scaledWidthPx: canvasWidthPx,
     scaledHeightPx: canvasHeightPx,
     axisAlignedFill: null,

@@ -152,6 +152,9 @@ function solveRectToQuadMatrix3d(
   const dst = [topLeft, topRight, bottomRight, bottomLeft];
 
   const hMatrix = solveHomography3x3(src, dst);
+  if (!hMatrix.length) {
+    return new Array<number>(16).fill(Number.NaN);
+  }
   return homography3x3ToMatrix3d(hMatrix);
 }
 
@@ -170,11 +173,18 @@ function solveHomography3x3(
   }
 
   const solution = solveLinearSystem8x9(rows);
+  if (solution.length !== 8) {
+    return [];
+  }
   return [
     [solution[0], solution[1], solution[2]],
     [solution[3], solution[4], solution[5]],
     [solution[6], solution[7], 1],
   ];
+}
+
+function formatMatrix3dCss(matrix: number[]): string {
+  return `matrix3d(${matrix.map((value) => Number(value.toFixed(6))).join(', ')})`;
 }
 
 function solveLinearSystem8x9(rows: number[][]): number[] {
@@ -190,7 +200,7 @@ function solveLinearSystem8x9(rows: number[][]): number[] {
     }
 
     if (Math.abs(matrix[pivotRow][column]) < 1e-12) {
-      return [1, 0, 0, 0, 1, 0, 0, 0];
+      return [];
     }
 
     if (pivotRow !== column) {
@@ -290,6 +300,83 @@ function isUsableWarpMatrix(
   return true;
 }
 
+function lerpPoint(a: PhMockupPoint, b: PhMockupPoint, t: number): PhMockupPoint {
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+}
+
+export interface RectToQuadBilinearSlice {
+  srcTopPx: number;
+  srcHeightPx: number;
+  transform: string;
+}
+
+/**
+ * Bilinear rect→quad via horizontal slices: fraction v on the source height
+ * lands at fraction v along the left and right destination edges.
+ */
+export function buildRectToQuadBilinearWarpSlices(
+  width: number,
+  height: number,
+  topLeft: PhMockupPoint,
+  topRight: PhMockupPoint,
+  bottomRight: PhMockupPoint,
+  bottomLeft: PhMockupPoint,
+  sliceCount = 48,
+): RectToQuadBilinearSlice[] {
+  if (width <= 0 || height <= 0 || sliceCount < 1) {
+    return [];
+  }
+
+  const slices: RectToQuadBilinearSlice[] = [];
+  for (let index = 0; index < sliceCount; index += 1) {
+    const v0 = index / sliceCount;
+    const v1 = (index + 1) / sliceCount;
+    const srcTopPx = v0 * height;
+    const srcHeightPx = (v1 - v0) * height;
+    const dstTL = lerpPoint(topLeft, bottomLeft, v0);
+    const dstTR = lerpPoint(topRight, bottomRight, v0);
+    const dstBR = lerpPoint(topRight, bottomRight, v1);
+    const dstBL = lerpPoint(topLeft, bottomLeft, v1);
+    const relY = (point: PhMockupPoint): PhMockupPoint => ({
+      x: point.x,
+      y: point.y - srcTopPx,
+    });
+    const transform = buildRectToQuadWarpTransformLenient(
+      width,
+      srcHeightPx,
+      relY(dstTL),
+      relY(dstTR),
+      relY(dstBR),
+      relY(dstBL),
+    );
+    slices.push({ srcTopPx, srcHeightPx, transform });
+  }
+  return slices;
+}
+
+/** Map axis-aligned rect to a quad; always returns matrix when inputs are finite. */
+export function buildRectToQuadWarpTransformLenient(
+  width: number,
+  height: number,
+  topLeft: PhMockupPoint,
+  topRight: PhMockupPoint,
+  bottomRight: PhMockupPoint,
+  bottomLeft: PhMockupPoint,
+): string {
+  const matrix = solveRectToQuadMatrix3d(
+    width,
+    height,
+    topLeft,
+    topRight,
+    bottomRight,
+    bottomLeft,
+  );
+  if (!matrix.every((value) => Number.isFinite(value))) {
+    return 'none';
+  }
+  return formatMatrix3dCss(matrix);
+}
+
 /** Map axis-aligned rect to a quad; null when the warp would be unusable. */
 export function buildRectToQuadWarpTransform(
   width: number,
@@ -322,5 +409,161 @@ export function buildRectToQuadWarpTransform(
   ) {
     return null;
   }
+  return formatMatrix3dCss(matrix);
+}
+
+function det3x3(
+  a: number, b: number, c: number,
+  d: number, e: number, f: number,
+  g: number, h: number, i: number,
+): number {
+  return a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
+}
+
+/**
+ * Build a 2-D affine transform (CSS `matrix()`) mapping a source triangle to a
+ * destination triangle. Affine maps are linear along every edge, so two
+ * triangles that share an edge (with matching endpoints) stay perfectly
+ * continuous across it — giving seam-free, proportional warping. Returns
+ * `'none'` when the source triangle is degenerate.
+ */
+export function buildAffineTriangleTransform(
+  src: [PhMockupPoint, PhMockupPoint, PhMockupPoint],
+  dst: [PhMockupPoint, PhMockupPoint, PhMockupPoint],
+): string {
+  const [p0, p1, p2] = src;
+  const denom = det3x3(
+    p0.x, p0.y, 1,
+    p1.x, p1.y, 1,
+    p2.x, p2.y, 1,
+  );
+  if (Math.abs(denom) < 1e-9) {
+    return 'none';
+  }
+  const [x0, x1, x2] = [dst[0].x, dst[1].x, dst[2].x];
+  const [y0, y1, y2] = [dst[0].y, dst[1].y, dst[2].y];
+
+  const a = det3x3(x0, p0.y, 1, x1, p1.y, 1, x2, p2.y, 1) / denom;
+  const c = det3x3(p0.x, x0, 1, p1.x, x1, 1, p2.x, x2, 1) / denom;
+  const e = det3x3(p0.x, p0.y, x0, p1.x, p1.y, x1, p2.x, p2.y, x2) / denom;
+  const b = det3x3(y0, p0.y, 1, y1, p1.y, 1, y2, p2.y, 1) / denom;
+  const d = det3x3(p0.x, y0, 1, p1.x, y1, 1, p2.x, y2, 1) / denom;
+  const f = det3x3(p0.x, p0.y, y0, p1.x, p1.y, y1, p2.x, p2.y, y2) / denom;
+
+  const values = [a, b, c, d, e, f].map((value) => Number(value.toFixed(6)));
+  if (!values.every((value) => Number.isFinite(value))) {
+    return 'none';
+  }
+  return `matrix(${values.join(', ')})`;
+}
+
+/**
+ * Build a perspective projector that maps points from a source quad's coordinate
+ * space to a destination quad's coordinate space using a full homography.
+ * Returns null when the source quad is degenerate.
+ */
+export function createPerspectiveProjector(
+  src: [PhMockupPoint, PhMockupPoint, PhMockupPoint, PhMockupPoint],
+  dst: [PhMockupPoint, PhMockupPoint, PhMockupPoint, PhMockupPoint],
+): ((point: PhMockupPoint) => PhMockupPoint) | null {
+  const h = solveHomography3x3(src, dst);
+  if (!h.length) {
+    return null;
+  }
+  return (point: PhMockupPoint): PhMockupPoint => {
+    const denom = h[2][0] * point.x + h[2][1] * point.y + h[2][2];
+    if (Math.abs(denom) < 1e-9) {
+      return { x: 0, y: 0 };
+    }
+    const x = (h[0][0] * point.x + h[0][1] * point.y + h[0][2]) / denom;
+    const y = (h[1][0] * point.x + h[1][1] * point.y + h[1][2]) / denom;
+    return { x, y };
+  };
+}
+
+export function buildQuadToQuadWarpTransformLenient(
+  srcTopLeft: PhMockupPoint,
+  srcTopRight: PhMockupPoint,
+  srcBottomRight: PhMockupPoint,
+  srcBottomLeft: PhMockupPoint,
+  dstTopLeft: PhMockupPoint,
+  dstTopRight: PhMockupPoint,
+  dstBottomRight: PhMockupPoint,
+  dstBottomLeft: PhMockupPoint,
+): string {
+  const src = [srcTopLeft, srcTopRight, srcBottomRight, srcBottomLeft];
+  const dst = [dstTopLeft, dstTopRight, dstBottomRight, dstBottomLeft];
+  const hMatrix = solveHomography3x3(src, dst);
+  if (!hMatrix.length) {
+    return 'none';
+  }
+  const matrix = homography3x3ToMatrix3d(hMatrix);
+  if (!matrix.every((value) => Number.isFinite(value))) {
+    return 'none';
+  }
+  return formatMatrix3dCss(matrix);
+}
+
+/**
+ * Map an arbitrary quadrilateral (src) to another arbitrary quadrilateral (dst)
+ * using a full homography (8 degrees of freedom).
+ *
+ * The transform is intended to be applied to an element with `transform-origin: 0 0`.
+ * Source and destination points are in the element's own coordinate space.
+ * Returns null when the resulting matrix would be degenerate or unusable.
+ */
+export function buildQuadToQuadWarpTransform(
+  srcTopLeft: PhMockupPoint,
+  srcTopRight: PhMockupPoint,
+  srcBottomRight: PhMockupPoint,
+  srcBottomLeft: PhMockupPoint,
+  dstTopLeft: PhMockupPoint,
+  dstTopRight: PhMockupPoint,
+  dstBottomRight: PhMockupPoint,
+  dstBottomLeft: PhMockupPoint,
+  boundsWidthPx: number,
+  boundsHeightPx: number,
+): string | null {
+  const src = [srcTopLeft, srcTopRight, srcBottomRight, srcBottomLeft];
+  const dst = [dstTopLeft, dstTopRight, dstBottomRight, dstBottomLeft];
+  const hMatrix = solveHomography3x3(src, dst);
+  const matrix = homography3x3ToMatrix3d(hMatrix);
+  if (
+    !isUsableQuadToQuadWarpMatrix(matrix, src, dst, boundsWidthPx, boundsHeightPx)
+  ) {
+    return null;
+  }
   return `matrix3d(${matrix.join(', ')})`;
+}
+
+function isUsableQuadToQuadWarpMatrix(
+  matrix: number[],
+  srcCorners: PhMockupPoint[],
+  dstCorners: PhMockupPoint[],
+  boundsWidthPx: number,
+  boundsHeightPx: number,
+): boolean {
+  if (matrix.length !== 16 || !matrix.every((value) => Number.isFinite(value))) {
+    return false;
+  }
+
+  const margin = Math.max(boundsWidthPx, boundsHeightPx);
+  for (let index = 0; index < 4; index += 1) {
+    const mapped = transformPoint(srcCorners[index].x, srcCorners[index].y, matrix);
+    const dx = Math.abs(mapped.x - dstCorners[index].x);
+    const dy = Math.abs(mapped.y - dstCorners[index].y);
+    if (dx > 1.5 || dy > 1.5) {
+      return false;
+    }
+    if (
+      mapped.x < -margin ||
+      mapped.x > boundsWidthPx + margin ||
+      mapped.y < -margin ||
+      mapped.y > boundsHeightPx + margin
+    ) {
+      return false;
+    }
+  }
+
+  return true;
 }

@@ -163,6 +163,61 @@ export function resolveMockupForPrint(
   return isValidMockup(dynamicRootMockup) ? dynamicRootMockup : null;
 }
 
+function mockupHasPrintFoldingData(mockup: PhMockup): boolean {
+  return !!(
+    mockup.printFolding?.enabled ||
+    mockup.printFoldingCount != null
+  );
+}
+
+/** Finds the nearest mockup carrying printFolding / printFoldingCount on the product tree. */
+export function findPrintFoldingMockupSource(
+  ctx: ExtraSettingsContext,
+  uiState: ExtraSettingsUiStateMap,
+): PhMockup | null {
+  const levels: (PhTreeExtraSettings | null | undefined)[] = [
+    ctx.color,
+    ctx.material,
+    ctx.size,
+  ];
+
+  for (const node of levels) {
+    if (!node) {
+      continue;
+    }
+    const foldingOptionMockup = readSelectedOptionMockupOnNode(node, 'folding', uiState);
+    if (foldingOptionMockup && mockupHasPrintFoldingData(foldingOptionMockup)) {
+      return foldingOptionMockup;
+    }
+    const nodeMockup = readNodeLevelMockup(node);
+    if (nodeMockup && mockupHasPrintFoldingData(nodeMockup)) {
+      return nodeMockup;
+    }
+  }
+
+  return null;
+}
+
+/** Merges saved fold handle positions onto the mockup used for print preview. */
+export function mergePrintFoldingOntoMockup(
+  base: PhMockup,
+  ctx: ExtraSettingsContext,
+  uiState: ExtraSettingsUiStateMap,
+): PhMockup {
+  if (mockupHasPrintFoldingData(base)) {
+    return base;
+  }
+  const source = findPrintFoldingMockupSource(ctx, uiState);
+  if (!source) {
+    return base;
+  }
+  return {
+    ...base,
+    printFolding: source.printFolding ?? base.printFolding,
+    printFoldingCount: source.printFoldingCount ?? base.printFoldingCount,
+  };
+}
+
 export function mockupBoundingBoxFromQuad(quad: PhMockupPrintAreaQuad): MockupPrintOverlayRect {
   const xs = [quad.nw.x, quad.ne.x, quad.sw.x, quad.se.x];
   const ys = [quad.nw.y, quad.ne.y, quad.sw.y, quad.se.y];

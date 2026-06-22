@@ -34,7 +34,7 @@ import {
   resolveSelectedFolding,
   syncExtraUiStateFromSaved,
 } from '../ph-printing-files/ph-print-extra-settings.util';
-import { resolveMockupForPrint } from '../ph-printing-files/ph-print-mockup.util';
+import { mergePrintFoldingOntoMockup, resolveMockupForPrint } from '../ph-printing-files/ph-print-mockup.util';
 import { isColorTextureUrl } from '../ph-products/ph-color-texture.util';
 import {
   PhColor,
@@ -385,10 +385,18 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   get resolvedPrintMockup(): PhMockup | null {
-    return resolveMockupForPrint(
+    const mockup = resolveMockupForPrint(
       this.getCurrentExtraSettingsContext(),
       this.extraSettingsUi,
       this.product?.properties?.dynamic?.mockup,
+    );
+    if (!mockup || this.previewFoldingCount <= 0) {
+      return mockup;
+    }
+    return mergePrintFoldingOntoMockup(
+      mockup,
+      this.getCurrentExtraSettingsContext(),
+      this.extraSettingsUi,
     );
   }
 

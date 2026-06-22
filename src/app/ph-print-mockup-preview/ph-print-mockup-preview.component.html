@@ -53,25 +53,57 @@
     [style.width.px]="cropGuideSvg?.widthPx ?? null"
     [style.height.px]="cropGuideSvg?.heightPx ?? null">
   <div
-    *ngIf="showAxisAlignedSheetFillLayer"
+    *ngIf="showAxisAlignedSheetFillLayer && !showFoldedPrintLayers"
     class="ph-print-mockup-print-image-layer ph-print-mockup-sheet-fill-layer"
     [style.clip-path]="printSlotClipPathCss">
     <div class="ph-print-mockup-sheet-fill" [ngStyle]="sheetFillStyles"></div>
   </div>
   <div
-    *ngIf="showPerspectiveSheetFillLayer && printImageWarp as fillWarp"
+    *ngIf="showPerspectiveSheetFillLayer && !showFoldedPrintLayers && printImageWarp as fillWarp"
     class="ph-print-mockup-print-image-layer ph-print-mockup-print-image-layer--warp ph-print-mockup-sheet-fill-layer"
     [style.clip-path]="printSlotClipPathCss">
-    <div
-      class="ph-print-mockup-print-image-warp"
-      [style.width.px]="fillWarp.scaledWidthPx"
-      [style.height.px]="fillWarp.scaledHeightPx"
-      [style.transform]="fillWarp.transform">
-      <div class="ph-print-mockup-sheet-fill" [ngStyle]="sheetFillStyles"></div>
-    </div>
+    <ng-container *ngTemplateOutlet="bilinearWarp; context: {
+      warpWidth: fillWarp.scaledWidthPx,
+      warpHeight: fillWarp.scaledHeightPx,
+      slices: fillWarp.slices,
+      isFill: true
+    }"></ng-container>
   </div>
+  <ng-container *ngIf="showFoldedPrintLayers && foldingModel as folding">
+    <div
+      class="ph-print-mockup-folding-panels"
+      [style.left.px]="cropGuideSvg?.slotRect.x ?? 0"
+      [style.top.px]="cropGuideSvg?.slotRect.y ?? 0"
+      [style.width.px]="cropGuideSvg?.slotRect.width ?? folding.slotWidthPx"
+      [style.height.px]="cropGuideSvg?.slotRect.height ?? folding.slotHeightPx">
+      <ng-container *ngFor="let panel of folding.panels">
+        <div
+          *ngIf="showSheetFillLayer"
+          class="ph-print-mockup-fold-panel-layer ph-print-mockup-print-image-layer ph-print-mockup-print-image-layer--warp ph-print-mockup-sheet-fill-layer"
+          [style.clip-path]="panel.clipPath">
+          <ng-container *ngTemplateOutlet="bilinearWarp; context: {
+            warpWidth: folding.canvasWidthPx,
+            warpHeight: folding.canvasHeightPx,
+            slices: panel.slices,
+            isFill: true
+          }"></ng-container>
+        </div>
+        <div
+          *ngIf="showPrintImageLayer"
+          class="ph-print-mockup-fold-panel-layer ph-print-mockup-print-image-layer ph-print-mockup-print-image-layer--warp"
+          [style.clip-path]="panel.clipPath">
+          <ng-container *ngTemplateOutlet="bilinearWarp; context: {
+            warpWidth: folding.canvasWidthPx,
+            warpHeight: folding.canvasHeightPx,
+            slices: panel.slices,
+            isFill: false
+          }"></ng-container>
+        </div>
+      </ng-container>
+    </div>
+  </ng-container>
   <div
-    *ngIf="showAxisAlignedPrintImageLayer"
+    *ngIf="showSingleAxisAlignedPrintImageLayer"
     class="ph-print-mockup-print-image-layer"
     [style.clip-path]="printSlotClipPathCss">
     <img
@@ -81,21 +113,43 @@
       draggable="false" />
   </div>
   <div
-    *ngIf="showPerspectivePrintImageLayer && printImageWarp as warp"
+    *ngIf="showSinglePerspectivePrintImageLayer && printImageWarp as warp"
     class="ph-print-mockup-print-image-layer ph-print-mockup-print-image-layer--warp"
     [style.clip-path]="printSlotClipPathCss">
-    <div
-      class="ph-print-mockup-print-image-warp"
-      [style.width.px]="warp.scaledWidthPx"
-      [style.height.px]="warp.scaledHeightPx"
-      [style.transform]="warp.transform">
-      <img
-        class="ph-print-mockup-print-image-stretch"
-        [src]="printImageUrl"
-        alt=""
-        draggable="false" />
-    </div>
+    <ng-container *ngTemplateOutlet="bilinearWarp; context: {
+      warpWidth: warp.scaledWidthPx,
+      warpHeight: warp.scaledHeightPx,
+      slices: warp.slices,
+      isFill: false
+    }"></ng-container>
   </div>
+  <svg
+    *ngIf="foldingModel as folding"
+    class="ph-print-mockup-folding-overlay"
+    [attr.viewBox]="foldingOverlayViewBox"
+    [ngStyle]="foldingStageStyle"
+    preserveAspectRatio="none"
+    aria-hidden="true">
+    <path
+      *ngIf="folding.guide.fillPathD"
+      class="ph-print-mockup-folding-guide__fill"
+      [attr.d]="folding.guide.fillPathD" />
+    <path
+      *ngIf="folding.guide.topPathD"
+      class="ph-print-mockup-folding-guide__edge"
+      [attr.d]="folding.guide.topPathD" />
+    <path
+      *ngIf="folding.guide.bottomPathD"
+      class="ph-print-mockup-folding-guide__edge"
+      [attr.d]="folding.guide.bottomPathD" />
+    <line
+      *ngFor="let pairLine of folding.guide.pairLines"
+      class="ph-print-mockup-folding-guide__pair"
+      [attr.x1]="pairLine.x1"
+      [attr.y1]="pairLine.y1"
+      [attr.x2]="pairLine.x2"
+      [attr.y2]="pairLine.y2" />
+  </svg>
   <svg
     *ngIf="cropGuideSvg as guide; else simplePrintAreaGuide"
     class="ph-print-mockup-print-area-guide"
@@ -262,5 +316,42 @@
         vector-effect="non-scaling-stroke" />
     </svg>
   </ng-template>
+  </div>
+</ng-template>
+
+<ng-template
+  #bilinearWarp
+  let-warpWidth="warpWidth"
+  let-warpHeight="warpHeight"
+  let-slices="slices"
+  let-isFill="isFill">
+  <div
+    class="ph-print-mockup-bilinear-warp"
+    [style.width.px]="warpWidth"
+    [style.height.px]="warpHeight">
+    <div
+      *ngFor="let slice of slices"
+      class="ph-print-mockup-bilinear-warp__slice"
+      [style.width.px]="warpWidth"
+      [style.top.px]="slice.srcTopPx"
+      [style.height.px]="slice.srcHeightPx"
+      [style.transform]="slice.transform">
+      <div
+        *ngIf="isFill"
+        class="ph-print-mockup-bilinear-warp__slice-content ph-print-mockup-sheet-fill"
+        [ngStyle]="sheetFillStyles"
+        [style.width.px]="warpWidth"
+        [style.height.px]="warpHeight"
+        [style.margin-top.px]="-slice.srcTopPx"></div>
+      <img
+        *ngIf="!isFill"
+        class="ph-print-mockup-bilinear-warp__slice-content"
+        [src]="printImageUrl"
+        alt=""
+        draggable="false"
+        [style.width.px]="warpWidth"
+        [style.height.px]="warpHeight"
+        [style.margin-top.px]="-slice.srcTopPx" />
+    </div>
   </div>
 </ng-template>

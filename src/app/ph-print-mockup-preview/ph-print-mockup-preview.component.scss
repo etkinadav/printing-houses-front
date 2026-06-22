@@ -150,6 +150,82 @@
 
 
 
+.ph-print-mockup-folding-panels {
+
+  position: absolute;
+
+  overflow: visible;
+
+  pointer-events: none;
+
+  z-index: 0;
+
+}
+
+
+
+.ph-print-mockup-fold-panel-layer {
+
+  overflow: visible;
+
+}
+
+
+
+.ph-print-mockup-fold-panel-layer.ph-print-mockup-print-image-layer--warp {
+
+  overflow: visible;
+
+}
+
+
+
+.ph-print-mockup-fold-panel-layer .ph-print-mockup-print-image-warp {
+
+  overflow: visible;
+
+}
+
+
+
+.ph-print-mockup-bilinear-warp {
+
+  position: relative;
+
+  overflow: visible;
+
+}
+
+
+
+.ph-print-mockup-bilinear-warp__slice {
+
+  position: absolute;
+
+  left: 0;
+
+  transform-origin: 0 0;
+
+  overflow: hidden;
+
+  will-change: transform;
+
+}
+
+
+
+.ph-print-mockup-bilinear-warp__slice-content {
+
+  display: block;
+
+  user-select: none;
+
+  pointer-events: none;
+
+}
+
+
+
 .ph-print-mockup-print-image-layer {
 
   position: absolute;
@@ -185,6 +261,8 @@
   transform-origin: 0 0;
 
   will-change: transform;
+
+  overflow: hidden;
 
 }
 
@@ -260,6 +338,51 @@
   stroke: var(--zx-red);
 
   fill: none;
+
+}
+
+
+
+.ph-print-mockup-folding-overlay {
+
+  position: absolute;
+
+  overflow: visible;
+
+  pointer-events: none;
+
+  z-index: 2;
+
+}
+
+
+
+.ph-print-mockup-folding-guide__fill {
+
+  fill: rgba(38, 166, 154, 0.08);
+
+  stroke: none;
+
+  pointer-events: none;
+
+}
+
+
+
+.ph-print-mockup-folding-guide__edge,
+.ph-print-mockup-folding-guide__pair {
+
+  fill: none;
+
+  stroke: var(--zx-green);
+
+  stroke-width: 1;
+
+  stroke-dasharray: 6 4;
+
+  vector-effect: non-scaling-stroke;
+
+  pointer-events: none;
 
 }
 

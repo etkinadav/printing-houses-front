@@ -35,6 +35,10 @@ import {
   MockupQuadCornersPx,
 } from '../ph-printing-files/ph-print-mockup-crop.util';
 import { computePhPrintPreviewLayout } from '../ph-printing-files/ph-print-preview-layout.util';
+import {
+  buildPrintMockupFoldingModel,
+  PhPrintMockupFoldingModel,
+} from '../ph-printing-files/ph-print-mockup-folding.util';
 
 @Component({
   selector: 'app-ph-print-mockup-preview',
@@ -75,6 +79,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   printSlotClipPathCss: string | null = null;
   mockupSlotShapedOutlinePathD: string | null = null;
   mockupSimpleSlotShapedOutlinePathD: string | null = null;
+  foldingModel: PhPrintMockupFoldingModel | null = null;
 
   private resizeObserver?: ResizeObserver;
   private measureRetryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -241,6 +246,44 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     );
   }
 
+  get showFoldedPrintLayers(): boolean {
+    return !!(this.foldingModel?.panels.length && this.cropGuideSvg);
+  }
+
+  get showSinglePrintImageLayer(): boolean {
+    return this.showPrintImageLayer && !this.showFoldedPrintLayers;
+  }
+
+  get showSingleAxisAlignedPrintImageLayer(): boolean {
+    return this.showAxisAlignedPrintImageLayer && !this.showFoldedPrintLayers;
+  }
+
+  get showSinglePerspectivePrintImageLayer(): boolean {
+    return this.showPerspectivePrintImageLayer && !this.showFoldedPrintLayers;
+  }
+
+  get foldingStageStyle(): Record<string, string> {
+    const slot = this.cropGuideSvg?.slotRect;
+    if (slot) {
+      return {
+        left: `${slot.x}px`,
+        top: `${slot.y}px`,
+        width: `${slot.width}px`,
+        height: `${slot.height}px`,
+      };
+    }
+    return {
+      left: '0',
+      top: '0',
+      width: '100%',
+      height: '100%',
+    };
+  }
+
+  get foldingOverlayViewBox(): string {
+    return `0 0 ${this.printSlotWidthPx} ${this.printSlotHeightPx}`;
+  }
+
   get hasMockupPrintCorners(): boolean {
     const corners = this.mockup?.printCorners;
     return !!(
@@ -254,11 +297,11 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   }
 
   get showAxisAlignedSheetFillLayer(): boolean {
-    return this.showSheetFillLayer && !this.printImageWarp?.transform;
+    return this.showSheetFillLayer && !this.hasPerspectiveImageWarp;
   }
 
   get showPerspectiveSheetFillLayer(): boolean {
-    return !!(this.showSheetFillLayer && this.printImageWarp?.transform);
+    return !!(this.showSheetFillLayer && this.hasPerspectiveImageWarp);
   }
 
   /** Stretch texture to the warp canvas like the print image (object-fit: fill). */
@@ -275,11 +318,15 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   }
 
   get showAxisAlignedPrintImageLayer(): boolean {
-    return this.showPrintImageLayer && !this.printImageWarp?.transform;
+    return this.showPrintImageLayer && !this.hasPerspectiveImageWarp;
   }
 
   get showPerspectivePrintImageLayer(): boolean {
-    return !!(this.showPrintImageLayer && this.printImageWarp?.transform);
+    return !!(this.showPrintImageLayer && this.hasPerspectiveImageWarp);
+  }
+
+  get hasPerspectiveImageWarp(): boolean {
+    return !!(this.printImageWarp?.slices?.length);
   }
 
   quadSlotGuidePoints(quad: MockupPrintOverlayQuad): string {
@@ -404,6 +451,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.printImageWarp = null;
       this.printSlotClipPathCss = null;
       this.mockupSlotShapedOutlinePathD = null;
+      this.foldingModel = null;
       return;
     }
 
@@ -426,6 +474,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.printImageWarp = null;
       this.printSlotClipPathCss = null;
       this.mockupSlotShapedOutlinePathD = null;
+      this.foldingModel = null;
       return;
     }
 
@@ -435,6 +484,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.printImageWarp = null;
       this.printSlotClipPathCss = null;
       this.mockupSlotShapedOutlinePathD = null;
+      this.foldingModel = null;
       if (this.printImageUrl?.trim() && this.imageMeasureRetryCount < 12) {
         this.imageMeasureRetryCount += 1;
         this.measureRetryTimer = setTimeout(() => {
@@ -460,6 +510,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.printImageWarp = null;
       this.printSlotClipPathCss = null;
       this.mockupSlotShapedOutlinePathD = null;
+      this.foldingModel = null;
       return;
     }
 
@@ -512,7 +563,41 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       slotH,
       imageDims,
     );
+    this.refreshFoldingModel(layout.baseWidthPx);
     this.refreshMockupSimpleSlotOutline();
+  }
+
+  private refreshFoldingModel(baseWidthPx: number): void {
+    if (
+      !this.mockup?.printArea ||
+      !this.printOverlay ||
+      this.printSlotWidthPx <= 0 ||
+      this.printSlotHeightPx <= 0 ||
+      this.foldingCount <= 0 ||
+      this.baseWidthCm <= 0
+    ) {
+      this.foldingModel = null;
+      return;
+    }
+
+    this.foldingModel = buildPrintMockupFoldingModel(
+      this.mockup,
+      this.printOverlay,
+      this.printSlotWidthPx,
+      this.printSlotHeightPx,
+      this.foldingCount,
+      this.foldingOffsetCm,
+      baseWidthPx,
+      this.baseWidthCm,
+      {
+        canvasWidthPx: this.cropGuideSvg?.widthPx ?? this.printSlotWidthPx,
+        canvasHeightPx: this.cropGuideSvg?.heightPx ?? this.printSlotHeightPx,
+        slotOffsetLeftPx: this.cropGuideSvg?.slotRect.x ?? 0,
+        slotOffsetTopPx: this.cropGuideSvg?.slotRect.y ?? 0,
+        slotWidthPx: this.cropGuideSvg?.slotRect.width ?? this.printSlotWidthPx,
+        slotHeightPx: this.cropGuideSvg?.slotRect.height ?? this.printSlotHeightPx,
+      },
+    );
   }
 
   private refreshPrintImageWarp(
