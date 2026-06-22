@@ -39,6 +39,7 @@ import {
   buildPrintMockupFoldingModel,
   PhPrintMockupFoldingModel,
 } from '../ph-printing-files/ph-print-mockup-folding.util';
+import { cropCompositeStripToDataUrl } from '../ph-printing-files/ph-print-mockup-fold-strip.util';
 
 @Component({
   selector: 'app-ph-print-mockup-preview',
@@ -80,6 +81,8 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   mockupSlotShapedOutlinePathD: string | null = null;
   mockupSimpleSlotShapedOutlinePathD: string | null = null;
   foldingModel: PhPrintMockupFoldingModel | null = null;
+  /** Pre-cropped preview strip per fold panel (canvas px → PNG data URL). */
+  foldPanelStripUrls: ReadonlyArray<string | null> = [];
 
   private resizeObserver?: ResizeObserver;
   private measureRetryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -189,6 +192,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       }
       this.resolvedImageWidthPx = probe.naturalWidth;
       this.resolvedImageHeightPx = probe.naturalHeight;
+      this.refreshFoldPanelStripUrls();
       this.scheduleMeasureRefresh();
       this.cdr.markForCheck();
     };
@@ -348,6 +352,13 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   get hasPerspectiveImageWarp(): boolean {
     return !!(this.printImageWarp?.slices?.length);
   }
+
+  trackFoldPanel = (_index: number, panel: { index: number }): number => panel.index;
+
+  trackFoldSlice = (
+    index: number,
+    slice: { srcTopPx: number; zIndex: number },
+  ): number => slice.zIndex * 100000 + Math.round(slice.srcTopPx * 100) + index;
 
   quadSlotGuidePoints(quad: MockupPrintOverlayQuad): string {
     return this.quadSlotGuidePointsInViewBox(quad, 100, 100);
@@ -584,7 +595,40 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       imageDims,
     );
     this.refreshFoldingModel(layout.baseWidthPx);
+    this.refreshFoldPanelStripUrls();
     this.refreshMockupSimpleSlotOutline();
+  }
+
+  private refreshFoldPanelStripUrls(): void {
+    const folding = this.foldingModel;
+    const imageUrl = this.printImageUrl?.trim() ?? '';
+    if (!folding?.panels.length || !imageUrl) {
+      this.foldPanelStripUrls = [];
+      return;
+    }
+
+    const probe = this.printImageProbe;
+    if (
+      !probe?.complete ||
+      probe.naturalWidth <= 0 ||
+      probe.naturalHeight <= 0 ||
+      probe.src !== imageUrl
+    ) {
+      this.foldPanelStripUrls = folding.panels.map(() => null);
+      return;
+    }
+
+    this.foldPanelStripUrls = folding.panels.map((panel) =>
+      cropCompositeStripToDataUrl(
+        probe,
+        folding.canvasWidthPx,
+        folding.canvasHeightPx,
+        folding.slotOffsetLeftPx + panel.stripLeftPx,
+        folding.slotOffsetTopPx,
+        panel.stripWidthPx,
+        panel.stripHeightPx,
+      ),
+    );
   }
 
   private refreshFoldingModel(baseWidthPx: number): void {
@@ -597,6 +641,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.baseWidthCm <= 0
     ) {
       this.foldingModel = null;
+      this.foldPanelStripUrls = [];
       return;
     }
 

@@ -37,9 +37,17 @@ export interface PhPrintMockupFoldPanelView {
   index: number;
   /** Panel boundary in slot-local px (matches dashed fold guides). */
   clipPath: string;
-  /** Bilinear warp slices: full canvas → this panel quad (print image). */
+  /** Preview strip for this panel within the slot (slot-local px). */
+  stripLeftPx: number;
+  stripTopPx: number;
+  stripWidthPx: number;
+  stripHeightPx: number;
+  /** Shift full canvas image to this panel's preview strip (canvas px). */
+  imageMarginLeftPx: number;
+  imageMarginTopPx: number;
+  /** Bilinear warp: preview strip → this panel quad (print image). */
   slices: RectToQuadBilinearSlice[];
-  /** Single homography for uniform sheet fill — covers full panel quad without slice seams. */
+  /** Homography: preview strip → panel quad (uniform sheet fill). */
   solidFillTransform: string;
 }
 
@@ -52,6 +60,9 @@ export interface PhPrintMockupFoldingModel {
   slotHeightPx: number;
   canvasWidthPx: number;
   canvasHeightPx: number;
+  /** Slot origin within the warp canvas — same for all panels. */
+  slotOffsetLeftPx: number;
+  slotOffsetTopPx: number;
 }
 
 interface MockupPoint2 {
@@ -306,17 +317,27 @@ export function buildPrintMockupFoldingModel(
     const dstBR = bottomEdgeSlot[index + 1];
     const dstBL = bottomEdgeSlot[index];
 
+    const leftFrac = baseWidthPx > 0 ? sheetPanelBounds[index] / baseWidthPx : 0;
+    const rightFrac = baseWidthPx > 0 ? sheetPanelBounds[index + 1] / baseWidthPx : 0;
+    const stripLeftPx = leftFrac * imageLayout.slotWidthPx;
+    const stripTopPx = 0;
+    const stripWidthPx = (rightFrac - leftFrac) * imageLayout.slotWidthPx;
+    const stripHeightPx = imageLayout.slotHeightPx;
+
+    const imageMarginLeftPx = -(ox + stripLeftPx);
+    const imageMarginTopPx = -oy;
+
     const slices = buildRectToQuadBilinearWarpSlices(
-      imageLayout.canvasWidthPx,
-      imageLayout.canvasHeightPx,
+      stripWidthPx,
+      stripHeightPx,
       dstTL,
       dstTR,
       dstBR,
       dstBL,
     );
     const solidFillTransform = buildRectToQuadWarpTransformLenient(
-      imageLayout.canvasWidthPx,
-      imageLayout.canvasHeightPx,
+      stripWidthPx,
+      stripHeightPx,
       dstTL,
       dstTR,
       dstBR,
@@ -326,6 +347,12 @@ export function buildPrintMockupFoldingModel(
     panels.push({
       index,
       clipPath: polygonToClipPath([dstTL, dstTR, dstBR, dstBL]),
+      stripLeftPx,
+      stripTopPx,
+      stripWidthPx,
+      stripHeightPx,
+      imageMarginLeftPx,
+      imageMarginTopPx,
       slices,
       solidFillTransform,
     });
@@ -356,5 +383,7 @@ export function buildPrintMockupFoldingModel(
     slotHeightPx,
     canvasWidthPx: imageLayout.canvasWidthPx,
     canvasHeightPx: imageLayout.canvasHeightPx,
+    slotOffsetLeftPx: ox,
+    slotOffsetTopPx: oy,
   };
 }
