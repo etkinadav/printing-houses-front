@@ -41,6 +41,9 @@ import {
 } from '../ph-printing-files/ph-print-mockup-folding.util';
 import { cropCompositeStripToDataUrl } from '../ph-printing-files/ph-print-mockup-fold-strip.util';
 
+/** Canvas-composite print opacity in mockup (0.8 = 20% transparent). */
+export const MOCKUP_CANVAS_PRINT_OPACITY = 0.8;
+
 @Component({
   selector: 'app-ph-print-mockup-preview',
   templateUrl: './ph-print-mockup-preview.component.html',
@@ -61,6 +64,8 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   @Input() sheetBackgroundStyles: Record<string, string> = { backgroundColor: '#ffffff' };
   @Input() isRTL = false;
   @Input() isDarkMode = false;
+
+  readonly mockupCanvasPrintOpacity = MOCKUP_CANVAS_PRINT_OPACITY;
 
   @ViewChildren('printSlot') printSlots?: QueryList<ElementRef<HTMLElement>>;
   @ViewChild('mockupFrame') mockupFrame?: ElementRef<HTMLElement>;

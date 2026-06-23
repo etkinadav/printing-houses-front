@@ -1,6 +1,7 @@
 <div
   class="ph-print-mockup-host w-100 h-100 d-flex justify-content-center align-items-center"
-  [class.ph-print-mockup-host--rtl]="isRTL">
+  [class.ph-print-mockup-host--rtl]="isRTL"
+  [style.--ph-mockup-canvas-print-opacity]="mockupCanvasPrintOpacity">
   <div
     *ngIf="mockupLoading"
     class="ph-print-mockup-loading"

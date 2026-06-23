@@ -254,6 +254,13 @@
 
 }
 
+/** Canvas composite print only — not sheet color/texture fill. */
+.ph-print-mockup-print-image-layer:not(.ph-print-mockup-sheet-fill-layer) {
+
+  opacity: var(--ph-mockup-canvas-print-opacity, 1);
+
+}
+
 
 
 .ph-print-mockup-print-image-layer--warp {

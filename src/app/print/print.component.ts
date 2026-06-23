@@ -1327,14 +1327,28 @@ export class PrintComponent implements OnInit, OnDestroy {
     const widthCm = this.previewBaseWidthCm;
     const heightCm = this.previewBaseHeightCm;
 
-    renderCanvasSideComposite(this.frontPlacements, this.files, widthCm, heightCm).then((url) => {
+    const compositeOptions = { marginCm: this.previewMarginCm };
+
+    renderCanvasSideComposite(
+      this.frontPlacements,
+      this.files,
+      widthCm,
+      heightCm,
+      compositeOptions,
+    ).then((url) => {
       if (token === this.compositeToken) {
         this.frontCompositeUrl = url;
       }
     });
 
     if (this.isDoubleSided) {
-      renderCanvasSideComposite(this.backPlacements, this.files, widthCm, heightCm).then((url) => {
+      renderCanvasSideComposite(
+        this.backPlacements,
+        this.files,
+        widthCm,
+        heightCm,
+        compositeOptions,
+      ).then((url) => {
         if (token === this.compositeToken) {
           this.backCompositeUrl = url;
         }

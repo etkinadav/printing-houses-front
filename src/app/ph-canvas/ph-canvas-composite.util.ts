@@ -4,6 +4,11 @@ import { PhCanvasPlacement, phCanvasProxiedImageUrl } from './ph-canvas.model';
 /** Longest edge (px) of the rendered composite raster fed to the mockup. */
 const COMPOSITE_MAX_EDGE_PX = 1400;
 
+export interface RenderCanvasSideCompositeOptions {
+  /** Duplex / bleed margin cm added on each side of the base sheet. */
+  marginCm?: number;
+}
+
 function resolveUrl(
   placement: PhCanvasPlacement,
   files: PhPrintingFile[],
@@ -32,13 +37,18 @@ function loadImage(url: string): Promise<HTMLImageElement | null> {
 export async function renderCanvasSideComposite(
   placements: PhCanvasPlacement[],
   files: PhPrintingFile[],
-  sheetWidthCm: number,
-  sheetHeightCm: number,
+  baseWidthCm: number,
+  baseHeightCm: number,
+  options: RenderCanvasSideCompositeOptions = {},
 ): Promise<string | null> {
   const list = (placements ?? []).filter((p) => resolveUrl(p, files));
   if (!list.length) {
     return null;
   }
+
+  const marginCm = Math.max(0, Number(options.marginCm) || 0);
+  const sheetWidthCm = baseWidthCm + marginCm * 2;
+  const sheetHeightCm = baseHeightCm + marginCm * 2;
 
   const aspect =
     Number.isFinite(sheetWidthCm) &&
