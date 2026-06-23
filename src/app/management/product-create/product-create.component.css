@@ -1743,6 +1743,21 @@
   display: none !important;
 }
 
+/* Mini preview (readonly): outline only — no green fill inside the print area. */
+.mockup-upload-preview__frame--readonly .mockup-upload-preview__rect {
+  background: transparent;
+}
+
+.mockup-upload-preview__frame--readonly .mockup-upload-preview__quad-fill,
+.mockup-upload-preview__frame--readonly .mockup-upload-preview__folding-fill {
+  fill: transparent;
+}
+
+.mockup-upload-preview__frame--readonly .mockup-upload-preview__rect-outline-path--corner-preview,
+.mockup-upload-preview__frame--readonly .mockup-upload-preview__quad-outline--corner-preview {
+  fill: none;
+}
+
 .mockup-upload-preview__img {
   display: block;
   width: auto;
