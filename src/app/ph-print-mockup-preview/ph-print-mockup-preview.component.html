@@ -20,6 +20,7 @@
             alt=""
             draggable="false"
             [style.clip-path]="aspectSplitTopClipPath"
+            [style.transform]="aspectSplitTopTransform"
             (load)="onMockupImageLoad()"
             (error)="onMockupImageLoad()" />
           <img
@@ -28,6 +29,7 @@
             alt=""
             draggable="false"
             [style.clip-path]="aspectSplitBottomClipPath"
+            [style.transform]="aspectSplitBottomTransform"
             aria-hidden="true" />
         </div>
       </ng-container>
@@ -42,55 +44,19 @@
           (error)="onMockupImageLoad()" />
       </ng-template>
 
-        <ng-container *ngIf="dynamicDimensionsActive && dynamicAspectSplit as split">
-          <div
-            class="ph-print-mockup-aspect-split-band"
-            [class.ph-print-mockup-aspect-split-band--horizontal]="split.lineOrientation === 'horizontal'"
-            [class.ph-print-mockup-aspect-split-band--vertical]="split.lineOrientation === 'vertical'"
-            [style.top.%]="split.lineOrientation === 'horizontal' ? split.bandLineNearNorm * 100 : null"
-            [style.height.%]="split.lineOrientation === 'horizontal' ? (split.bandLineFarNorm - split.bandLineNearNorm) * 100 : null"
-            [style.left.%]="split.lineOrientation === 'vertical' ? split.bandLineNearNorm * 100 : null"
-            [style.width.%]="split.lineOrientation === 'vertical' ? (split.bandLineFarNorm - split.bandLineNearNorm) * 100 : null"
-            aria-hidden="true"></div>
-
-          <div
-            class="ph-print-mockup-aspect-split-line ph-print-mockup-aspect-split-line--center"
-            [class.ph-print-mockup-aspect-split-line--horizontal]="split.lineOrientation === 'horizontal'"
-            [class.ph-print-mockup-aspect-split-line--vertical]="split.lineOrientation === 'vertical'"
-            [style.top.%]="split.lineOrientation === 'horizontal' ? split.lineCenterNorm * 100 : null"
-            [style.left.%]="split.lineOrientation === 'vertical' ? split.lineCenterNorm * 100 : null"
-            aria-hidden="true"></div>
-
-          <div
-            class="ph-print-mockup-aspect-split-line ph-print-mockup-aspect-split-line--band"
-            [class.ph-print-mockup-aspect-split-line--horizontal]="split.lineOrientation === 'horizontal'"
-            [class.ph-print-mockup-aspect-split-line--vertical]="split.lineOrientation === 'vertical'"
-            [style.top.%]="split.lineOrientation === 'horizontal' ? split.bandLineNearNorm * 100 : null"
-            [style.left.%]="split.lineOrientation === 'vertical' ? split.bandLineNearNorm * 100 : null"
-            aria-hidden="true"></div>
-
-          <div
-            class="ph-print-mockup-aspect-split-line ph-print-mockup-aspect-split-line--band"
-            [class.ph-print-mockup-aspect-split-line--horizontal]="split.lineOrientation === 'horizontal'"
-            [class.ph-print-mockup-aspect-split-line--vertical]="split.lineOrientation === 'vertical'"
-            [style.top.%]="split.lineOrientation === 'horizontal' ? split.bandLineFarNorm * 100 : null"
-            [style.left.%]="split.lineOrientation === 'vertical' ? split.bandLineFarNorm * 100 : null"
-            aria-hidden="true"></div>
-        </ng-container>
-
         <div
-          *ngIf="rectOverlay as rect"
+          *ngIf="activePrintSlotRect as slotRect"
           #printSlot
           class="ph-print-mockup-print"
-          [style.left.%]="rect.x * 100"
-          [style.top.%]="rect.y * 100"
-          [style.width.%]="rect.width * 100"
-          [style.height.%]="rect.height * 100">
+          [style.left.%]="slotRect.x * 100"
+          [style.top.%]="slotRect.y * 100"
+          [style.width.%]="slotRect.width * 100"
+          [style.height.%]="slotRect.height * 100">
           <ng-container *ngTemplateOutlet="printAreaGuides; context: { quad: null }"></ng-container>
         </div>
 
         <div
-          *ngIf="quadOverlay as quad"
+          *ngIf="activeQuadForPrintSlot as quad"
           #printSlot
           class="ph-print-mockup-print ph-print-mockup-print--quad"
           [style.left.%]="quad.box.x * 100"

@@ -41,8 +41,12 @@ import {
 } from '../ph-printing-files/ph-print-mockup-folding.util';
 import { cropCompositeStripToDataUrl } from '../ph-printing-files/ph-print-mockup-fold-strip.util';
 import {
+  buildDynamicMockupAdjustedPrintRectNorm,
+  buildDynamicMockupAdjustedQuadCorners,
+  buildDynamicMockupAdjustedQuadOverlay,
   computeDynamicMockupAspectSplit,
   DynamicMockupAspectSplit,
+  DynamicMockupPrintRectNorm,
 } from '../ph-printing-files/ph-print-mockup-dynamic-aspect.util';
 
 /** Canvas-composite print opacity in mockup (0.8 = 20% transparent). */
@@ -254,7 +258,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
 
     this.mockupSimpleSlotShapedOutlinePathD = buildMockupPrintCornersSimpleSlotOutlinePathD(
       this.mockup!.printCorners!,
-      this.quadOverlay,
+      this.activeQuadForPrintSlot,
     );
   }
 
@@ -330,6 +334,83 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     }
     const clipLeftPct = split.bandLineFarNorm * 100;
     return `inset(0 0 0 ${clipLeftPct}%)`;
+  }
+
+  /** Shift top/left piece from near cut line to center line. */
+  get aspectSplitTopTransform(): string | null {
+    const split = this.dynamicAspectSplit;
+    if (!split) {
+      return null;
+    }
+    const shiftNorm = split.lineCenterNorm - split.bandLineNearNorm;
+    if (split.lineOrientation === 'horizontal') {
+      return `translateY(${shiftNorm * 100}%)`;
+    }
+    return `translateX(${shiftNorm * 100}%)`;
+  }
+
+  /** Shift bottom/right piece from far cut line to center line. */
+  get aspectSplitBottomTransform(): string | null {
+    const split = this.dynamicAspectSplit;
+    if (!split) {
+      return null;
+    }
+    const shiftNorm = split.bandLineFarNorm - split.lineCenterNorm;
+    if (split.lineOrientation === 'horizontal') {
+      return `translateY(-${shiftNorm * 100}%)`;
+    }
+    return `translateX(-${shiftNorm * 100}%)`;
+  }
+
+  /** Adjusted axis-aligned print area after dynamic aspect band removal. */
+  get dynamicAspectAdjustedPrintRect(): DynamicMockupPrintRectNorm | null {
+    const split = this.dynamicAspectSplit;
+    const printRect = this.dynamicPrintRectNorm;
+    if (!this.dynamicDimensionsActive || !split || !printRect || !this.rectOverlay) {
+      return null;
+    }
+    return buildDynamicMockupAdjustedPrintRectNorm(split, printRect);
+  }
+
+  /** Adjusted quad print outline (viewBox 0 0 100 100). */
+  get dynamicAspectAdjustedQuadPoints(): string | null {
+    const split = this.dynamicAspectSplit;
+    const quad = this.quadOverlay;
+    if (!this.dynamicDimensionsActive || !split || !quad) {
+      return null;
+    }
+    const corners = buildDynamicMockupAdjustedQuadCorners(split, quad);
+    const fmt = (p: { x: number; y: number }) => `${p.x * 100},${p.y * 100}`;
+    return `${fmt(corners.nw)} ${fmt(corners.ne)} ${fmt(corners.se)} ${fmt(corners.sw)}`;
+  }
+
+  /** Print slot rect — original or dynamically aspect-adjusted. */
+  get activePrintSlotRect(): DynamicMockupPrintRectNorm | null {
+    if (this.dynamicAspectAdjustedPrintRect) {
+      return this.dynamicAspectAdjustedPrintRect;
+    }
+    if (!this.rectOverlay) {
+      return null;
+    }
+    return {
+      x: this.rectOverlay.x,
+      y: this.rectOverlay.y,
+      width: this.rectOverlay.width,
+      height: this.rectOverlay.height,
+    };
+  }
+
+  /** Print slot quad — original or dynamically aspect-adjusted. */
+  get activeQuadForPrintSlot(): (MockupPrintOverlayQuad & { kind: 'quad' }) | null {
+    const quad = this.quadOverlay;
+    if (!quad) {
+      return null;
+    }
+    const split = this.dynamicAspectSplit;
+    if (this.dynamicDimensionsActive && split) {
+      return { kind: 'quad', ...buildDynamicMockupAdjustedQuadOverlay(split, quad) };
+    }
+    return quad;
   }
 
   get hasMockupPrintCorners(): boolean {
@@ -475,24 +556,21 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       '.ph-print-mockup-bg',
     ) as HTMLImageElement | null;
 
-    const overlayBox = this.rectOverlay ?? this.quadOverlay?.box ?? null;
-
-    let nextSlotW = 0;
-    let nextSlotH = 0;
-
     if (mockupImg && mockupImg.clientWidth > 0 && mockupImg.clientHeight > 0) {
       this.mockupImageWidthPx = mockupImg.clientWidth;
       this.mockupImageHeightPx = mockupImg.clientHeight;
-      if (overlayBox) {
-        nextSlotW = overlayBox.width * mockupImg.clientWidth;
-        nextSlotH = overlayBox.height * mockupImg.clientHeight;
-      }
     } else if (this.mockupImageWidthPx <= 0 || this.mockupImageHeightPx <= 0) {
       this.mockupImageWidthPx = 0;
       this.mockupImageHeightPx = 0;
-      nextSlotW = printSlot?.clientWidth ?? 0;
-      nextSlotH = printSlot?.clientHeight ?? 0;
-    } else if (overlayBox) {
+    }
+
+    this.refreshDynamicAspectSplit();
+
+    const overlayBox = this.activePrintOverlayBox;
+    let nextSlotW = 0;
+    let nextSlotH = 0;
+
+    if (overlayBox && this.mockupImageWidthPx > 0 && this.mockupImageHeightPx > 0) {
       nextSlotW = overlayBox.width * this.mockupImageWidthPx;
       nextSlotH = overlayBox.height * this.mockupImageHeightPx;
     } else {
@@ -524,8 +602,6 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
 
     this.layoutContainerWidthPx = nextLayoutW;
     this.layoutContainerHeightPx = nextLayoutH;
-    this.refreshDynamicAspectSplit();
-
     this.printSlotWidthPx = Math.round(nextSlotW);
     this.printSlotHeightPx = Math.round(nextSlotH);
     this.refreshCropGuides();
@@ -575,6 +651,11 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       width: box.width,
       height: box.height,
     };
+  }
+
+  /** Print overlay box for slot sizing — uses adjusted geometry when active. */
+  private get activePrintOverlayBox(): DynamicMockupPrintRectNorm | null {
+    return this.activePrintSlotRect ?? this.activeQuadForPrintSlot?.box ?? null;
   }
 
   private refreshCropGuides(): void {
@@ -656,9 +737,9 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     // Always build the crop-guide model even when the image exactly fills the slot
     // (no extensions). This ensures printSlotClipPathCss is set, the print image
     // layer renders, and for perspective (quad) mockups the 3-D warp is still applied.
-    this.cropGuideSvg = this.quadOverlay
+    this.cropGuideSvg = this.activeQuadForPrintSlot
       ? buildMockupQuadCropGuideSvgModel(
-          this.quadCornersPx(this.quadOverlay),
+          this.quadCornersPx(this.activeQuadForPrintSlot),
           crop,
           slotW,
           slotH,
@@ -670,15 +751,16 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       : null;
 
     if (mockupPrintCorners && this.cropGuideSvg) {
+      const activeQuad = this.activeQuadForPrintSlot;
       this.printSlotClipPathCss = buildMockupPrintCornersSlotClipPathCss(
         this.cropGuideSvg,
         mockupPrintCorners,
-        this.quadOverlay,
+        activeQuad,
       );
       this.mockupSlotShapedOutlinePathD = buildMockupPrintCornersSlotOutlinePathD(
         this.cropGuideSvg,
         mockupPrintCorners,
-        this.quadOverlay,
+        activeQuad,
       );
     } else {
       this.mockupSlotShapedOutlinePathD = null;

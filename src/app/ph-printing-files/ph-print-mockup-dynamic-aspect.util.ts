@@ -42,6 +42,18 @@ export interface DynamicMockupWarpedPrintSlotPx {
   height: number;
 }
 
+export interface DynamicMockupNormPoint {
+  x: number;
+  y: number;
+}
+
+export interface DynamicMockupAdjustedQuadCorners {
+  nw: DynamicMockupNormPoint;
+  ne: DynamicMockupNormPoint;
+  sw: DynamicMockupNormPoint;
+  se: DynamicMockupNormPoint;
+}
+
 const ASPECT_EPS = 0.004;
 
 /**
@@ -146,5 +158,105 @@ export function buildDynamicMockupWarpedPrintSlotPx(
     top,
     width: targetWidth,
     height,
+  };
+}
+
+/** Print rect after corners shift toward the split center (symmetric band removal). */
+export function buildDynamicMockupAdjustedPrintRectNorm(
+  split: DynamicMockupAspectSplit,
+  printRect: DynamicMockupPrintRectNorm,
+): DynamicMockupPrintRectNorm {
+  const bandHalfNorm = split.lineCenterNorm - split.bandLineNearNorm;
+  if (split.lineOrientation === 'horizontal') {
+    return {
+      x: printRect.x,
+      y: printRect.y + bandHalfNorm,
+      width: printRect.width,
+      height: printRect.height - 2 * bandHalfNorm,
+    };
+  }
+  return {
+    x: printRect.x + bandHalfNorm,
+    y: printRect.y,
+    width: printRect.width - 2 * bandHalfNorm,
+    height: printRect.height,
+  };
+}
+
+function shiftPointForDynamicAspectSplit(
+  split: DynamicMockupAspectSplit,
+  point: DynamicMockupNormPoint,
+): DynamicMockupNormPoint {
+  const bandHalfNorm = split.lineCenterNorm - split.bandLineNearNorm;
+  if (split.lineOrientation === 'horizontal') {
+    if (point.y < split.lineCenterNorm) {
+      return { x: point.x, y: point.y + bandHalfNorm };
+    }
+    if (point.y > split.lineCenterNorm) {
+      return { x: point.x, y: point.y - bandHalfNorm };
+    }
+    return point;
+  }
+  if (point.x < split.lineCenterNorm) {
+    return { x: point.x + bandHalfNorm, y: point.y };
+  }
+  if (point.x > split.lineCenterNorm) {
+    return { x: point.x - bandHalfNorm, y: point.y };
+  }
+  return point;
+}
+
+/** Quad corners after each point shifts like the split image pieces. */
+export function buildDynamicMockupAdjustedQuadCorners(
+  split: DynamicMockupAspectSplit,
+  quad: DynamicMockupAdjustedQuadCorners,
+): DynamicMockupAdjustedQuadCorners {
+  return {
+    nw: shiftPointForDynamicAspectSplit(split, quad.nw),
+    ne: shiftPointForDynamicAspectSplit(split, quad.ne),
+    sw: shiftPointForDynamicAspectSplit(split, quad.sw),
+    se: shiftPointForDynamicAspectSplit(split, quad.se),
+  };
+}
+
+function buildQuadClipPathFromCorners(
+  corners: DynamicMockupAdjustedQuadCorners,
+  box: DynamicMockupPrintRectNorm,
+): string {
+  const toLocal = (point: DynamicMockupNormPoint) => {
+    const x = box.width > 0 ? ((point.x - box.x) / box.width) * 100 : 0;
+    const y = box.height > 0 ? ((point.y - box.y) / box.height) * 100 : 0;
+    return `${x}% ${y}%`;
+  };
+  return `polygon(${[corners.nw, corners.ne, corners.se, corners.sw]
+    .map(toLocal)
+    .join(', ')})`;
+}
+
+export interface DynamicMockupAdjustedQuadOverlay extends DynamicMockupAdjustedQuadCorners {
+  box: DynamicMockupPrintRectNorm;
+  clipPath: string;
+}
+
+/** Adjusted quad overlay with bounding box and slot-local clip path. */
+export function buildDynamicMockupAdjustedQuadOverlay(
+  split: DynamicMockupAspectSplit,
+  quad: DynamicMockupAdjustedQuadCorners,
+): DynamicMockupAdjustedQuadOverlay {
+  const corners = buildDynamicMockupAdjustedQuadCorners(split, quad);
+  const xs = [corners.nw.x, corners.ne.x, corners.sw.x, corners.se.x];
+  const ys = [corners.nw.y, corners.ne.y, corners.sw.y, corners.se.y];
+  const x = Math.min(...xs);
+  const y = Math.min(...ys);
+  const box = {
+    x,
+    y,
+    width: Math.max(...xs) - x,
+    height: Math.max(...ys) - y,
+  };
+  return {
+    ...corners,
+    box,
+    clipPath: buildQuadClipPathFromCorners(corners, box),
   };
 }
