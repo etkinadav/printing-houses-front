@@ -3,8 +3,6 @@ import { BehaviorSubject, Subject } from 'rxjs';
 
 import { PhCanvasSideName } from './ph-canvas.model';
 
-const INTERACTION_DEBUG = true;
-
 export interface PhCanvasSheetRegistration {
   side: PhCanvasSideName;
   containsImageLayerPoint(clientX: number, clientY: number): boolean;
@@ -50,14 +48,6 @@ export class PhCanvasInteractionService {
     const targetSide = this.resolveSideAtPointer(event.clientX, event.clientY);
     // Stacked duplex only — not front/back pager (single visible sheet).
     if (this.isDuplex && this.activeSide && targetSide && targetSide !== this.activeSide) {
-      if (INTERACTION_DEBUG) {
-        console.log(
-          `[PhCanvasInteraction] cross-sheet pointerdown ${JSON.stringify({
-            from: this.activeSide,
-            to: targetSide,
-          })}`,
-        );
-      }
       this.clearAllExcept(null);
       this.activeSide = null;
       this.activeSideSubject.next(null);
@@ -72,11 +62,6 @@ export class PhCanvasInteractionService {
 
   registerSheet(registration: PhCanvasSheetRegistration): void {
     this.sheets.set(registration.side, registration);
-    if (INTERACTION_DEBUG) {
-      console.log(
-        `[PhCanvasInteraction] register ${JSON.stringify({ side: registration.side, count: this.sheets.size })}`,
-      );
-    }
   }
 
   unregisterSheet(side: PhCanvasSideName): void {
@@ -89,11 +74,6 @@ export class PhCanvasInteractionService {
       this.activeSide = null;
       this.activeSideSubject.next(null);
     }
-    if (INTERACTION_DEBUG) {
-      console.log(
-        `[PhCanvasInteraction] unregister ${JSON.stringify({ side, count: this.sheets.size })}`,
-      );
-    }
   }
 
   get isDuplex(): boolean {
@@ -103,9 +83,6 @@ export class PhCanvasInteractionService {
   /** Front/back pager: one visible canvas side; disables stacked-duplex hover routing. */
   setPagedSide(side: PhCanvasSideName | null): void {
     this.pagedSide = side;
-    if (INTERACTION_DEBUG) {
-      console.log(`[PhCanvasInteraction] pagedSide ${JSON.stringify({ side })}`);
-    }
     if (side && this.activeSide && this.activeSide !== side) {
       this.clearAllExcept(null);
       this.activeSide = null;
@@ -172,9 +149,6 @@ export class PhCanvasInteractionService {
       return;
     }
     this.hoverSide = next;
-    if (INTERACTION_DEBUG) {
-      console.log(`[PhCanvasInteraction] hoverSide ${JSON.stringify({ side: next })}`);
-    }
     this.hoverSideSubject.next(next);
   }
 
@@ -189,11 +163,6 @@ export class PhCanvasInteractionService {
   }
 
   claim(side: PhCanvasSideName): void {
-    if (INTERACTION_DEBUG) {
-      console.log(
-        `[PhCanvasInteraction] claim ${JSON.stringify({ from: this.activeSide, to: side })}`,
-      );
-    }
     this.clearAllExcept(side);
     this.activeSide = side;
     this.activeSideSubject.next(side);
@@ -201,11 +170,6 @@ export class PhCanvasInteractionService {
   }
 
   release(side: PhCanvasSideName): void {
-    if (INTERACTION_DEBUG) {
-      console.log(
-        `[PhCanvasInteraction] release ${JSON.stringify({ side, activeSide: this.activeSide })}`,
-      );
-    }
     if (this.activeSide === side) {
       this.activeSide = null;
       this.activeSideSubject.next(null);

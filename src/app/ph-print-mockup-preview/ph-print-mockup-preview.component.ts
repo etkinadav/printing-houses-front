@@ -40,6 +40,10 @@ import {
   PhPrintMockupFoldingModel,
 } from '../ph-printing-files/ph-print-mockup-folding.util';
 import { cropCompositeStripToDataUrl } from '../ph-printing-files/ph-print-mockup-fold-strip.util';
+import {
+  computeDynamicMockupAspectSplit,
+  DynamicMockupAspectSplit,
+} from '../ph-printing-files/ph-print-mockup-dynamic-aspect.util';
 
 /** Canvas-composite print opacity in mockup (0.8 = 20% transparent). */
 export const MOCKUP_CANVAS_PRINT_OPACITY = 0.8;
@@ -64,8 +68,12 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   @Input() sheetBackgroundStyles: Record<string, string> = { backgroundColor: '#ffffff' };
   @Input() isRTL = false;
   @Input() isDarkMode = false;
+  /** Free-form product dimensions — apply mockup/print aspect correction. */
+  @Input() dynamicDimensionsActive = false;
 
   readonly mockupCanvasPrintOpacity = MOCKUP_CANVAS_PRINT_OPACITY;
+
+  dynamicAspectSplit: DynamicMockupAspectSplit | null = null;
 
   @ViewChildren('printSlot') printSlots?: QueryList<ElementRef<HTMLElement>>;
   @ViewChild('mockupFrame') mockupFrame?: ElementRef<HTMLElement>;
@@ -80,6 +88,8 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   layoutContainerHeightPx = 0;
   printSlotWidthPx = 0;
   printSlotHeightPx = 0;
+  mockupImageWidthPx = 0;
+  mockupImageHeightPx = 0;
   cropGuideSvg: MockupCropGuideSvgModel | null = null;
   printImageWarp: MockupPrintImageWarpModel | null = null;
   printSlotClipPathCss: string | null = null;
@@ -157,7 +167,8 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       changes['cornerType'] ||
       changes['cornerRadiusCm'] ||
       changes['foldingCount'] ||
-      changes['foldingOffsetCm']
+      changes['foldingOffsetCm'] ||
+      changes['dynamicDimensionsActive']
     ) {
       this.scheduleMeasureRefresh();
     }
@@ -291,6 +302,34 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
 
   get foldingOverlayViewBox(): string {
     return `0 0 ${this.printSlotWidthPx} ${this.printSlotHeightPx}`;
+  }
+
+  /** Top/left piece — bottom/right clipped at the near band line. */
+  get aspectSplitTopClipPath(): string | null {
+    const split = this.dynamicAspectSplit;
+    if (!split) {
+      return null;
+    }
+    if (split.lineOrientation === 'horizontal') {
+      const clipBottomPct = (1 - split.bandLineNearNorm) * 100;
+      return `inset(0 0 ${clipBottomPct}% 0)`;
+    }
+    const clipRightPct = (1 - split.bandLineNearNorm) * 100;
+    return `inset(0 ${clipRightPct}% 0 0)`;
+  }
+
+  /** Bottom/right piece — top/left clipped at the far band line. */
+  get aspectSplitBottomClipPath(): string | null {
+    const split = this.dynamicAspectSplit;
+    if (!split) {
+      return null;
+    }
+    if (split.lineOrientation === 'horizontal') {
+      const clipTopPct = split.bandLineFarNorm * 100;
+      return `inset(${clipTopPct}% 0 0 0)`;
+    }
+    const clipLeftPct = split.bandLineFarNorm * 100;
+    return `inset(0 0 0 ${clipLeftPct}%)`;
   }
 
   get hasMockupPrintCorners(): boolean {
@@ -441,9 +480,21 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     let nextSlotW = 0;
     let nextSlotH = 0;
 
-    if (mockupImg && mockupImg.clientWidth > 0 && mockupImg.clientHeight > 0 && overlayBox) {
-      nextSlotW = overlayBox.width * mockupImg.clientWidth;
-      nextSlotH = overlayBox.height * mockupImg.clientHeight;
+    if (mockupImg && mockupImg.clientWidth > 0 && mockupImg.clientHeight > 0) {
+      this.mockupImageWidthPx = mockupImg.clientWidth;
+      this.mockupImageHeightPx = mockupImg.clientHeight;
+      if (overlayBox) {
+        nextSlotW = overlayBox.width * mockupImg.clientWidth;
+        nextSlotH = overlayBox.height * mockupImg.clientHeight;
+      }
+    } else if (this.mockupImageWidthPx <= 0 || this.mockupImageHeightPx <= 0) {
+      this.mockupImageWidthPx = 0;
+      this.mockupImageHeightPx = 0;
+      nextSlotW = printSlot?.clientWidth ?? 0;
+      nextSlotH = printSlot?.clientHeight ?? 0;
+    } else if (overlayBox) {
+      nextSlotW = overlayBox.width * this.mockupImageWidthPx;
+      nextSlotH = overlayBox.height * this.mockupImageHeightPx;
     } else {
       nextSlotW = printSlot?.clientWidth ?? 0;
       nextSlotH = printSlot?.clientHeight ?? 0;
@@ -453,7 +504,12 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     const nextLayoutH = host.clientHeight;
 
     if (
-      (nextLayoutW <= 0 || nextLayoutH <= 0 || nextSlotW <= 0 || nextSlotH <= 0) &&
+      (nextLayoutW <= 0 ||
+        nextLayoutH <= 0 ||
+        nextSlotW <= 0 ||
+        nextSlotH <= 0 ||
+        this.mockupImageWidthPx <= 0 ||
+        this.mockupImageHeightPx <= 0) &&
       this.mockupUrl &&
       this.measureRetryCount < 12
     ) {
@@ -468,10 +524,57 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
 
     this.layoutContainerWidthPx = nextLayoutW;
     this.layoutContainerHeightPx = nextLayoutH;
+    this.refreshDynamicAspectSplit();
+
     this.printSlotWidthPx = Math.round(nextSlotW);
     this.printSlotHeightPx = Math.round(nextSlotH);
     this.refreshCropGuides();
     this.cdr.detectChanges();
+  }
+
+  private refreshDynamicAspectSplit(): void {
+    const printRect = this.dynamicPrintRectNorm;
+    if (!this.dynamicDimensionsActive || !printRect) {
+      this.dynamicAspectSplit = null;
+      return;
+    }
+    if (this.mockupImageWidthPx <= 0 || this.mockupImageHeightPx <= 0) {
+      return;
+    }
+    this.dynamicAspectSplit = computeDynamicMockupAspectSplit(
+      printRect,
+      this.baseWidthCm,
+      this.baseHeightCm,
+      this.mockupImageWidthPx,
+      this.mockupImageHeightPx,
+    );
+  }
+
+  /** Axis-aligned print rect used for dynamic aspect guide (rect or quad bounding box). */
+  private get dynamicPrintRectNorm(): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null {
+    if (this.rectOverlay) {
+      return {
+        x: this.rectOverlay.x,
+        y: this.rectOverlay.y,
+        width: this.rectOverlay.width,
+        height: this.rectOverlay.height,
+      };
+    }
+    const box = this.quadOverlay?.box;
+    if (!box?.width || !box?.height) {
+      return null;
+    }
+    return {
+      x: box.x,
+      y: box.y,
+      width: box.width,
+      height: box.height,
+    };
   }
 
   private refreshCropGuides(): void {

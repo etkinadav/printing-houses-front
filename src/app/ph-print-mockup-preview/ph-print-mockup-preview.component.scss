@@ -103,7 +103,6 @@
 }
 
 
-
 .ph-print-mockup-print {
 
   position: absolute;
@@ -123,6 +122,134 @@
 .ph-print-mockup-print--quad {
 
   overflow: visible;
+
+}
+
+
+
+.ph-print-mockup-aspect-split-images {
+
+  position: relative;
+
+  display: inline-block;
+
+  line-height: 0;
+
+}
+
+
+
+.ph-print-mockup-bg--aspect-split {
+
+  display: block;
+
+}
+
+
+
+.ph-print-mockup-bg--aspect-split-overlay {
+
+  position: absolute;
+
+  left: 0;
+
+  top: 0;
+
+  width: 100%;
+
+  height: 100%;
+
+}
+
+
+
+.ph-print-mockup-aspect-split-band {
+
+  position: absolute;
+
+  z-index: 2;
+
+  pointer-events: none;
+
+  background: rgba(255, 59, 48, 0.18);
+
+}
+
+
+
+.ph-print-mockup-aspect-split-band--horizontal {
+
+  left: 0;
+
+  width: 100%;
+
+}
+
+
+
+.ph-print-mockup-aspect-split-band--vertical {
+
+  top: 0;
+
+  height: 100%;
+
+}
+
+
+
+.ph-print-mockup-aspect-split-line {
+
+  position: absolute;
+
+  z-index: 3;
+
+  pointer-events: none;
+
+  opacity: 0.95;
+
+}
+
+
+
+.ph-print-mockup-aspect-split-line--center {
+
+  background: rgba(255, 59, 48, 0.45);
+
+}
+
+
+
+.ph-print-mockup-aspect-split-line--band {
+
+  background: #ff3b30;
+
+}
+
+
+
+.ph-print-mockup-aspect-split-line--horizontal {
+
+  left: 0;
+
+  width: 100%;
+
+  height: 2px;
+
+  transform: translateY(-50%);
+
+}
+
+
+
+.ph-print-mockup-aspect-split-line--vertical {
+
+  top: 0;
+
+  height: 100%;
+
+  width: 2px;
+
+  transform: translateX(-50%);
 
 }
 
