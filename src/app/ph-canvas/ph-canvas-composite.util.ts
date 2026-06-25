@@ -9,6 +9,41 @@ export interface RenderCanvasSideCompositeOptions {
   marginCm?: number;
 }
 
+/**
+ * Remap placements from full-sheet normalized coords (base + margin strips) to
+ * base-area only — used when building mockup composites without margin strips.
+ */
+export function remapPlacementsToBaseSheet(
+  placements: PhCanvasPlacement[],
+  baseWidthCm: number,
+  baseHeightCm: number,
+  marginCm: number,
+): PhCanvasPlacement[] {
+  const margin = Math.max(0, Number(marginCm) || 0);
+  if (margin <= 0) {
+    return placements;
+  }
+
+  const totalWidthCm = baseWidthCm + margin * 2;
+  const totalHeightCm = baseHeightCm + margin * 2;
+  if (totalWidthCm <= 0 || totalHeightCm <= 0) {
+    return placements;
+  }
+
+  const bleedNormX = margin / totalWidthCm;
+  const bleedNormY = margin / totalHeightCm;
+  const baseNormW = baseWidthCm / totalWidthCm;
+  const baseNormH = baseHeightCm / totalHeightCm;
+
+  return placements.map((placement) => ({
+    ...placement,
+    x: (placement.x - bleedNormX) / baseNormW,
+    y: (placement.y - bleedNormY) / baseNormH,
+    width: placement.width / baseNormW,
+    height: placement.height / baseNormH,
+  }));
+}
+
 function resolveUrl(
   placement: PhCanvasPlacement,
   files: PhPrintingFile[],

@@ -63,7 +63,7 @@ import {
   phCanvasPlacementInstanceId,
   phCanvasProxiedImageUrl,
 } from '../ph-canvas/ph-canvas.model';
-import { renderCanvasSideComposite } from '../ph-canvas/ph-canvas-composite.util';
+import { renderCanvasSideComposite, remapPlacementsToBaseSheet } from '../ph-canvas/ph-canvas-composite.util';
 import { PhPrintPreviewComponent } from '../ph-print-preview/ph-print-preview.component';
 
 interface FixedDimensionOption {
@@ -424,6 +424,11 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   get previewMarginCm(): number {
     return resolveSelectedDuplex(this.getCurrentExtraSettingsContext(), this.extraSettingsUi)?.size ?? 0;
+  }
+
+  /** Mockup shows only the printable base — duplex margin strips stay in sheet preview. */
+  get previewMockupMarginCm(): number {
+    return 0;
   }
 
   get previewCornerType(): CornerType | 'none' {
@@ -1341,11 +1346,11 @@ export class PrintComponent implements OnInit, OnDestroy {
     const token = ++this.compositeToken;
     const widthCm = this.previewBaseWidthCm;
     const heightCm = this.previewBaseHeightCm;
-
-    const compositeOptions = { marginCm: this.previewMarginCm };
+    const marginCm = this.previewMarginCm;
+    const compositeOptions = { marginCm: 0 };
 
     renderCanvasSideComposite(
-      this.frontPlacements,
+      remapPlacementsToBaseSheet(this.frontPlacements, widthCm, heightCm, marginCm),
       this.files,
       widthCm,
       heightCm,
@@ -1358,7 +1363,7 @@ export class PrintComponent implements OnInit, OnDestroy {
 
     if (this.isDoubleSided) {
       renderCanvasSideComposite(
-        this.backPlacements,
+        remapPlacementsToBaseSheet(this.backPlacements, widthCm, heightCm, marginCm),
         this.files,
         widthCm,
         heightCm,
