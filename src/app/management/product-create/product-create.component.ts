@@ -286,6 +286,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
     this.sizes.push(this.createSizeGroup());
     this.dynamicMaterials.push(this.createDynamicMaterialGroup());
+    this.ensureDynamicRootExtraControls();
     this.syncSizeLabelValidators();
     this.syncMaterialHeaderLabelValidators();
 
@@ -354,6 +355,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
         this.applyMockupFromProduct(sizeGroup, size.mockup);
       }
     } else if (product.properties.dynamic?.materials?.length) {
+      this.ensureDynamicRootExtraControls(product.properties.dynamic);
       this.applyMockupFromProduct(this.dynamicGroup, product.properties.dynamic.mockup);
       for (const material of product.properties.dynamic.materials) {
         this.dynamicMaterials.push(this.createDynamicMaterialGroup(material));
@@ -432,6 +434,11 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
   isRequiredMockupOwner(group: AbstractControl): boolean {
     return group === this.dynamicGroup || !!group.get('length');
+  }
+
+  /** Corners/folding on the mockup image itself — not on the dynamic root mockup (tree extras instead). */
+  showMockupFullscreenShapeSettings(group: AbstractControl): boolean {
+    return group !== this.dynamicGroup;
   }
 
   usesMockupQuad(_group: AbstractControl): boolean {
@@ -727,13 +734,16 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       scope: this.resolveMockupScope(settingKey),
     };
     const state = this.getMockupState(group, settingKey);
-    this.mockupFullscreenCornersEnabled = state.printCornersEnabled;
+    const shapeSettings = this.showMockupFullscreenShapeSettings(group);
+    this.mockupFullscreenCornersEnabled = shapeSettings && state.printCornersEnabled;
     this.mockupFullscreenCornerType = state.printCornerType;
-    this.mockupFullscreenFoldingEnabled = state.printFoldingCount != null;
-    this.mockupFullscreenFoldingCount = state.printFoldingCount;
-    this.ensureMockupFoldingPairs(group, settingKey, this.mockupFullscreenFoldingCount, false);
-    if (state.printCornersEnabled) {
-      this.ensureMockupRectCornerHandles(group, settingKey);
+    this.mockupFullscreenFoldingEnabled = shapeSettings && state.printFoldingCount != null;
+    this.mockupFullscreenFoldingCount = shapeSettings ? state.printFoldingCount : null;
+    if (shapeSettings) {
+      this.ensureMockupFoldingPairs(group, settingKey, this.mockupFullscreenFoldingCount, false);
+      if (state.printCornersEnabled) {
+        this.ensureMockupRectCornerHandles(group, settingKey);
+      }
     }
     this.mockupFullscreenImageLoading = true;
     this.preloadMockupFullscreenImage(group, settingKey);
@@ -895,24 +905,31 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     settingKey?: ExtraSettingKey | null,
   ): void {
     const state = this.getMockupState(group, settingKey);
-    state.printCornersEnabled = this.mockupFullscreenCornersEnabled;
-    if (this.mockupFullscreenCornersEnabled) {
-      state.printCornerType = this.mockupFullscreenCornerType;
-      if (!state.rectCornerHandles) {
-        state.rectCornerHandles = createDefaultMockupRectCorners();
-        if (state.quad) {
-          syncQuadBulgeControlPoints(state.quad, state.rectCornerHandles);
+    if (this.showMockupFullscreenShapeSettings(group)) {
+      state.printCornersEnabled = this.mockupFullscreenCornersEnabled;
+      if (this.mockupFullscreenCornersEnabled) {
+        state.printCornerType = this.mockupFullscreenCornerType;
+        if (!state.rectCornerHandles) {
+          state.rectCornerHandles = createDefaultMockupRectCorners();
+          if (state.quad) {
+            syncQuadBulgeControlPoints(state.quad, state.rectCornerHandles);
+          }
         }
+      } else {
+        state.rectCornerHandles = null;
+      }
+      state.printFoldingCount = this.mockupFullscreenFoldingEnabled
+        ? this.normalizeMockupPrintFoldingCount(this.mockupFullscreenFoldingCount) ?? 1
+        : null;
+      if (state.printFoldingCount != null) {
+        this.ensureMockupFoldingPairs(group, settingKey, state.printFoldingCount, false);
+      } else {
+        state.printFoldingPairs = null;
       }
     } else {
+      state.printCornersEnabled = false;
       state.rectCornerHandles = null;
-    }
-    state.printFoldingCount = this.mockupFullscreenFoldingEnabled
-      ? this.normalizeMockupPrintFoldingCount(this.mockupFullscreenFoldingCount) ?? 1
-      : null;
-    if (state.printFoldingCount != null) {
-      this.ensureMockupFoldingPairs(group, settingKey, state.printFoldingCount, false);
-    } else {
+      state.printFoldingCount = null;
       state.printFoldingPairs = null;
     }
     if (state.quad) {
@@ -3345,6 +3362,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       dynamic: {
         mockup: this.readMockupForSave(this.dynamicGroup),
         materials: this.readDynamicMaterials(this.dynamicMaterials),
+        ...this.readTreeExtras(this.dynamicGroup),
       },
     };
   }
@@ -3365,9 +3383,13 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     settingKey?: ExtraSettingKey | null,
   ): PhMockup {
     const state = this.getMockupState(group, settingKey);
-    const printCorners = this.readMockupPrintCornersForSave(state);
-    const printFoldingCount = this.readMockupPrintFoldingCountForSave(state);
-    const printFolding = this.readMockupPrintFoldingForSave(state);
+    const includeShapeExtras = this.showMockupFullscreenShapeSettings(group);
+    const printCorners = includeShapeExtras
+      ? this.readMockupPrintCornersForSave(state)
+      : undefined;
+    const printFolding = includeShapeExtras
+      ? this.readMockupPrintFoldingForSave(state)
+      : undefined;
     const foldingFields = printFolding ? { printFolding } : {};
     if (this.usesMockupQuad(group)) {
       const quad = state.quad!;
@@ -3488,17 +3510,24 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       state.quad = null;
     }
 
-    this.applyMockupPrintCornersToState(state, mockup.printCorners);
-    const printArea = this.getMockupPrintAreaShape(state);
-    const resolvedFolding = resolveMockupFoldingFromProduct(
-      mockup.printFolding,
-      mockup.printFoldingCount,
-      printArea,
-    );
-    state.printFoldingCount = resolvedFolding?.count ?? null;
-    state.printFoldingPairs = resolvedFolding
-      ? cloneMockupFoldingPairs(resolvedFolding.pairs)
-      : null;
+    if (this.showMockupFullscreenShapeSettings(group)) {
+      this.applyMockupPrintCornersToState(state, mockup.printCorners);
+      const printArea = this.getMockupPrintAreaShape(state);
+      const resolvedFolding = resolveMockupFoldingFromProduct(
+        mockup.printFolding,
+        mockup.printFoldingCount,
+        printArea,
+      );
+      state.printFoldingCount = resolvedFolding?.count ?? null;
+      state.printFoldingPairs = resolvedFolding
+        ? cloneMockupFoldingPairs(resolvedFolding.pairs)
+        : null;
+    } else {
+      state.printCornersEnabled = false;
+      state.rectCornerHandles = null;
+      state.printFoldingCount = null;
+      state.printFoldingPairs = null;
+    }
     state.previewRevision += 1;
 
     if (settingKey !== null || this.isOptionalMockupOwner(group)) {
@@ -3715,6 +3744,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     this.dynamicMaterials.clear();
     this.sizes.push(this.createSizeGroup());
     this.dynamicMaterials.push(this.createDynamicMaterialGroup());
+    this.ensureDynamicRootExtraControls();
     this.syncSizeLabelValidators();
     this.syncMaterialHeaderLabelValidators();
 
@@ -3769,6 +3799,7 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     for (const sizeGroup of this.sizes.controls) {
       this.syncTreeExtraValidatorsDeep(sizeGroup);
     }
+    this.syncTreeExtraValidatorsDeep(this.dynamicGroup);
     for (const materialGroup of this.dynamicMaterials.controls) {
       this.syncTreeExtraValidatorsDeep(materialGroup);
     }
@@ -3959,6 +3990,34 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
   private createExtraSettingsControl(values?: ExtraSettingKey[]): FormControl<ExtraSettingKey[]> {
     return new FormControl<ExtraSettingKey[]>(values ?? [], { nonNullable: true });
+  }
+
+  private buildTreeExtraSettingsControls(source?: PhTreeExtraSettings): Record<string, AbstractControl> {
+    return {
+      extraSettings: this.createExtraSettingsControl(source?.extraSettings),
+      cornersSetting: this.createExtraSettingModeGroup(source?.cornersSetting),
+      bleedSetting: this.createExtraSettingModeGroup(source?.bleedSetting),
+      foldingSetting: this.createExtraSettingModeGroup(source?.foldingSetting),
+      duplexSetting: this.createExtraSettingModeGroup(source?.duplexSetting),
+      corners: this.createCornersArray(source?.corners),
+      bleeds: this.createBleedsArray(source?.bleeds),
+      duplexes: this.createDuplexesArray(source?.duplexes),
+      foldings: this.createFoldingsArray(source?.foldings),
+      doubleSided: this.createDoubleSidedGroup(source?.doubleSided),
+    };
+  }
+
+  /** Extra settings on dynamic root (mockup owner), same fields as a fixed size node. */
+  private ensureDynamicRootExtraControls(source?: PhTreeExtraSettings): void {
+    const group = this.dynamicGroup;
+    const controls = this.buildTreeExtraSettingsControls(source);
+    for (const [key, control] of Object.entries(controls)) {
+      if (group.contains(key)) {
+        group.setControl(key, control);
+      } else {
+        group.addControl(key, control);
+      }
+    }
   }
 
   private createCornersArray(

@@ -165,7 +165,7 @@ export interface PhProductProperties {
   fixed?: {
     sizes: PhSize[];
   };
-  dynamic?: {
+  dynamic?: PhTreeExtraSettings & {
     mockup?: PhMockup;
     materials: PhDynamicMaterial[];
   };

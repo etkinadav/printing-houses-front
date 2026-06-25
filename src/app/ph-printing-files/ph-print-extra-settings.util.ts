@@ -26,6 +26,8 @@ export interface ExtraSettingsContext {
   size: PhSize | null;
   material: PhMaterial | null;
   color: PhColor | null;
+  /** Product-level extras for dynamic dimensions (mockup owner; like size on fixed). */
+  dynamicRoot: PhTreeExtraSettings | null;
 }
 
 export interface ExtraSettingUiState {
@@ -68,8 +70,9 @@ export function buildExtraSettingsContext(
   size: PhSize | null,
   material: PhMaterial | null,
   color: PhColor | null,
+  dynamicRoot: PhTreeExtraSettings | null = null,
 ): ExtraSettingsContext {
-  return { size, material, color };
+  return { size, material, color, dynamicRoot };
 }
 
 export function resolveExtraSettingNode(
@@ -84,6 +87,9 @@ export function resolveExtraSettingNode(
   }
   if (ctx.size?.extraSettings?.includes(key)) {
     return ctx.size;
+  }
+  if (ctx.dynamicRoot?.extraSettings?.includes(key)) {
+    return ctx.dynamicRoot;
   }
   return null;
 }
@@ -142,6 +148,10 @@ export function productHasDoubleSidedRequired(product: PhProduct | null | undefi
         return true;
       }
     }
+  }
+
+  if (checkNode(product.properties.dynamic)) {
+    return true;
   }
 
   return false;

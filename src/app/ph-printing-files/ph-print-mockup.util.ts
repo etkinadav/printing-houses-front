@@ -144,6 +144,7 @@ export function resolveMockupForPrint(
     ctx.color,
     ctx.material,
     ctx.size,
+    ctx.dynamicRoot,
   ];
 
   for (const node of levels) {
@@ -179,6 +180,7 @@ export function findPrintFoldingMockupSource(
     ctx.color,
     ctx.material,
     ctx.size,
+    ctx.dynamicRoot,
   ];
 
   for (const node of levels) {

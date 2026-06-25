@@ -166,7 +166,13 @@
         </div>
 
         <ng-container *ngIf="flexability === 'dynamic'">
-          <ng-container *ngTemplateOutlet="mockupUploadBlock; context: { mockupGroup: dynamicGroup, mockupSetting: null, required: true }"></ng-container>
+          <div [formGroup]="dynamicGroup" class="dynamic-mockup-section">
+            <div class="mockup-upload-section__header tree-extra-btn-row">
+              <ng-container *ngTemplateOutlet="extraSettingsBtn; context: { $implicit: dynamicGroup }"></ng-container>
+            </div>
+            <ng-container *ngTemplateOutlet="extraSettingsPanels; context: { $implicit: dynamicGroup }"></ng-container>
+            <ng-container *ngTemplateOutlet="mockupUploadBlock; context: { mockupGroup: dynamicGroup, mockupSetting: null, required: true }"></ng-container>
+          </div>
         </ng-container>
 
         <div class="product-create-save">
@@ -198,7 +204,9 @@
         [attr.aria-label]="'management.product-create.mockup-fullscreen-close' | translate">
         <mat-icon>close</mat-icon>
       </button>
-      <div class="mockup-fullscreen-overlay__settings">
+      <div
+        *ngIf="showMockupFullscreenShapeSettings(fsTarget.group)"
+        class="mockup-fullscreen-overlay__settings">
         <button
           type="button"
           class="mockup-fullscreen-overlay__settings-btn"

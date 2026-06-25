@@ -44,6 +44,7 @@ import {
   PhMockup,
   PhProduct,
   PhSize,
+  PhTreeExtraSettings,
   CornerType,
 } from '../ph-products/ph-product.model';
 import { PhProductsService } from '../ph-products/ph-products.service';
@@ -205,6 +206,14 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   get dynamicMaterials(): PhDynamicMaterial[] {
     return this.product?.properties?.dynamic?.materials ?? [];
+  }
+
+  /** Product-level extra settings for dynamic mockup (corners, bleed, folding, etc.). */
+  get dynamicRootExtraSettings(): PhTreeExtraSettings | null {
+    if (!this.isDynamicProduct) {
+      return null;
+    }
+    return this.product?.properties?.dynamic ?? null;
   }
 
   get selectedDynamicMaterial(): PhDynamicMaterial | null {
@@ -800,7 +809,12 @@ export class PrintComponent implements OnInit, OnDestroy {
       }
       const previousMaterial = materials[this.currentMaterialIndex ?? 0] ?? null;
       const previousColor = this.getColorAtIndex(previousMaterial, this.currentColorIndex);
-      const previousExtraCtx = buildExtraSettingsContext(null, previousMaterial, previousColor);
+      const previousExtraCtx = buildExtraSettingsContext(
+        null,
+        previousMaterial,
+        previousColor,
+        this.dynamicRootExtraSettings,
+      );
       const previousExtraUi = { ...this.extraSettingsUi };
       const previousColorLabel = this.getColorLabelAtIndex(previousMaterial, this.currentColorIndex);
       this.currentMaterialIndex = materialIndex;
@@ -814,6 +828,7 @@ export class PrintComponent implements OnInit, OnDestroy {
           null,
           material,
           this.getColorAtIndex(material, this.currentColorIndex),
+          this.dynamicRootExtraSettings,
         ),
         previousExtraCtx,
         previousExtraUi,
@@ -1462,7 +1477,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     const size = this.settingsPanelFixedSize;
     const material = this.settingsPanelMaterial;
     const color = this.selectedColor ?? this.getColorAtIndex(material, 0);
-    return buildExtraSettingsContext(size, material, color);
+    return buildExtraSettingsContext(size, material, color, this.dynamicRootExtraSettings);
   }
 
   private getColorAtIndex(
@@ -1700,6 +1715,7 @@ export class PrintComponent implements OnInit, OnDestroy {
             null,
             material,
             this.getColorAtIndex(material, this.currentColorIndex),
+            this.dynamicRootExtraSettings,
           ),
           ps,
         );
