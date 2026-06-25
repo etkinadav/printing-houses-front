@@ -46,8 +46,6 @@ const FOCUS_OUTSIDE_OPACITY = 0.2;
 const SHEET_MIN_OVERLAP_PX = 1;
 /** Small tolerance for selecting near anti-aliased / transformed image edges. */
 const SELECTION_HIT_TOLERANCE_PX = 24;
-/** Verbose selection / z-order logging (console). */
-const SELECTION_DEBUG = true;
 
 type PhFabricImage = FabricObject & {
   phPlacement?: PhCanvasPlacement;
@@ -864,13 +862,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     }
   }
 
-  private logSelection(message: string, detail?: Record<string, unknown>): void {
-    if (!SELECTION_DEBUG) {
-      return;
-    }
-    const payload = detail ? JSON.stringify(detail) : '';
-    console.log(`[PhCanvasSelection:${this.side}] ${message}${payload ? ' ' + payload : ''}`);
-  }
+  private logSelection(_message: string, _detail?: Record<string, unknown>): void {}
 
   /** Controls + per-image visual state (clip vs 20% overflow) for the active image. */
   private syncFocusChrome(): void {
