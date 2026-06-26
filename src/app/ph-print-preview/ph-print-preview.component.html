@@ -245,6 +245,26 @@
                 stroke-dasharray="8 6"
                 vector-effect="non-scaling-stroke" />
             </svg>
+
+            <svg
+              *ngIf="layout.hasTrimBleedGuide"
+              class="ph-print-preview-trim-bleed-guide"
+              [attr.viewBox]="'0 0 ' + layout.baseWidthPx + ' ' + layout.baseHeightPx"
+              preserveAspectRatio="none"
+              aria-hidden="true">
+              <polygon
+                *ngIf="layout.trimBleedGuidePolygonPoints"
+                [attr.points]="layout.trimBleedGuidePolygonPoints"
+                class="ph-print-preview-trim-bleed-guide__shape"
+                fill="none"
+                vector-effect="non-scaling-stroke" />
+              <path
+                *ngIf="layout.trimBleedGuidePath"
+                [attr.d]="layout.trimBleedGuidePath"
+                class="ph-print-preview-trim-bleed-guide__shape"
+                fill="none"
+                vector-effect="non-scaling-stroke" />
+            </svg>
           </div>
         </ng-container>
       </div>

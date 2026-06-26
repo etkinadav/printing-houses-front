@@ -17,6 +17,8 @@ export interface PhPrintPreviewLayoutInput {
   baseHeightCm: number;
   /** Margin addition cm (duplex / תוספת שוליים). */
   marginCm: number;
+  /** Professional trim bleed cm — inner safe-area guide (ignores duplex margin). */
+  trimBleedCm?: number;
   cornerType: CornerType | 'none';
   cornerRadiusCm: number;
   /** Number of folds — 0 hides fold lines. */
@@ -70,6 +72,10 @@ export interface PhPrintPreviewLayout {
   /** Per-panel width dims below the main top line (base area only). */
   baseFoldDimSegments: PhPrintPreviewDimSegment[];
   hasFoldDims: boolean;
+  /** Inner trim-bleed guide inside the base print area (not duplex strips). */
+  hasTrimBleedGuide: boolean;
+  trimBleedGuidePolygonPoints: string | null;
+  trimBleedGuidePath: string | null;
 }
 
 /** Bundle gutters — keep in sync with ph-print-preview.component.scss */
@@ -266,6 +272,14 @@ export function computePhPrintPreviewLayout(
       input.foldingOffsetCm,
       baseWidthPx,
       baseWidthCm,
+    ),
+    ...buildTrimBleedGuideLayout(
+      input.trimBleedCm,
+      factor,
+      baseWidthPx,
+      baseHeightPx,
+      input.cornerType,
+      cornerRadiusPx,
     ),
   };
 }
@@ -697,4 +711,171 @@ function buildCornerClipPath(
   }
   const r = `${radiusPx}px`;
   return `polygon(${r} 0, calc(100% - ${r}) 0, 100% ${r}, 100% calc(100% - ${r}), calc(100% - ${r}) 100%, ${r} 100%, 0 calc(100% - ${r}), 0 ${r})`;
+}
+
+const TRIM_BLEED_GUIDE_STROKE_PX = 1;
+const TRIM_BLEED_GUIDE_STROKE_INSET_PX = TRIM_BLEED_GUIDE_STROKE_PX / 2;
+
+function buildTrimBleedGuideLayout(
+  trimBleedCm: number | undefined,
+  factor: number,
+  baseWidthPx: number,
+  baseHeightPx: number,
+  cornerType: CornerType | 'none',
+  cornerRadiusPx: number,
+): Pick<
+  PhPrintPreviewLayout,
+  'hasTrimBleedGuide' | 'trimBleedGuidePolygonPoints' | 'trimBleedGuidePath'
+> {
+  const trimBleedPx = Math.max(0, Number(trimBleedCm) || 0) * factor;
+  if (trimBleedPx <= 0 || baseWidthPx <= 0 || baseHeightPx <= 0) {
+    return {
+      hasTrimBleedGuide: false,
+      trimBleedGuidePolygonPoints: null,
+      trimBleedGuidePath: null,
+    };
+  }
+
+  const insetPx = clampTrimBleedInsetPx(
+    trimBleedPx,
+    baseWidthPx,
+    baseHeightPx,
+    cornerType,
+    cornerRadiusPx,
+  );
+  if (insetPx <= 0) {
+    return {
+      hasTrimBleedGuide: false,
+      trimBleedGuidePolygonPoints: null,
+      trimBleedGuidePath: null,
+    };
+  }
+
+  const hasCorner = cornerType !== 'none' && cornerRadiusPx > 0;
+  if (hasCorner && cornerType === 'rounded') {
+    return {
+      hasTrimBleedGuide: true,
+      trimBleedGuidePolygonPoints: null,
+      trimBleedGuidePath: buildTrimBleedRoundedGuidePathD(
+        baseWidthPx,
+        baseHeightPx,
+        cornerRadiusPx,
+        insetPx,
+      ),
+    };
+  }
+
+  if (hasCorner && cornerType === 'chamfer') {
+    return {
+      hasTrimBleedGuide: true,
+      trimBleedGuidePolygonPoints: buildTrimBleedChamferGuidePoints(
+        baseWidthPx,
+        baseHeightPx,
+        cornerRadiusPx,
+        insetPx,
+      ),
+      trimBleedGuidePath: null,
+    };
+  }
+
+  return {
+    hasTrimBleedGuide: true,
+    trimBleedGuidePolygonPoints: buildTrimBleedRectGuidePoints(
+      baseWidthPx,
+      baseHeightPx,
+      insetPx,
+    ),
+    trimBleedGuidePath: null,
+  };
+}
+
+function clampTrimBleedInsetPx(
+  insetPx: number,
+  baseWidthPx: number,
+  baseHeightPx: number,
+  cornerType: CornerType | 'none',
+  cornerRadiusPx: number,
+): number {
+  const maxInset = Math.min(baseWidthPx, baseHeightPx) / 2 - TRIM_BLEED_GUIDE_STROKE_INSET_PX - 0.5;
+  let t = Math.min(insetPx, maxInset);
+  if (t <= 0) {
+    return 0;
+  }
+
+  if (cornerType !== 'none' && cornerRadiusPx > 0) {
+    const innerW = baseWidthPx - 2 * t;
+    const innerH = baseHeightPx - 2 * t;
+    if (innerW <= 2 * cornerRadiusPx + 1 || innerH <= 2 * cornerRadiusPx + 1) {
+      const fitByWidth = (baseWidthPx - 2 * cornerRadiusPx - 1) / 2;
+      const fitByHeight = (baseHeightPx - 2 * cornerRadiusPx - 1) / 2;
+      t = Math.min(t, fitByWidth, fitByHeight);
+    }
+  }
+
+  return t > TRIM_BLEED_GUIDE_STROKE_INSET_PX ? t : 0;
+}
+
+function buildTrimBleedRectGuidePoints(
+  widthPx: number,
+  heightPx: number,
+  insetPx: number,
+): string {
+  const w = widthPx;
+  const h = heightPx;
+  const t = insetPx + TRIM_BLEED_GUIDE_STROKE_INSET_PX;
+  return [
+    `${t},${t}`,
+    `${w - t},${t}`,
+    `${w - t},${h - t}`,
+    `${t},${h - t}`,
+  ].join(' ');
+}
+
+function buildTrimBleedChamferGuidePoints(
+  widthPx: number,
+  heightPx: number,
+  chamferPx: number,
+  insetPx: number,
+): string {
+  const w = widthPx;
+  const h = heightPx;
+  const r = chamferPx;
+  const t = insetPx + TRIM_BLEED_GUIDE_STROKE_INSET_PX;
+  return [
+    `${r + t},${t}`,
+    `${w - r - t},${t}`,
+    `${w - t},${r + t}`,
+    `${w - t},${h - r - t}`,
+    `${w - r - t},${h - t}`,
+    `${r + t},${h - t}`,
+    `${t},${h - r - t}`,
+    `${t},${r + t}`,
+  ].join(' ');
+}
+
+function buildTrimBleedRoundedGuidePathD(
+  widthPx: number,
+  heightPx: number,
+  radiusPx: number,
+  insetPx: number,
+): string {
+  const w = widthPx;
+  const h = heightPx;
+  const t = insetPx + TRIM_BLEED_GUIDE_STROKE_INSET_PX;
+  const r = Math.max(0, radiusPx - insetPx);
+  if (r <= 0.5) {
+    return `M ${t} ${t} L ${w - t} ${t} L ${w - t} ${h - t} L ${t} ${h - t} Z`;
+  }
+  return [
+    `M ${t + r} ${t}`,
+    `L ${w - t - r} ${t}`,
+    `A ${r} ${r} 0 0 1 ${w - t} ${t + r}`,
+    `L ${w - t} ${h - t - r}`,
+    `A ${r} ${r} 0 0 1 ${w - t - r} ${h - t}`,
+    `L ${t + r} ${h - t}`,
+    `A ${r} ${r} 0 0 1 ${t} ${h - t - r}`,
+    `L ${t} ${t + r}`,
+    `A ${r} ${r} 0 0 1 ${t + r} ${t}`,
+    'Z',
+  ].join(' ');
 }

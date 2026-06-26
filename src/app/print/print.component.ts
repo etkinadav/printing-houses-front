@@ -29,6 +29,7 @@ import {
   EXTRA_OPTION_NONE_INDEX,
   productHasDoubleSidedRequired,
   reconcileExtraUiStateOnTreeChange,
+  resolveSelectedBleed,
   resolveSelectedDuplex,
   resolveSelectedCorner,
   resolveSelectedFolding,
@@ -433,6 +434,11 @@ export class PrintComponent implements OnInit, OnDestroy {
   /** Mockup shows only the printable base — duplex margin strips stay in sheet preview. */
   get previewMockupMarginCm(): number {
     return 0;
+  }
+
+  /** Professional trim bleed (בליד) — inner guide; independent of duplex margin strips. */
+  get previewTrimBleedCm(): number {
+    return resolveSelectedBleed(this.getCurrentExtraSettingsContext(), this.extraSettingsUi)?.size ?? 0;
   }
 
   get previewCornerType(): CornerType | 'none' {

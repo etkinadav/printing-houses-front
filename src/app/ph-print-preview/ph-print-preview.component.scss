@@ -729,4 +729,19 @@ $ph-preview-dim-side-label-offset-px: 15px;
   overflow: hidden;
 }
 
+.ph-print-preview-trim-bleed-guide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  overflow: hidden;
+}
+
+.ph-print-preview-trim-bleed-guide__shape {
+  stroke: rgba(0, 0, 0, 0.32);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
 

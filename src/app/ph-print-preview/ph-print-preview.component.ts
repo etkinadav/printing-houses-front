@@ -45,6 +45,8 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
   @Input() baseHeightCm = 0;
   /** Margin addition (duplex / תוספת שוליים) — not professional bleed. */
   @Input() marginCm = 0;
+  /** Professional trim bleed (בליד) — inner dashed guide inside the base print area. */
+  @Input() trimBleedCm = 0;
   @Input() cornerType: CornerType | 'none' = 'none';
   @Input() cornerRadiusCm = 0;
   @Input() foldingCount = 0;
@@ -254,6 +256,7 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
       changes['baseWidthCm'] ||
       changes['baseHeightCm'] ||
       changes['marginCm'] ||
+      changes['trimBleedCm'] ||
       changes['cornerType'] ||
       changes['cornerRadiusCm'] ||
       changes['foldingCount'] ||
@@ -451,6 +454,7 @@ export class PhPrintPreviewComponent implements AfterViewInit, OnChanges, OnDest
       baseWidthCm: this.baseWidthCm,
       baseHeightCm: this.baseHeightCm,
       marginCm: this.marginCm,
+      trimBleedCm: this.trimBleedCm,
       cornerType: this.cornerType,
       cornerRadiusCm: this.cornerRadiusCm,
       foldingCount: this.foldingCount,
