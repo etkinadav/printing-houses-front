@@ -766,14 +766,15 @@ function buildTrimBleedGuideLayout(
   }
 
   if (hasCorner && cornerType === 'chamfer') {
+    const chamferPoints = buildTrimBleedChamferGuidePoints(
+      baseWidthPx,
+      baseHeightPx,
+      cornerRadiusPx,
+      insetPx,
+    );
     return {
-      hasTrimBleedGuide: true,
-      trimBleedGuidePolygonPoints: buildTrimBleedChamferGuidePoints(
-        baseWidthPx,
-        baseHeightPx,
-        cornerRadiusPx,
-        insetPx,
-      ),
+      hasTrimBleedGuide: !!chamferPoints,
+      trimBleedGuidePolygonPoints: chamferPoints,
       trimBleedGuidePath: null,
     };
   }
@@ -803,12 +804,24 @@ function clampTrimBleedInsetPx(
   }
 
   if (cornerType !== 'none' && cornerRadiusPx > 0) {
-    const innerW = baseWidthPx - 2 * t;
-    const innerH = baseHeightPx - 2 * t;
-    if (innerW <= 2 * cornerRadiusPx + 1 || innerH <= 2 * cornerRadiusPx + 1) {
-      const fitByWidth = (baseWidthPx - 2 * cornerRadiusPx - 1) / 2;
-      const fitByHeight = (baseHeightPx - 2 * cornerRadiusPx - 1) / 2;
-      t = Math.min(t, fitByWidth, fitByHeight);
+    if (cornerType === 'chamfer') {
+      const sqrt2 = Math.SQRT2;
+      const r = cornerRadiusPx;
+      const chamferLimit = Math.min(
+        (baseWidthPx - 2 * r) / (2 * sqrt2 - 2),
+        (baseHeightPx - 2 * r) / (2 * sqrt2 - 2),
+      );
+      if (Number.isFinite(chamferLimit) && chamferLimit > 0) {
+        t = Math.min(t, chamferLimit);
+      }
+    } else {
+      const innerW = baseWidthPx - 2 * t;
+      const innerH = baseHeightPx - 2 * t;
+      if (innerW <= 2 * cornerRadiusPx + 1 || innerH <= 2 * cornerRadiusPx + 1) {
+        const fitByWidth = (baseWidthPx - 2 * cornerRadiusPx - 1) / 2;
+        const fitByHeight = (baseHeightPx - 2 * cornerRadiusPx - 1) / 2;
+        t = Math.min(t, fitByWidth, fitByHeight);
+      }
     }
   }
 
@@ -836,21 +849,65 @@ function buildTrimBleedChamferGuidePoints(
   heightPx: number,
   chamferPx: number,
   insetPx: number,
-): string {
+): string | null {
+  const points = buildOffsetChamferPolygonPoints(
+    widthPx,
+    heightPx,
+    chamferPx,
+    insetPx + TRIM_BLEED_GUIDE_STROKE_INSET_PX,
+  );
+  if (points.length < 3) {
+    return null;
+  }
+  return points.map(({ x, y }) => `${x},${y}`).join(' ');
+}
+
+/**
+ * Inward parallel offset of the chamfer octagon by distance d.
+ * Diagonal edges stay parallel to the outer chamfer — length shrinks uniformly.
+ */
+function buildOffsetChamferPolygonPoints(
+  widthPx: number,
+  heightPx: number,
+  chamferPx: number,
+  offsetPx: number,
+): Array<{ x: number; y: number }> {
   const w = widthPx;
   const h = heightPx;
   const r = chamferPx;
-  const t = insetPx + TRIM_BLEED_GUIDE_STROKE_INSET_PX;
+  const d = offsetPx;
+  const sqrt2 = Math.SQRT2;
+
+  if (d <= 0 || r <= 0 || w <= 2 * r + 2 * d || h <= 2 * r + 2 * d) {
+    return [];
+  }
+
+  const topY = d;
+  const bottomY = h - d;
+  const leftX = d;
+  const rightX = w - d;
+
+  const trDiag = w - r - d * sqrt2;
+  const tlSum = r + d * sqrt2;
+  const brSum = w + h - r - d * sqrt2;
+  const blDiag = r - h + d * sqrt2;
+
+  const topLeftX = tlSum - topY;
+  const topRightX = trDiag + topY;
+  if (topRightX - topLeftX < 0.5) {
+    return [];
+  }
+
   return [
-    `${r + t},${t}`,
-    `${w - r - t},${t}`,
-    `${w - t},${r + t}`,
-    `${w - t},${h - r - t}`,
-    `${w - r - t},${h - t}`,
-    `${r + t},${h - t}`,
-    `${t},${h - r - t}`,
-    `${t},${r + t}`,
-  ].join(' ');
+    { x: topLeftX, y: topY },
+    { x: topRightX, y: topY },
+    { x: rightX, y: rightX - trDiag },
+    { x: rightX, y: brSum - rightX },
+    { x: brSum - bottomY, y: bottomY },
+    { x: blDiag + bottomY, y: bottomY },
+    { x: leftX, y: leftX - blDiag },
+    { x: leftX, y: tlSum - leftX },
+  ];
 }
 
 function buildTrimBleedRoundedGuidePathD(
