@@ -44,6 +44,62 @@ export function remapPlacementsToBaseSheet(
   }));
 }
 
+/** Inverse of {@link remapPlacementsToBaseSheet} — base-area coords → full sheet with margins. */
+export function remapPlacementsFromBaseSheetToMargined(
+  placements: PhCanvasPlacement[],
+  baseWidthCm: number,
+  baseHeightCm: number,
+  marginCm: number,
+): PhCanvasPlacement[] {
+  const margin = Math.max(0, Number(marginCm) || 0);
+  if (margin <= 0) {
+    return placements;
+  }
+
+  const totalWidthCm = baseWidthCm + margin * 2;
+  const totalHeightCm = baseHeightCm + margin * 2;
+  if (totalWidthCm <= 0 || totalHeightCm <= 0) {
+    return placements;
+  }
+
+  const bleedNormX = margin / totalWidthCm;
+  const bleedNormY = margin / totalHeightCm;
+  const baseNormW = baseWidthCm / totalWidthCm;
+  const baseNormH = baseHeightCm / totalHeightCm;
+
+  return placements.map((placement) => ({
+    ...placement,
+    x: placement.x * baseNormW + bleedNormX,
+    y: placement.y * baseNormH + bleedNormY,
+    width: placement.width * baseNormW,
+    height: placement.height * baseNormH,
+  }));
+}
+
+/** Keep objects fixed in the central print area when duplex margin strips change. */
+export function remapPlacementsOnMarginChange(
+  placements: PhCanvasPlacement[],
+  baseWidthCm: number,
+  baseHeightCm: number,
+  fromMarginCm: number,
+  toMarginCm: number,
+): PhCanvasPlacement[] {
+  const from = Math.max(0, Number(fromMarginCm) || 0);
+  const to = Math.max(0, Number(toMarginCm) || 0);
+  if (from === to) {
+    return placements;
+  }
+
+  const inBaseCoords =
+    from > 0
+      ? remapPlacementsToBaseSheet(placements, baseWidthCm, baseHeightCm, from)
+      : placements;
+
+  return to > 0
+    ? remapPlacementsFromBaseSheetToMargined(inBaseCoords, baseWidthCm, baseHeightCm, to)
+    : inBaseCoords;
+}
+
 function resolveUrl(
   placement: PhCanvasPlacement,
   files: PhPrintingFile[],

@@ -63,7 +63,11 @@ import {
   phCanvasPlacementInstanceId,
   phCanvasProxiedImageUrl,
 } from '../ph-canvas/ph-canvas.model';
-import { renderCanvasSideComposite, remapPlacementsToBaseSheet } from '../ph-canvas/ph-canvas-composite.util';
+import {
+  renderCanvasSideComposite,
+  remapPlacementsOnMarginChange,
+  remapPlacementsToBaseSheet,
+} from '../ph-canvas/ph-canvas-composite.util';
 import { PhPrintPreviewComponent } from '../ph-print-preview/ph-print-preview.component';
 
 interface FixedDimensionOption {
@@ -773,6 +777,9 @@ export class PrintComponent implements OnInit, OnDestroy {
     const previousMaterials = previousSize?.materials ?? [];
     const previousMaterial = this.getMaterialAtIndex(previousMaterials, this.currentMaterialIndex);
     const previousColor = this.getColorAtIndex(previousMaterial, this.currentColorIndex);
+    const previousMarginCm = this.previewMarginCm;
+    const previousBaseWidthCm = this.previewBaseWidthCm;
+    const previousBaseHeightCm = this.previewBaseHeightCm;
     const previousExtraCtx = buildExtraSettingsContext(previousSize, previousMaterial, previousColor);
     const previousExtraUi = { ...this.extraSettingsUi };
 
@@ -796,10 +803,9 @@ export class PrintComponent implements OnInit, OnDestroy {
       previousExtraCtx,
       previousExtraUi,
     );
-    this.rebuildExtraSettingRows();
     this.printingLengthCm = Number(size.length);
     this.printingWidthCm = Number(size.width);
-    this.persistCanvasSettings();
+    this.finishExtraSettingsUiChange(previousMarginCm, previousBaseWidthCm, previousBaseHeightCm);
   }
 
   onMaterialChange(materialIndex: number): void {
@@ -814,6 +820,9 @@ export class PrintComponent implements OnInit, OnDestroy {
       }
       const previousMaterial = materials[this.currentMaterialIndex ?? 0] ?? null;
       const previousColor = this.getColorAtIndex(previousMaterial, this.currentColorIndex);
+      const previousMarginCm = this.previewMarginCm;
+      const previousBaseWidthCm = this.previewBaseWidthCm;
+      const previousBaseHeightCm = this.previewBaseHeightCm;
       const previousExtraCtx = buildExtraSettingsContext(
         null,
         previousMaterial,
@@ -838,14 +847,13 @@ export class PrintComponent implements OnInit, OnDestroy {
         previousExtraCtx,
         previousExtraUi,
       );
-      this.rebuildExtraSettingRows();
       if (
         !this.areDynamicDimensionsValid(material, this.printingLengthCm, this.printingWidthCm)
       ) {
         this.printingLengthCm = Number(material.defaultLength);
         this.printingWidthCm = Number(material.defaultHeight);
       }
-      this.persistCanvasSettings();
+      this.finishExtraSettingsUiChange(previousMarginCm, previousBaseWidthCm, previousBaseHeightCm);
       return;
     }
 
@@ -856,6 +864,9 @@ export class PrintComponent implements OnInit, OnDestroy {
       }
       const previousMaterial = materials[this.currentMaterialIndex ?? 0] ?? null;
       const previousColor = this.getColorAtIndex(previousMaterial, this.currentColorIndex);
+      const previousMarginCm = this.previewMarginCm;
+      const previousBaseWidthCm = this.previewBaseWidthCm;
+      const previousBaseHeightCm = this.previewBaseHeightCm;
       const previousExtraCtx = buildExtraSettingsContext(
         this.selectedFixedSize,
         previousMaterial,
@@ -878,8 +889,7 @@ export class PrintComponent implements OnInit, OnDestroy {
         previousExtraCtx,
         previousExtraUi,
       );
-      this.rebuildExtraSettingRows();
-      this.persistCanvasSettings();
+      this.finishExtraSettingsUiChange(previousMarginCm, previousBaseWidthCm, previousBaseHeightCm);
     }
   }
 
@@ -893,40 +903,46 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
     const previousExtraCtx = this.getCurrentExtraSettingsContext();
     const previousExtraUi = { ...this.extraSettingsUi };
+    const previousMarginCm = this.previewMarginCm;
+    const previousBaseWidthCm = this.previewBaseWidthCm;
+    const previousBaseHeightCm = this.previewBaseHeightCm;
     this.currentColorIndex = colorIndex;
     this.extraSettingsUi = reconcileExtraUiStateOnTreeChange(
       this.getCurrentExtraSettingsContext(),
       previousExtraCtx,
       previousExtraUi,
     );
-    this.rebuildExtraSettingRows();
-    this.persistCanvasSettings();
+    this.finishExtraSettingsUiChange(previousMarginCm, previousBaseWidthCm, previousBaseHeightCm);
   }
 
   onExtraSettingEnabledChange(key: ExtraSettingKey, enabled: boolean): void {
     if (this.suppressSettingsPersist || this.settingsControlsDisabled) {
       return;
     }
+    const previousMarginCm = this.previewMarginCm;
+    const previousBaseWidthCm = this.previewBaseWidthCm;
+    const previousBaseHeightCm = this.previewBaseHeightCm;
     const current = this.extraSettingsUi[key] ?? { selectedIndex: 0, enabled: false };
     this.extraSettingsUi = {
       ...this.extraSettingsUi,
       [key]: { ...current, enabled },
     };
-    this.rebuildExtraSettingRows();
-    this.persistCanvasSettings();
+    this.finishExtraSettingsUiChange(previousMarginCm, previousBaseWidthCm, previousBaseHeightCm);
   }
 
   onExtraSettingIndexChange(key: ExtraSettingKey, index: number): void {
     if (this.suppressSettingsPersist || this.settingsControlsDisabled || !Number.isInteger(index)) {
       return;
     }
+    const previousMarginCm = this.previewMarginCm;
+    const previousBaseWidthCm = this.previewBaseWidthCm;
+    const previousBaseHeightCm = this.previewBaseHeightCm;
     const current = this.extraSettingsUi[key] ?? { selectedIndex: 0, enabled: true };
     this.extraSettingsUi = {
       ...this.extraSettingsUi,
       [key]: { ...current, selectedIndex: index, enabled: true },
     };
-    this.rebuildExtraSettingRows();
-    this.persistCanvasSettings();
+    this.finishExtraSettingsUiChange(previousMarginCm, previousBaseWidthCm, previousBaseHeightCm);
   }
 
   getExtraOptionToggleValue(key: ExtraSettingKey): number | null {
@@ -1227,6 +1243,58 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   // --- Canvas placements -----------------------------------------------------
+
+  private finishExtraSettingsUiChange(
+    previousMarginCm: number,
+    previousBaseWidthCm: number,
+    previousBaseHeightCm: number,
+  ): void {
+    this.rebuildExtraSettingRows();
+    const baseUnchanged =
+      this.previewBaseWidthCm === previousBaseWidthCm &&
+      this.previewBaseHeightCm === previousBaseHeightCm;
+    if (baseUnchanged) {
+      this.remapAllPlacementsForMarginChange(
+        previousMarginCm,
+        this.previewMarginCm,
+        previousBaseWidthCm,
+        previousBaseHeightCm,
+      );
+    }
+    this.persistCanvasSettings();
+  }
+
+  private remapAllPlacementsForMarginChange(
+    fromMarginCm: number,
+    toMarginCm: number,
+    baseWidthCm: number,
+    baseHeightCm: number,
+  ): void {
+    if (!this.canvas || fromMarginCm === toMarginCm || baseWidthCm <= 0 || baseHeightCm <= 0) {
+      return;
+    }
+
+    for (const sideName of ['front', 'back'] as PhCanvasSideName[]) {
+      const side = this.getSide(sideName);
+      if (!side?.placements.length) {
+        continue;
+      }
+      const remapped = remapPlacementsOnMarginChange(
+        side.placements,
+        baseWidthCm,
+        baseHeightCm,
+        fromMarginCm,
+        toMarginCm,
+      );
+      side.placements.splice(0, side.placements.length, ...remapped);
+      this.printPreview?.syncPlacementsFromParent(sideName, remapped);
+      this.persistSidePlacements(sideName, remapped);
+    }
+
+    if (this.mockupViewActive) {
+      this.rebuildComposites();
+    }
+  }
 
   onSheetPlacementsChange(payload: { side: PhCanvasSideName; placements: PhCanvasPlacement[] }): void {
     if (!this.canvas) {
