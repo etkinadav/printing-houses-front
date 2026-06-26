@@ -543,6 +543,11 @@ $ph-preview-dim-side-label-offset-px: 15px;
   clip-path: none !important;
 }
 
+/** Duplex margin chrome (white corners + strips) must stay under the interactive canvas. */
+.ph-print-preview-image-layer--canvas.ph-print-preview-image-layer--bleed {
+  z-index: 3;
+}
+
 .ph-print-preview-image-bg {
   position: absolute;
   inset: 0;
