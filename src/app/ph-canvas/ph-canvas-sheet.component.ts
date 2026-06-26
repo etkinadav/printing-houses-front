@@ -43,8 +43,10 @@ const OVERFLOW_PAD_PX = 120;
 const OVERFLOW_PAD_MAX_PX = 2400;
 /** Opacity for the focused image outside the printable sheet bounds. */
 const FOCUS_OUTSIDE_OPACITY = 0.2;
-/** Opacity outside the trim-bleed safe zone (90% transparent). */
-const TRIM_BLEED_OUTSIDE_OPACITY = 0.1;
+/** Opacity outside the trim-bleed safe zone when no image is selected (95% transparent). */
+const TRIM_BLEED_OUTSIDE_OPACITY = 0.05;
+/** Opacity outside the trim-bleed safe zone when an image is selected (90% transparent). */
+const TRIM_BLEED_OUTSIDE_OPACITY_FOCUSED = 0.1;
 /** Minimum overlap (px) between image and sheet when dragging/scaling. */
 const SHEET_MIN_OVERLAP_PX = 1;
 /** Small tolerance for selecting near anti-aliased / transformed image edges. */
@@ -76,7 +78,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
   @Input() files: PhPrintingFile[] = [];
   /** CSS clip-path for the printable area (rounded/chamfer/bleed) — from preview layout. */
   @Input() imageClipPath: string | null = null;
-  /** Clip spec for the trim-bleed safe zone (sheet coords) — dims overflow at 90%. */
+  /** Clip spec for the trim-bleed safe zone (sheet coords) — dims overflow outside bleed. */
   @Input() trimBleedInteriorClipSpec: PhSheetClipSpec | null = null;
   /** Border-radius when corners are rounded without clip-path — from preview layout. */
   @Input() imageBorderRadiusPx = 0;
@@ -904,7 +906,9 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     const shapeClip = this.ensureSheetFabricClip(extended, pad, sheetW, sheetH);
 
     if (trimBleedActive) {
-      img.opacity = TRIM_BLEED_OUTSIDE_OPACITY;
+      img.opacity = focused
+        ? TRIM_BLEED_OUTSIDE_OPACITY_FOCUSED
+        : TRIM_BLEED_OUTSIDE_OPACITY;
       // Unselected: clip to print area so overflow past the sheet is fully hidden.
       img.clipPath = focused ? undefined : shapeClip;
       extended._phTrimBleedRender = true;
