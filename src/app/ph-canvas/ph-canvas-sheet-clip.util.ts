@@ -3,9 +3,16 @@ import { FabricObject, Path, Rect } from 'fabric';
 /** Align Fabric clip with the printable edge. */
 export const SHEET_FRAME_INSET_PX = 0;
 
+export type PhSheetClipRect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
 export type PhSheetClipSpec =
-  | { type: 'rect' }
-  | { type: 'rounded'; radiusPx: number }
+  | { type: 'rect'; bounds?: PhSheetClipRect }
+  | { type: 'rounded'; radiusPx: number; bounds?: PhSheetClipRect }
   | { type: 'polygon'; points: Array<{ x: number; y: number }> }
   | { type: 'path'; pathD: string };
 
@@ -20,7 +27,7 @@ export function resolveSheetClipSpec(
     if (polygonMatch) {
       return { type: 'polygon', points: parsePolygonPairs(polygonMatch[1]) };
     }
-    const pathMatch = clip.match(/^path\(\s*['"]?(.+?)['"]?\s*\)$/i);
+    const pathMatch = clip.match(/^path\(\s*['"](.+)['"]\s*\)$/is);
     if (pathMatch) {
       return { type: 'path', pathD: pathMatch[1] };
     }
@@ -53,6 +60,35 @@ export function getSheetClipRect(
     width: Math.max(1, sheetW - 2 * safeInset),
     height: Math.max(1, sheetH - 2 * safeInset),
   };
+}
+
+function resolveClipBounds(
+  spec: PhSheetClipSpec,
+  pad: number,
+  sheetW: number,
+  sheetH: number,
+  inset = SHEET_FRAME_INSET_PX,
+): { left: number; top: number; width: number; height: number } {
+  const bounds =
+    spec.type === 'rect' || spec.type === 'rounded' ? spec.bounds : undefined;
+  if (bounds) {
+    return {
+      left: pad + bounds.left,
+      top: pad + bounds.top,
+      width: Math.max(1, bounds.width),
+      height: Math.max(1, bounds.height),
+    };
+  }
+  return getSheetClipRect(pad, sheetW, sheetH, inset);
+}
+
+function resolveRoundedClipRadiusPx(
+  spec: Extract<PhSheetClipSpec, { type: 'rounded' }>,
+  clip: { width: number; height: number },
+  inset: number,
+): number {
+  const rawRadius = spec.bounds ? spec.radiusPx : spec.radiusPx - inset;
+  return Math.min(Math.max(0, rawRadius), clip.width / 2, clip.height / 2);
 }
 
 /** Shrink a convex polygon slightly inward (chamfer / bleed outlines). */
@@ -94,10 +130,10 @@ export function createFabricSheetClip(
   sheetH: number,
   inset = SHEET_FRAME_INSET_PX,
 ): FabricObject {
-  const clip = getSheetClipRect(pad, sheetW, sheetH, inset);
+  const clip = resolveClipBounds(spec, pad, sheetW, sheetH, inset);
   switch (spec.type) {
     case 'rounded': {
-      const radius = Math.max(0, spec.radiusPx - inset);
+      const radius = resolveRoundedClipRadiusPx(spec, clip, inset);
       return new Rect({
         left: clip.left,
         top: clip.top,
@@ -149,14 +185,14 @@ export function applySheetClipToContext(
   sheetH: number,
   inset = SHEET_FRAME_INSET_PX,
 ): void {
-  const clip = getSheetClipRect(pad, sheetW, sheetH, inset);
+  const clip = resolveClipBounds(spec, pad, sheetW, sheetH, inset);
   switch (spec.type) {
     case 'rounded': {
       const x = clip.left;
       const y = clip.top;
       const w = clip.width;
       const h = clip.height;
-      const r = Math.min(Math.max(0, spec.radiusPx - inset), w / 2, h / 2);
+      const r = resolveRoundedClipRadiusPx(spec, clip, inset);
       ctx.beginPath();
       if (typeof ctx.roundRect === 'function') {
         ctx.roundRect(x, y, w, h, r);
@@ -212,4 +248,11 @@ export function sheetClipSpecKey(
   imageBorderRadiusPx: number,
 ): string {
   return `${imageClipPath ?? ''}|${imageBorderRadiusPx}`;
+}
+
+export function trimBleedClipSpecKey(spec: PhSheetClipSpec | null | undefined): string {
+  if (!spec) {
+    return '';
+  }
+  return JSON.stringify(spec);
 }

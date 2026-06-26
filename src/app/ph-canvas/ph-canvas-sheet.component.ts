@@ -19,6 +19,7 @@ import {
   applySheetClipToContext,
   createFabricSheetClip,
   getSheetClipRect,
+  PhSheetClipSpec,
   resolveSheetClipSpec,
   sheetClipSpecKey,
 } from './ph-canvas-sheet-clip.util';
@@ -42,6 +43,8 @@ const OVERFLOW_PAD_PX = 120;
 const OVERFLOW_PAD_MAX_PX = 2400;
 /** Opacity for the focused image outside the printable sheet bounds. */
 const FOCUS_OUTSIDE_OPACITY = 0.2;
+/** Opacity outside the trim-bleed safe zone (90% transparent). */
+const TRIM_BLEED_OUTSIDE_OPACITY = 0.1;
 /** Minimum overlap (px) between image and sheet when dragging/scaling. */
 const SHEET_MIN_OVERLAP_PX = 1;
 /** Small tolerance for selecting near anti-aliased / transformed image edges. */
@@ -51,6 +54,7 @@ type PhFabricImage = FabricObject & {
   phPlacement?: PhCanvasPlacement;
   _phOrigRender?: (ctx: CanvasRenderingContext2D) => void;
   _phOverflowRender?: boolean;
+  _phTrimBleedRender?: boolean;
   _phSheetClip?: FabricObject;
   _phSheetClipKey?: string;
   _phOrigContainsPoint?: (point: { x: number; y: number }) => boolean;
@@ -72,6 +76,8 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
   @Input() files: PhPrintingFile[] = [];
   /** CSS clip-path for the printable area (rounded/chamfer/bleed) — from preview layout. */
   @Input() imageClipPath: string | null = null;
+  /** Clip spec for the trim-bleed safe zone (sheet coords) — dims overflow at 90%. */
+  @Input() trimBleedInteriorClipSpec: PhSheetClipSpec | null = null;
   /** Border-radius when corners are rounded without clip-path — from preview layout. */
   @Input() imageBorderRadiusPx = 0;
   /** Disable interaction (e.g. when the canvas is read-only). */
@@ -162,7 +168,9 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       void this.selectByInstanceId(this.selectedPlacementInstanceId);
     }
     if (
-      (changes['imageClipPath'] || changes['imageBorderRadiusPx']) &&
+      (changes['imageClipPath'] ||
+        changes['imageBorderRadiusPx'] ||
+        changes['trimBleedInteriorClipSpec']) &&
       this.canvas
     ) {
       this.syncFocusChrome();
@@ -287,7 +295,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     this.canvas.on('selection:updated', () => this.syncFocusChrome());
     this.canvas.on('selection:cleared', () => this.syncFocusChrome());
     this.canvas.on('after:render', (opt) => {
-      this.drawFocusedImageInterior(opt.ctx);
+      this.drawImageInteriorPasses(opt.ctx);
       this.drawFocusCornerBrackets(opt.ctx);
     });
   }
@@ -864,7 +872,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
 
   private logSelection(_message: string, _detail?: Record<string, unknown>): void {}
 
-  /** Controls + per-image visual state (clip vs 20% overflow) for the active image. */
+  /** Controls + per-image visual state (clip vs dimmed overflow). */
   private syncFocusChrome(): void {
     if (!this.canvas) {
       return;
@@ -881,7 +889,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     this.canvas.requestRenderAll();
   }
 
-  /** Selected: 20% outside / 100% inside (interior pass in after:render). Others: sheet clip. */
+  /** Dimmed overflow outside sheet (focus) or trim-bleed zone; interior redrawn in after:render. */
   private applyImageVisualState(img: FabricImage, focused: boolean): void {
     const extended = img as PhFabricImage;
     img.objectCaching = false;
@@ -891,19 +899,73 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       img._render = extended._phOrigRender;
     }
 
+    const trimBleedActive = this.hasTrimBleedDimming();
     const { pad, sheetW, sheetH } = this.getSheetMetrics();
     const shapeClip = this.ensureSheetFabricClip(extended, pad, sheetW, sheetH);
 
-    if (focused) {
+    if (trimBleedActive) {
+      img.opacity = TRIM_BLEED_OUTSIDE_OPACITY;
+      // Unselected: clip to print area so overflow past the sheet is fully hidden.
+      img.clipPath = focused ? undefined : shapeClip;
+      extended._phTrimBleedRender = true;
+      extended._phOverflowRender = focused;
+    } else if (focused) {
       img.opacity = FOCUS_OUTSIDE_OPACITY;
-      // No clip on the dim pass — full image at 20%; interior shape clip runs in after:render.
       img.clipPath = undefined;
+      extended._phTrimBleedRender = false;
+      extended._phOverflowRender = true;
     } else {
       img.opacity = 1;
       img.clipPath = shapeClip;
+      extended._phTrimBleedRender = false;
+      extended._phOverflowRender = false;
     }
     this.restoreFullHitTesting(extended);
-    extended._phOverflowRender = focused;
+  }
+
+  private hasTrimBleedDimming(): boolean {
+    return !!this.trimBleedInteriorClipSpec;
+  }
+
+  /** Re-draw image interiors at full opacity inside trim-bleed or sheet bounds. */
+  private drawImageInteriorPasses(ctx: CanvasRenderingContext2D): void {
+    if (!this.canvas) {
+      return;
+    }
+    const vpt = this.canvas.viewportTransform;
+    if (!vpt) {
+      return;
+    }
+
+    const { pad, sheetW, sheetH } = this.getSheetMetrics();
+    const sheetSpec = resolveSheetClipSpec(this.imageClipPath, this.imageBorderRadiusPx);
+    const trimSpec = this.hasTrimBleedDimming()
+      ? this.trimBleedInteriorClipSpec
+      : null;
+
+    for (const obj of this.canvas.getObjects()) {
+      if (!(obj instanceof FabricImage)) {
+        continue;
+      }
+      const extended = obj as PhFabricImage;
+      if (!extended._phTrimBleedRender && !extended._phOverflowRender) {
+        continue;
+      }
+
+      const spec = extended._phTrimBleedRender && trimSpec
+        ? trimSpec
+        : sheetSpec;
+
+      ctx.save();
+      ctx.transform(vpt[0], vpt[1], vpt[2], vpt[3], vpt[4], vpt[5]);
+      applySheetClipToContext(ctx, spec, pad, sheetW, sheetH);
+
+      const prevOpacity = obj.opacity;
+      obj.opacity = 1;
+      obj.render(ctx);
+      obj.opacity = prevOpacity;
+      ctx.restore();
+    }
   }
 
   /** Restore Fabric's default containsPoint (never sheet-restrict the active object). */
@@ -926,33 +988,6 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     extended._phSheetClip = createFabricSheetClip(spec, pad, sheetW, sheetH);
     extended._phSheetClipKey = fullKey;
     return extended._phSheetClip;
-  }
-
-  /** Re-draw the focused image at full opacity inside the printable sheet bounds. */
-  private drawFocusedImageInterior(ctx: CanvasRenderingContext2D): void {
-    if (!this.canvas) {
-      return;
-    }
-    const active = this.canvas.getActiveObject();
-    if (!(active instanceof FabricImage) || !(active as PhFabricImage)._phOverflowRender) {
-      return;
-    }
-    const vpt = this.canvas.viewportTransform;
-    if (!vpt) {
-      return;
-    }
-    const { pad, sheetW, sheetH } = this.getSheetMetrics();
-    const spec = resolveSheetClipSpec(this.imageClipPath, this.imageBorderRadiusPx);
-
-    ctx.save();
-    ctx.transform(vpt[0], vpt[1], vpt[2], vpt[3], vpt[4], vpt[5]);
-    applySheetClipToContext(ctx, spec, pad, sheetW, sheetH);
-
-    const prevOpacity = active.opacity;
-    active.opacity = 1;
-    active.render(ctx);
-    active.opacity = prevOpacity;
-    ctx.restore();
   }
 
   /** The printable image layer (parent of this component) — not the expanded host. */

@@ -1,4 +1,5 @@
 import { CornerType } from '../ph-products/ph-product.model';
+import type { PhSheetClipSpec } from '../ph-canvas/ph-canvas-sheet-clip.util';
 
 export interface PhPrintPreviewDimSegment {
   sizePx: number;
@@ -76,6 +77,8 @@ export interface PhPrintPreviewLayout {
   hasTrimBleedGuide: boolean;
   trimBleedGuidePolygonPoints: string | null;
   trimBleedGuidePath: string | null;
+  /** Clip spec for the trim-bleed safe zone (sheet coordinates; canvas dimming). */
+  trimBleedInteriorClipSpec: PhSheetClipSpec | null;
 }
 
 /** Bundle gutters — keep in sync with ph-print-preview.component.scss */
@@ -278,6 +281,7 @@ export function computePhPrintPreviewLayout(
       factor,
       baseWidthPx,
       baseHeightPx,
+      bleedPx,
       input.cornerType,
       cornerRadiusPx,
     ),
@@ -721,19 +725,26 @@ function buildTrimBleedGuideLayout(
   factor: number,
   baseWidthPx: number,
   baseHeightPx: number,
+  duplexBleedPx: number,
   cornerType: CornerType | 'none',
   cornerRadiusPx: number,
 ): Pick<
   PhPrintPreviewLayout,
-  'hasTrimBleedGuide' | 'trimBleedGuidePolygonPoints' | 'trimBleedGuidePath'
+  | 'hasTrimBleedGuide'
+  | 'trimBleedGuidePolygonPoints'
+  | 'trimBleedGuidePath'
+  | 'trimBleedInteriorClipSpec'
 > {
+  const empty = {
+    hasTrimBleedGuide: false,
+    trimBleedGuidePolygonPoints: null,
+    trimBleedGuidePath: null,
+    trimBleedInteriorClipSpec: null,
+  };
+
   const trimBleedPx = Math.max(0, Number(trimBleedCm) || 0) * factor;
   if (trimBleedPx <= 0 || baseWidthPx <= 0 || baseHeightPx <= 0) {
-    return {
-      hasTrimBleedGuide: false,
-      trimBleedGuidePolygonPoints: null,
-      trimBleedGuidePath: null,
-    };
+    return empty;
   }
 
   const insetPx = clampTrimBleedInsetPx(
@@ -744,11 +755,19 @@ function buildTrimBleedGuideLayout(
     cornerRadiusPx,
   );
   if (insetPx <= 0) {
-    return {
-      hasTrimBleedGuide: false,
-      trimBleedGuidePolygonPoints: null,
-      trimBleedGuidePath: null,
-    };
+    return empty;
+  }
+
+  const interiorClipSpec = buildTrimBleedInteriorClipSpec(
+    baseWidthPx,
+    baseHeightPx,
+    duplexBleedPx,
+    insetPx,
+    cornerType,
+    cornerRadiusPx,
+  );
+  if (!interiorClipSpec) {
+    return empty;
   }
 
   const hasCorner = cornerType !== 'none' && cornerRadiusPx > 0;
@@ -762,6 +781,7 @@ function buildTrimBleedGuideLayout(
         cornerRadiusPx,
         insetPx,
       ),
+      trimBleedInteriorClipSpec: interiorClipSpec,
     };
   }
 
@@ -776,6 +796,7 @@ function buildTrimBleedGuideLayout(
       hasTrimBleedGuide: !!chamferPoints,
       trimBleedGuidePolygonPoints: chamferPoints,
       trimBleedGuidePath: null,
+      trimBleedInteriorClipSpec: interiorClipSpec,
     };
   }
 
@@ -787,6 +808,7 @@ function buildTrimBleedGuideLayout(
       insetPx,
     ),
     trimBleedGuidePath: null,
+    trimBleedInteriorClipSpec: interiorClipSpec,
   };
 }
 
@@ -842,6 +864,54 @@ function buildTrimBleedRectGuidePoints(
     `${w - t},${h - t}`,
     `${t},${h - t}`,
   ].join(' ');
+}
+
+/** Clip spec for trim-bleed safe zone in sheet coordinates (includes duplex offset). */
+function buildTrimBleedInteriorClipSpec(
+  baseWidthPx: number,
+  baseHeightPx: number,
+  duplexBleedPx: number,
+  insetPx: number,
+  cornerType: CornerType | 'none',
+  cornerRadiusPx: number,
+): PhSheetClipSpec | null {
+  const ox = duplexBleedPx;
+  const oy = duplexBleedPx;
+  const w = baseWidthPx;
+  const h = baseHeightPx;
+  const t = insetPx;
+
+  if (t <= 0 || w - 2 * t < 1 || h - 2 * t < 1) {
+    return null;
+  }
+
+  const bounds = {
+    left: ox + t,
+    top: oy + t,
+    width: w - 2 * t,
+    height: h - 2 * t,
+  };
+
+  if (cornerType === 'rounded' && cornerRadiusPx > 0) {
+    return {
+      type: 'rounded',
+      radiusPx: Math.max(0, cornerRadiusPx - t),
+      bounds,
+    };
+  }
+
+  if (cornerType === 'chamfer' && cornerRadiusPx > 0) {
+    const points = buildOffsetChamferPolygonPoints(w, h, cornerRadiusPx, t);
+    if (points.length < 3) {
+      return null;
+    }
+    return {
+      type: 'polygon',
+      points: points.map((point) => ({ x: point.x + ox, y: point.y + oy })),
+    };
+  }
+
+  return { type: 'rect', bounds };
 }
 
 function buildTrimBleedChamferGuidePoints(
@@ -915,24 +985,50 @@ function buildTrimBleedRoundedGuidePathD(
   heightPx: number,
   radiusPx: number,
   insetPx: number,
+  originX = 0,
+  originY = 0,
+): string {
+  const strokeInset =
+    originX === 0 && originY === 0 ? TRIM_BLEED_GUIDE_STROKE_INSET_PX : 0;
+  return buildTrimBleedRoundedPathAt(
+    widthPx,
+    heightPx,
+    radiusPx,
+    insetPx,
+    originX,
+    originY,
+    strokeInset,
+  );
+}
+
+function buildTrimBleedRoundedPathAt(
+  widthPx: number,
+  heightPx: number,
+  radiusPx: number,
+  insetPx: number,
+  originX: number,
+  originY: number,
+  strokeInsetPx: number,
 ): string {
   const w = widthPx;
   const h = heightPx;
-  const t = insetPx + TRIM_BLEED_GUIDE_STROKE_INSET_PX;
+  const t = insetPx + strokeInsetPx;
+  const ox = originX;
+  const oy = originY;
   const r = Math.max(0, radiusPx - insetPx);
   if (r <= 0.5) {
-    return `M ${t} ${t} L ${w - t} ${t} L ${w - t} ${h - t} L ${t} ${h - t} Z`;
+    return `M ${ox + t} ${oy + t} L ${ox + w - t} ${oy + t} L ${ox + w - t} ${oy + h - t} L ${ox + t} ${oy + h - t} Z`;
   }
   return [
-    `M ${t + r} ${t}`,
-    `L ${w - t - r} ${t}`,
-    `A ${r} ${r} 0 0 1 ${w - t} ${t + r}`,
-    `L ${w - t} ${h - t - r}`,
-    `A ${r} ${r} 0 0 1 ${w - t - r} ${h - t}`,
-    `L ${t + r} ${h - t}`,
-    `A ${r} ${r} 0 0 1 ${t} ${h - t - r}`,
-    `L ${t} ${t + r}`,
-    `A ${r} ${r} 0 0 1 ${t + r} ${t}`,
+    `M ${ox + t + r} ${oy + t}`,
+    `L ${ox + w - t - r} ${oy + t}`,
+    `A ${r} ${r} 0 0 1 ${ox + w - t} ${oy + t + r}`,
+    `L ${ox + w - t} ${oy + h - t - r}`,
+    `A ${r} ${r} 0 0 1 ${ox + w - t - r} ${oy + h - t}`,
+    `L ${ox + t + r} ${oy + h - t}`,
+    `A ${r} ${r} 0 0 1 ${ox + t} ${oy + h - t - r}`,
+    `L ${ox + t} ${oy + t + r}`,
+    `A ${r} ${r} 0 0 1 ${ox + t + r} ${oy + t}`,
     'Z',
   ].join(' ');
 }
