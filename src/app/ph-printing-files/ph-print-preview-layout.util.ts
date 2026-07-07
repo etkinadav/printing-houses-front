@@ -79,6 +79,10 @@ export interface PhPrintPreviewLayout {
   trimBleedGuidePath: string | null;
   /** Clip spec for the trim-bleed safe zone (sheet coordinates; canvas dimming). */
   trimBleedInteriorClipSpec: PhSheetClipSpec | null;
+  /** Dashed guide at the duplex-margin / central-print boundary (base-frame coords). */
+  hasDuplexMarginGuide: boolean;
+  duplexMarginGuidePolygonPoints: string | null;
+  duplexMarginGuidePath: string | null;
 }
 
 /** Bundle gutters — keep in sync with ph-print-preview.component.scss */
@@ -282,6 +286,13 @@ export function computePhPrintPreviewLayout(
       baseWidthPx,
       baseHeightPx,
       bleedPx,
+      input.cornerType,
+      cornerRadiusPx,
+    ),
+    ...buildDuplexMarginGuideLayout(
+      bleedPx,
+      baseWidthPx,
+      baseHeightPx,
       input.cornerType,
       cornerRadiusPx,
     ),
@@ -565,23 +576,25 @@ function buildBleedChamferOutlinePointList(
   const w = sheetWidthPx;
   const h = sheetHeightPx;
   const r = radiusPx;
+  // Mirror buildBleedRoundedPathD: bleed strips meet chamfer via axis-aligned
+  // segments, then the 45° cut — not a diagonal from the outer bleed edge.
   return [
     [b, 0],
     [w - b, 0],
+    [w - b, b - r],
     [w - b - r, b],
-    [w - b, b + r],
     [w, b],
     [w, h - b],
-    [w - b, h - b - r],
-    [w - b - r, h - b],
+    [w - b + r, h - b],
+    [w - b, h - b + r],
     [w - b, h],
     [b, h],
+    [b, h - b + r],
     [b + r, h - b],
-    [b, h - b - r],
     [0, h - b],
     [0, b],
-    [b, b + r],
-    [b + r, b],
+    [b - r, b],
+    [b, b - r],
   ];
 }
 
@@ -809,6 +822,68 @@ function buildTrimBleedGuideLayout(
     ),
     trimBleedGuidePath: null,
     trimBleedInteriorClipSpec: interiorClipSpec,
+  };
+}
+
+/** Dashed guide on the outer edge of the central print area (duplex margin boundary). */
+function buildDuplexMarginGuideLayout(
+  duplexBleedPx: number,
+  baseWidthPx: number,
+  baseHeightPx: number,
+  cornerType: CornerType | 'none',
+  cornerRadiusPx: number,
+): Pick<
+  PhPrintPreviewLayout,
+  | 'hasDuplexMarginGuide'
+  | 'duplexMarginGuidePolygonPoints'
+  | 'duplexMarginGuidePath'
+> {
+  const empty = {
+    hasDuplexMarginGuide: false,
+    duplexMarginGuidePolygonPoints: null,
+    duplexMarginGuidePath: null,
+  };
+
+  if (duplexBleedPx <= 0 || baseWidthPx <= 0 || baseHeightPx <= 0) {
+    return empty;
+  }
+
+  const hasCorner = cornerType !== 'none' && cornerRadiusPx > 0;
+  if (hasCorner && cornerType === 'rounded') {
+    return {
+      hasDuplexMarginGuide: true,
+      duplexMarginGuidePolygonPoints: null,
+      duplexMarginGuidePath: buildTrimBleedRoundedGuidePathD(
+        baseWidthPx,
+        baseHeightPx,
+        cornerRadiusPx,
+        0,
+      ),
+    };
+  }
+
+  if (hasCorner && cornerType === 'chamfer') {
+    const chamferPoints = buildTrimBleedChamferGuidePoints(
+      baseWidthPx,
+      baseHeightPx,
+      cornerRadiusPx,
+      0,
+    );
+    return {
+      hasDuplexMarginGuide: !!chamferPoints,
+      duplexMarginGuidePolygonPoints: chamferPoints,
+      duplexMarginGuidePath: null,
+    };
+  }
+
+  return {
+    hasDuplexMarginGuide: true,
+    duplexMarginGuidePolygonPoints: buildTrimBleedRectGuidePoints(
+      baseWidthPx,
+      baseHeightPx,
+      0,
+    ),
+    duplexMarginGuidePath: null,
   };
 }
 

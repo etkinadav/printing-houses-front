@@ -734,6 +734,12 @@ $ph-preview-dim-side-label-offset-px: 15px;
   overflow: hidden;
 }
 
+.ph-print-preview-folding-overlay__line {
+  stroke: rgba(0, 0, 0, 0.32);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
 .ph-print-preview-trim-bleed-guide {
   position: absolute;
   inset: 0;
