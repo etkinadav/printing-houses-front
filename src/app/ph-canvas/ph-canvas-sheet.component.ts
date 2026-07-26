@@ -774,6 +774,10 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     };
   }
 
+  /**
+   * Hit-test a sheet-normalized pointer against a placement.
+   * Accounts for rotation around the placement origin (Fabric left/top).
+   */
   private isNormalizedPointInPlacement(
     point: { x: number; y: number },
     placement: PhCanvasPlacement,
@@ -781,13 +785,30 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     sheetH: number,
     tolerancePx = SELECTION_HIT_TOLERANCE_PX,
   ): boolean {
-    const tolX = tolerancePx / sheetW;
-    const tolY = tolerancePx / sheetH;
+    const ox = placement.x * sheetW;
+    const oy = placement.y * sheetH;
+    const w = Math.max(0, placement.width * sheetW);
+    const h = Math.max(0, placement.height * sheetH);
+    const dx = point.x * sheetW - ox;
+    const dy = point.y * sheetH - oy;
+
+    let localX = dx;
+    let localY = dy;
+    const angleDeg = placement.rotation || 0;
+    if (Math.abs(angleDeg) > PLACEMENT_EPS) {
+      const rad = (angleDeg * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      // Inverse of canvas/Fabric rotation around the placement origin.
+      localX = dx * cos + dy * sin;
+      localY = -dx * sin + dy * cos;
+    }
+
     return (
-      point.x >= placement.x - tolX &&
-      point.x <= placement.x + placement.width + tolX &&
-      point.y >= placement.y - tolY &&
-      point.y <= placement.y + placement.height + tolY
+      localX >= -tolerancePx &&
+      localX <= w + tolerancePx &&
+      localY >= -tolerancePx &&
+      localY <= h + tolerancePx
     );
   }
 
