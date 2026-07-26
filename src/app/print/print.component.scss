@@ -791,19 +791,15 @@
     gap: 5px;
   }
 
-  .zx-page-obj {
+  /* Match mobile tile size — image-only cards, no tall filename header. */
+  .zx-page-obj,
+  .zx-page-obj-first {
     width: 150px;
     min-width: 150px;
     max-width: 150px;
-    height: 201px;
-    min-height: 201px;
-    max-height: 201px;
-  }
-
-  .zx-page-obj-first {
-    height: 225px;
-    min-height: 225px;
-    max-height: 225px;
+    height: 120px;
+    min-height: 120px;
+    max-height: 120px;
   }
 }
 
@@ -1142,12 +1138,6 @@
   opacity: 1;
 }
 
-@media only screen and (min-width: 768px) {
-  .delete-button-fix-mobile {
-    opacity: 0;
-  }
-}
-
 .zx-img-obj-container:hover .delete-button {
   opacity: 1;
 }
@@ -1190,12 +1180,6 @@
 
 .ph-add-to-canvas-button-fix-mobile {
   opacity: 1;
-}
-
-@media only screen and (min-width: 768px) {
-  .ph-add-to-canvas-button-fix-mobile {
-    opacity: 0;
-  }
 }
 
 .zx-img-obj-container:hover .ph-add-to-canvas-button {

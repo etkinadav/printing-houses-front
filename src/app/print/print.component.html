@@ -222,19 +222,15 @@
                                 class="zx-img-obj-container-container c-grab rounded-3 d-flex flex-column zx-border-gray-v-v-light shadow-85-light w-100 h-100 flex-grow-1"
                                 [class.zx-border-gray-25-pr]="isDarkMode"
                                 [class.bg-white]="isDarkMode">
-                                <span
-                                  class="zx-text-tiny fw-bold w-100 text-center"
-                                  [class.text-black-imp]="isDarkMode">
-                                  <span>{{ getDisplayFileName(item.entry.file) | slice: 0 : 16 }}</span>
-                                  <span class="zx-text-tiny" *ngIf="getDisplayFileName(item.entry.file).length > 16">
-                                    ...
-                                  </span>
-                                  <span class="zx-text-tiny" *ngIf="isFileListEntryGroupedMultiPage(item.entry)">
-                                    ({{ j + 1 }}/{{ item.entry.images.length }})
-                                  </span>
-                                </span>
                                 <div class="zx-img-obj-container">
                                   <img [src]="image.thumbnailUrl" class="zx-img-obj" alt="" draggable="false" />
+                                  <div
+                                    *ngIf="isFileListEntryGroupedMultiPage(item.entry)"
+                                    class="position-absolute w-100 px-2 d-flex top-0 pt-1">
+                                    <span class="zx-text-tiny p-1 zx-bg-light zx-text-gray-dark">
+                                      {{ j + 1 }}/{{ item.entry.images.length }}
+                                    </span>
+                                  </div>
                                   <div
                                     class="position-absolute d-flex justify-content-between align-items-center px-2 zx-pb-12 rounded-pill bottom-0 zx-z-index-1 w-100">
                                     <div
