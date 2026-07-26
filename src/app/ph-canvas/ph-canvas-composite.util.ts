@@ -179,12 +179,13 @@ export async function renderCanvasSideComposite(
     }
     const dw = Math.max(1, placement.width * W);
     const dh = Math.max(1, placement.height * H);
-    const cx = placement.x * W + dw / 2;
-    const cy = placement.y * H + dh / 2;
+    // Match Fabric sheet objects: origin at top-left, rotation around that origin.
+    const ox = placement.x * W;
+    const oy = placement.y * H;
     ctx.save();
-    ctx.translate(cx, cy);
+    ctx.translate(ox, oy);
     ctx.rotate(((placement.rotation || 0) * Math.PI) / 180);
-    ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
+    ctx.drawImage(img, 0, 0, dw, dh);
     ctx.restore();
   }
 
