@@ -45,3 +45,52 @@
   padding: 0 !important;
   overflow: visible !important;
 }
+
+.ph-canvas-hover-actions {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  transform: translate(-50%, calc(-100% - 8px));
+  pointer-events: auto;
+}
+
+.ph-canvas-hover-actions__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #333;
+  cursor: pointer;
+  line-height: 1;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ph-canvas-hover-actions__btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--zx-green, #26a69a);
+}
+
+.ph-canvas-hover-actions__btn--danger:hover {
+  color: #d32f2f;
+  background: rgba(211, 47, 47, 0.08);
+}
+
+.ph-canvas-hover-actions__btn mat-icon,
+:host ::ng-deep .ph-canvas-hover-actions__btn .mat-icon {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+  line-height: 20px;
+}

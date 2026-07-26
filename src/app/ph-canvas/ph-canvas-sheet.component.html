@@ -4,4 +4,31 @@
   (dragover)="onDragOver($event)"
   (drop)="onDrop($event)">
   <canvas #canvasEl class="ph-canvas-sheet-canvas"></canvas>
+
+  <div
+    *ngIf="hoverActions.visible"
+    class="ph-canvas-hover-actions"
+    [style.left.px]="hoverActions.leftPx"
+    [style.top.px]="hoverActions.topPx"
+    (mouseenter)="onHoverActionsEnter()"
+    (mouseleave)="onHoverActionsLeave()"
+    (pointerdown)="$event.stopPropagation()"
+    (mousedown)="$event.stopPropagation()">
+    <button
+      type="button"
+      class="ph-canvas-hover-actions__btn"
+      [attr.aria-label]="'printing-table.rotate' | translate"
+      [title]="'printing-table.rotate' | translate"
+      (click)="onHoverRotate($event)">
+      <mat-icon aria-hidden="true">rotate_right</mat-icon>
+    </button>
+    <button
+      type="button"
+      class="ph-canvas-hover-actions__btn ph-canvas-hover-actions__btn--danger"
+      [attr.aria-label]="'ph-print.layers.delete' | translate"
+      [title]="'ph-print.layers.delete' | translate"
+      (click)="onHoverDelete($event)">
+      <mat-icon aria-hidden="true">delete_outline</mat-icon>
+    </button>
+  </div>
 </div>

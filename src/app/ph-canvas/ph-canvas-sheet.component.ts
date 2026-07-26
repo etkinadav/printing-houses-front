@@ -1,9 +1,11 @@
 import {
   AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   EventEmitter,
   Input,
+  NgZone,
   OnChanges,
   OnDestroy,
   Output,
@@ -62,6 +64,13 @@ type PhFabricImage = FabricObject & {
   _phOrigContainsPoint?: (point: { x: number; y: number }) => boolean;
 };
 
+type PhHoverActionsState = {
+  visible: boolean;
+  leftPx: number;
+  topPx: number;
+  instanceId: string | null;
+};
+
 /**
  * Interactive Fabric.js sheet for one canvas side. Renders placed page-images,
  * accepts dropped pages, supports corner-only proportional resize/rotate, and
@@ -93,9 +102,19 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
   @ViewChild('host', { static: true }) hostRef!: ElementRef<HTMLDivElement>;
   @ViewChild('canvasEl', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
 
+  /** Floating rotate/delete toolbar shown while hovering a placement. */
+  hoverActions: PhHoverActionsState = {
+    visible: false,
+    leftPx: 0,
+    topPx: 0,
+    instanceId: null,
+  };
+
   constructor(
     private readonly rootRef: ElementRef<HTMLElement>,
     private readonly interactionService: PhCanvasInteractionService,
+    private readonly ngZone: NgZone,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   /** Internal source of truth — normalized placements rendered onto the canvas. */
@@ -114,6 +133,9 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
   private interactionSub?: Subscription;
   /** Side key used in PhCanvasInteractionService (updated when @Input side changes). */
   private registeredSide: PhCanvasSideName | null = null;
+  /** Keep hover toolbar visible while the pointer is over the toolbar itself. */
+  private hoverActionsPinned = false;
+  private clearHoverTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngAfterViewInit(): void {
     this.viewReady = true;
@@ -163,6 +185,7 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     if (changes['interactive'] && this.canvas) {
       if (!this.interactive) {
         this.canvas.discardActiveObject();
+        this.clearHoverActions();
       }
       this.applyInteractivity();
     }
@@ -182,6 +205,10 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
   ngOnDestroy(): void {
     if (this.persistTimer) {
       clearTimeout(this.persistTimer);
+    }
+    if (this.clearHoverTimer) {
+      clearTimeout(this.clearHoverTimer);
+      this.clearHoverTimer = null;
     }
     this.resizeObserver?.disconnect();
     this.interactionSub?.unsubscribe();
@@ -215,16 +242,19 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       this.interactionService.claim(this.side);
       this.constrainActiveObjectToSheet(event.target as FabricObject);
       this.syncOverflowPadFromActive(true);
+      this.refreshHoverActionsForCurrent();
     });
     this.canvas.on('object:scaling', (event) => {
       this.interactionService.claim(this.side);
       this.constrainActiveObjectToSheet(event.target as FabricObject);
       this.syncOverflowPadFromActive(true);
+      this.refreshHoverActionsForCurrent();
     });
     this.canvas.on('object:rotating', (event) => {
       this.interactionService.claim(this.side);
       this.constrainActiveObjectToSheet(event.target as FabricObject);
       this.canvas?.requestRenderAll();
+      this.refreshHoverActionsForCurrent();
     });
     this.bindFocusHandlers();
     this.refreshAccentGreen();
@@ -288,10 +318,15 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       const event = opt.e as PointerEvent;
       if (!this.isPointerActiveForThisSheet(event)) {
         this.canvas.hoverCursor = 'default';
+        this.clearHoverActions();
         return;
       }
       const hoverTarget = this.resolveImageTarget(event);
       this.canvas.hoverCursor = hoverTarget ? 'move' : 'default';
+      this.syncHoverActions(hoverTarget);
+    });
+    this.canvas.on('mouse:out', () => {
+      this.scheduleClearHoverActions();
     });
     this.canvas.on('selection:created', () => this.syncFocusChrome());
     this.canvas.on('selection:updated', () => this.syncFocusChrome());
@@ -299,6 +334,153 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     this.canvas.on('after:render', (opt) => {
       this.drawImageInteriorPasses(opt.ctx);
       this.drawFocusCornerBrackets(opt.ctx);
+    });
+  }
+
+  onHoverActionsEnter(): void {
+    this.cancelClearHoverActions();
+    this.hoverActionsPinned = true;
+  }
+
+  onHoverActionsLeave(): void {
+    this.hoverActionsPinned = false;
+    this.clearHoverActions();
+  }
+
+  onHoverRotate(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const obj = this.findHoverImage();
+    if (!obj) {
+      return;
+    }
+    this.rotateImageBy90(obj);
+  }
+
+  onHoverDelete(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const instanceId = this.hoverActions.instanceId;
+    if (!instanceId) {
+      return;
+    }
+    this.clearHoverActions();
+    this.removeByInstanceId(instanceId);
+  }
+
+  private findHoverImage(): FabricImage | null {
+    if (!this.canvas || !this.hoverActions.instanceId) {
+      return null;
+    }
+    const key = this.hoverActions.instanceId;
+    const match = (this.canvas.getObjects() as PhFabricImage[]).find(
+      (obj) => obj.phPlacement && this.placementKey(obj.phPlacement) === key,
+    );
+    return match instanceof FabricImage ? match : null;
+  }
+
+  /** Rotate 90° clockwise around the image center and persist orientation. */
+  private rotateImageBy90(img: FabricImage): void {
+    const center = img.getCenterPoint();
+    const nextAngle = ((img.angle || 0) + 90) % 360;
+    img.set('angle', nextAngle);
+    img.setPositionByOrigin(center, 'center', 'center');
+    img.setCoords();
+    this.gestureStartPlacement = null;
+    this.restoreStackOrderFromModel();
+    this.onObjectsChanged();
+    this.syncFocusChrome();
+    this.showHoverActionsForObject(img);
+  }
+
+  private syncHoverActions(target: FabricImage | null): void {
+    if (!this.interactive) {
+      this.clearHoverActions();
+      return;
+    }
+    if (!target) {
+      if (!this.hoverActionsPinned) {
+        this.scheduleClearHoverActions();
+      }
+      return;
+    }
+    this.cancelClearHoverActions();
+    this.showHoverActionsForObject(target);
+  }
+
+  private scheduleClearHoverActions(): void {
+    if (this.hoverActionsPinned || this.clearHoverTimer) {
+      return;
+    }
+    this.clearHoverTimer = setTimeout(() => {
+      this.clearHoverTimer = null;
+      if (!this.hoverActionsPinned) {
+        this.clearHoverActions();
+      }
+    }, 80);
+  }
+
+  private cancelClearHoverActions(): void {
+    if (this.clearHoverTimer) {
+      clearTimeout(this.clearHoverTimer);
+      this.clearHoverTimer = null;
+    }
+  }
+
+  private refreshHoverActionsForCurrent(): void {
+    if (!this.hoverActions.visible || !this.hoverActions.instanceId) {
+      return;
+    }
+    const obj = this.findHoverImage();
+    if (obj) {
+      this.showHoverActionsForObject(obj);
+    } else {
+      this.clearHoverActions();
+    }
+  }
+
+  private showHoverActionsForObject(img: FabricImage): void {
+    const placement = (img as PhFabricImage).phPlacement;
+    if (!placement) {
+      this.clearHoverActions();
+      return;
+    }
+    const rect = img.getBoundingRect();
+    const next: PhHoverActionsState = {
+      visible: true,
+      leftPx: rect.left + rect.width / 2,
+      topPx: rect.top,
+      instanceId: this.placementKey(placement),
+    };
+    if (
+      this.hoverActions.visible &&
+      this.hoverActions.instanceId === next.instanceId &&
+      Math.abs(this.hoverActions.leftPx - next.leftPx) < 0.5 &&
+      Math.abs(this.hoverActions.topPx - next.topPx) < 0.5
+    ) {
+      return;
+    }
+    this.ngZone.run(() => {
+      this.hoverActions = next;
+      this.cdr.detectChanges();
+    });
+  }
+
+  private clearHoverActions(): void {
+    this.cancelClearHoverActions();
+    if (!this.hoverActions.visible && !this.hoverActions.instanceId) {
+      this.hoverActionsPinned = false;
+      return;
+    }
+    this.ngZone.run(() => {
+      this.hoverActionsPinned = false;
+      this.hoverActions = {
+        visible: false,
+        leftPx: 0,
+        topPx: 0,
+        instanceId: null,
+      };
+      this.cdr.detectChanges();
     });
   }
 
