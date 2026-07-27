@@ -1,0 +1,30 @@
+<div class="ph-home-catalog-mockup" *ngIf="hasCatalogCanvas || fallbackPreviewUrl">
+  <div *ngIf="loading" class="ph-home-catalog-mockup__loading" aria-busy="true">
+    <mat-spinner diameter="22"></mat-spinner>
+  </div>
+
+  <app-ph-print-mockup-preview
+    *ngIf="view as vm"
+    class="ph-home-catalog-mockup__preview"
+    [mockup]="vm.mockup"
+    [printImageUrl]="vm.compositeUrl"
+    [baseWidthCm]="vm.baseWidthCm"
+    [baseHeightCm]="vm.baseHeightCm"
+    [marginCm]="0"
+    [cornerType]="vm.cornerType"
+    [cornerRadiusCm]="vm.cornerRadiusCm"
+    [foldingCount]="vm.foldingCount"
+    [foldingOffsetCm]="vm.foldingOffsetCm"
+    [sheetBackgroundStyles]="vm.sheetBackgroundStyles"
+    [isRTL]="isRTL"
+    [isDarkMode]="isDarkMode"
+    [dynamicDimensionsActive]="vm.dynamicDimensionsActive">
+  </app-ph-print-mockup-preview>
+
+  <img
+    *ngIf="!loading && !view && fallbackPreviewUrl"
+    [src]="fallbackPreviewUrl"
+    class="ph-home-catalog-mockup__fallback"
+    alt=""
+  />
+</div>

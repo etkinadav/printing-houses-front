@@ -12,6 +12,7 @@ import { AngularMaterialModule } from './angular-material.module';
 
 import { MainNavComponent } from './main-nav/main-nav.component';
 import { HomeComponent } from './home/home.component';
+import { PhHomeCatalogMockupComponent } from './home/ph-home-catalog-mockup.component';
 
 import { BidiModule } from '@angular/cdk/bidi';
 import { DragDropModule } from '@angular/cdk/drag-drop';
@@ -51,6 +52,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
     AppComponent,
     MainNavComponent,
     HomeComponent,
+    PhHomeCatalogMockupComponent,
     PreloginComponent,
     SocialComponent,
     TAndCComponent,

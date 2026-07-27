@@ -8,6 +8,15 @@
 
 }
 
+/** Hide guides/spinners while exporting catalog mockup PNG. */
+.ph-print-mockup-host--capturing {
+  .ph-print-mockup-loading,
+  .ph-print-mockup-print-area-guide,
+  .ph-print-mockup-folding-overlay {
+    display: none !important;
+  }
+}
+
 
 
 :host {

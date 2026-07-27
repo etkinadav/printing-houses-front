@@ -48,6 +48,7 @@ import {
   DynamicMockupAspectSplit,
   DynamicMockupPrintRectNorm,
 } from '../ph-printing-files/ph-print-mockup-dynamic-aspect.util';
+import { phCanvasProxiedImageUrl } from '../ph-canvas/ph-canvas.model';
 
 /** Canvas-composite print opacity in mockup (0.8 = 20% transparent). */
 export const MOCKUP_CANVAS_PRINT_OPACITY = 0.8;
@@ -138,7 +139,9 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['mockup']) {
-      this.mockupUrl = this.mockup?.url?.trim() ?? '';
+      const rawUrl = this.mockup?.url?.trim() ?? '';
+      // Proxy remote mockup images so DOM→PNG capture is not CORS-tainted.
+      this.mockupUrl = rawUrl ? phCanvasProxiedImageUrl(rawUrl) : '';
       this.printOverlay = this.mockup?.printArea
         ? buildMockupPrintOverlay(this.mockup.printArea)
         : null;
@@ -184,6 +187,51 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       clearTimeout(this.measureRetryTimer);
     }
     this.printImageProbe = undefined;
+  }
+
+  /**
+   * Export the on-screen mockup simulation (product photo + warped composite)
+   * as a PNG data URL — matches what the user sees in the print table.
+   */
+  async captureMockupFramePng(options?: { pixelRatio?: number }): Promise<string | null> {
+    await this.waitUntilCaptureReady();
+    const frame = this.mockupFrame?.nativeElement;
+    if (!frame || frame.clientWidth < 2 || frame.clientHeight < 2) {
+      return null;
+    }
+
+    const host = this.hostRef.nativeElement;
+    host.classList.add('ph-print-mockup-host--capturing');
+    this.cdr.detectChanges();
+
+    try {
+      // One paint after hiding guides.
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      const { toPng } = await import('html-to-image');
+      return await toPng(frame, {
+        pixelRatio: options?.pixelRatio ?? 2,
+        cacheBust: true,
+        // Prefer proxy-loaded assets; skip fonts that can hang capture.
+        skipFonts: true,
+      });
+    } finally {
+      host.classList.remove('ph-print-mockup-host--capturing');
+      this.cdr.detectChanges();
+    }
+  }
+
+  private async waitUntilCaptureReady(timeoutMs = 8000): Promise<void> {
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      const frame = this.mockupFrame?.nativeElement;
+      const sized = !!frame && frame.clientWidth >= 2 && frame.clientHeight >= 2;
+      if (!this.mockupLoading && sized && this.mockupUrl && this.printOverlay) {
+        // Allow fold-strip / warp measure to settle after composite arrives.
+        await new Promise<void>((resolve) => setTimeout(resolve, 120));
+        return;
+      }
+      await new Promise<void>((resolve) => setTimeout(resolve, 50));
+    }
   }
 
   private syncPrintImageDimensions(): void {

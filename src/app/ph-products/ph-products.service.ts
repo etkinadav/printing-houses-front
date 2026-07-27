@@ -3,9 +3,24 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { environment } from 'src/environments/environment';
+import { PhCanvasSide } from '../ph-canvas/ph-canvas.model';
+import {
+  PhPrintingFile,
+  PhPrintingFilePrintSettings,
+} from '../ph-printing-files/ph-printing-file.model';
 import { CreatePhProductPayload, PhProduct, UpdatePhProductPayload } from './ph-product.model';
 
 const BACKEND_URL = environment.apiUrl + '/ph-products';
+
+export interface PhPublicCatalogMockupResponse {
+  message: string;
+  canvas: {
+    _id: string;
+    printSettings: PhPrintingFilePrintSettings;
+    sides: PhCanvasSide[];
+  };
+  files: PhPrintingFile[];
+}
 
 @Injectable({
   providedIn: 'root',
@@ -55,6 +70,12 @@ export class PhProductsService {
     return this.http.put<{ message: string; product: PhProduct }>(
       `${BACKEND_URL}/${id}/catalog-mockup`,
       payload,
+    );
+  }
+
+  getPublicCatalogMockup(productId: string): Observable<PhPublicCatalogMockupResponse> {
+    return this.http.get<PhPublicCatalogMockupResponse>(
+      `${BACKEND_URL}/public/${productId}/catalog-mockup`,
     );
   }
 

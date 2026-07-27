@@ -1,5 +1,5 @@
 import { HttpEventType, HttpResponse } from '@angular/common/http';
-import { Component, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, ChangeDetectorRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -72,6 +72,7 @@ import {
   remapPlacementsToBaseSheet,
 } from '../ph-canvas/ph-canvas-composite.util';
 import { PhPrintPreviewComponent } from '../ph-print-preview/ph-print-preview.component';
+import { PhPrintMockupPreviewComponent } from '../ph-print-mockup-preview/ph-print-mockup-preview.component';
 
 interface FixedDimensionOption {
   optionIndex: number;
@@ -166,6 +167,7 @@ export class PrintComponent implements OnInit, OnDestroy {
   savingCatalogMockup = false;
 
   @ViewChild(PhPrintPreviewComponent) private printPreview?: PhPrintPreviewComponent;
+  @ViewChild(PhPrintMockupPreviewComponent) private mockupPreview?: PhPrintMockupPreviewComponent;
 
   private directionSub?: Subscription;
   private darkModeSub?: Subscription;
@@ -193,6 +195,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     private translateService: TranslateService,
     private snackBar: MatSnackBar,
     private phUploadValidation: PhUploadValidationService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   get finishedCount(): number {
@@ -1171,7 +1174,7 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.flushPendingPlacements();
 
     try {
-      const previewDataUrl = await this.renderFrontCompositeNow();
+      const previewDataUrl = await this.captureCatalogMockupSimulationPng();
       if (!previewDataUrl) {
         this.snackBar.open(
           this.translateService.instant('ph-print.save-mockup-empty'),
@@ -1235,6 +1238,42 @@ export class PrintComponent implements OnInit, OnDestroy {
     } finally {
       this.savingCatalogMockup = false;
     }
+  }
+
+  /**
+   * Render the same mockup simulation shown in the print table (product mockup
+   * + composite in the print area) and export it as a PNG data URL.
+   */
+  private async captureCatalogMockupSimulationPng(): Promise<string | null> {
+    if (!this.resolvedPrintMockup) {
+      return this.renderFrontCompositeNow();
+    }
+
+    const wasMockupActive = this.mockupViewActive;
+    this.mockupViewActive = true;
+
+    const compositeUrl = await this.renderFrontCompositeNow();
+    this.frontCompositeUrl = compositeUrl;
+    this.cdr.detectChanges();
+
+    // Wait until the mockup preview child is mounted and measured.
+    const started = Date.now();
+    while (!this.mockupPreview && Date.now() - started < 4000) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 50));
+      this.cdr.detectChanges();
+    }
+
+    let previewDataUrl: string | null = null;
+    try {
+      previewDataUrl = (await this.mockupPreview?.captureMockupFramePng()) ?? null;
+    } finally {
+      if (!wasMockupActive) {
+        this.mockupViewActive = false;
+        this.cdr.detectChanges();
+      }
+    }
+
+    return previewDataUrl || compositeUrl;
   }
 
   private async renderFrontCompositeNow(): Promise<string | null> {
