@@ -1,17 +1,19 @@
-import { HttpEventType } from '@angular/common/http';
+import { HttpEventType, HttpResponse } from '@angular/common/http';
 import { Component, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
 import { isEqual } from 'lodash';
-import { Subscription, interval } from 'rxjs';
-import { startWith, switchMap } from 'rxjs/operators';
+import { Subscription, interval, firstValueFrom } from 'rxjs';
+import { filter, map, startWith, switchMap } from 'rxjs/operators';
 
 import { AuthService } from '../auth/auth.service';
 import { DirectionService } from '../direction.service';
 import {
+  PH_FILE_TYPE_MOCKUP,
   PH_FILE_TYPE_PRINTING_FILE,
+  PhFileUploadResponse,
   PhFilesService,
 } from '../ph-files/ph-files.service';
 import {
@@ -159,6 +161,9 @@ export class PrintComponent implements OnInit, OnDestroy {
   printSettingsExpanded = true;
   layersPanelExpanded = true;
   selectedLayerInstanceId: string | null = null;
+  /** Manager flow: editing the product's catalog mockup (Continue → Save Mockup). */
+  isCatalogMockupEditMode = false;
+  savingCatalogMockup = false;
 
   @ViewChild(PhPrintPreviewComponent) private printPreview?: PhPrintPreviewComponent;
 
@@ -177,6 +182,7 @@ export class PrintComponent implements OnInit, OnDestroy {
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private directionService: DirectionService,
     private authService: AuthService,
     private phFilesService: PhFilesService,
@@ -544,10 +550,14 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.route.queryParamMap.subscribe((params) => {
       const nextPrintingHouseId = params.get('printingHouseId')?.trim() || '';
       const nextProductId = params.get('productId')?.trim() || '';
+      const nextMockupEdit =
+        params.get('mockupEdit') === '1' || params.get('mockupEdit') === 'true';
       const productChanged = nextProductId !== this.productId;
+      const modeChanged = nextMockupEdit !== this.isCatalogMockupEditMode;
 
       this.printingHouseId = nextPrintingHouseId;
       this.productId = nextProductId;
+      this.isCatalogMockupEditMode = nextMockupEdit;
 
       if (productChanged) {
         this.resetSettingsUiState();
@@ -557,6 +567,10 @@ export class PrintComponent implements OnInit, OnDestroy {
       this.loadPrintingHouse();
       this.loadProduct();
       this.startPolling();
+
+      if (!productChanged && modeChanged && this.productId) {
+        this.loadCanvas();
+      }
     });
   }
 
@@ -1141,7 +1155,105 @@ export class PrintComponent implements OnInit, OnDestroy {
   }
 
   onContinue(): void {
+    if (this.isCatalogMockupEditMode) {
+      void this.saveCatalogMockup();
+      return;
+    }
     // Placeholder — next checkout step will be wired later.
+  }
+
+  private async saveCatalogMockup(): Promise<void> {
+    if (this.savingCatalogMockup || !this.canvas?._id || !this.productId) {
+      return;
+    }
+
+    this.savingCatalogMockup = true;
+    this.flushPendingPlacements();
+
+    try {
+      const previewDataUrl = await this.renderFrontCompositeNow();
+      if (!previewDataUrl) {
+        this.snackBar.open(
+          this.translateService.instant('ph-print.save-mockup-empty'),
+          undefined,
+          { duration: 4000 },
+        );
+        return;
+      }
+
+      const file = await this.dataUrlToFile(previewDataUrl, 'catalog-mockup.png');
+      const uploadRes = await firstValueFrom(
+        this.phFilesService.upload(PH_FILE_TYPE_MOCKUP, file, {
+          printingHouseId: this.printingHouseId,
+          productId: this.productId,
+        }).pipe(
+          filter(
+            (event): event is HttpResponse<PhFileUploadResponse> =>
+              event.type === HttpEventType.Response,
+          ),
+          map((event) => event.body),
+        ),
+      );
+
+      const previewUrl =
+        uploadRes?.thumbnail?.url?.trim() || uploadRes?.original?.url?.trim() || '';
+      if (!previewUrl) {
+        this.snackBar.open(
+          this.translateService.instant('ph-print.save-mockup-failed'),
+          undefined,
+          { duration: 4000 },
+        );
+        return;
+      }
+
+      await firstValueFrom(
+        this.phProductsService.updateCatalogMockup(this.productId, {
+          canvasId: this.canvas._id,
+          previewUrl,
+        }),
+      );
+
+      this.snackBar.open(
+        this.translateService.instant('ph-print.save-mockup-success'),
+        undefined,
+        { duration: 3000 },
+      );
+
+      void this.router.navigate([
+        '/management/printing-house',
+        this.printingHouseId,
+        'product',
+        this.productId,
+        'edit',
+      ]);
+    } catch {
+      this.snackBar.open(
+        this.translateService.instant('ph-print.save-mockup-failed'),
+        undefined,
+        { duration: 4000 },
+      );
+    } finally {
+      this.savingCatalogMockup = false;
+    }
+  }
+
+  private async renderFrontCompositeNow(): Promise<string | null> {
+    const widthCm = this.previewBaseWidthCm;
+    const heightCm = this.previewBaseHeightCm;
+    const marginCm = this.previewMarginCm;
+    return renderCanvasSideComposite(
+      remapPlacementsToBaseSheet(this.frontPlacements, widthCm, heightCm, marginCm),
+      this.files,
+      widthCm,
+      heightCm,
+      { marginCm: 0 },
+    );
+  }
+
+  private async dataUrlToFile(dataUrl: string, filename: string): Promise<File> {
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+    return new File([blob], filename, { type: blob.type || 'image/png' });
   }
 
   onDeleteFile(file: PhPrintingFile, event?: Event): void {
@@ -1494,10 +1606,14 @@ export class PrintComponent implements OnInit, OnDestroy {
     if (!this.productId) {
       return;
     }
-    this.phCanvasService.getCurrent(this.productId, this.printingHouseId).subscribe({
-      next: (res) => this.applyCanvasFromServer(res.canvas, true),
-      error: () => {},
-    });
+    this.phCanvasService
+      .getCurrent(this.productId, this.printingHouseId, {
+        catalogMockup: this.isCatalogMockupEditMode,
+      })
+      .subscribe({
+        next: (res) => this.applyCanvasFromServer(res.canvas, true),
+        error: () => {},
+      });
   }
 
   private applyCanvasFromServer(canvas: PhCanvas, syncUi = false): void {

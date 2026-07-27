@@ -180,6 +180,11 @@ export interface PhProduct {
   category: PhCategory | string;
   subCategory: string;
   properties: PhProductProperties;
+  /** Catalog mockup — linked canvas + rendered preview for home listing. */
+  catalogMockup?: {
+    canvasId?: string | null;
+    previewUrl?: string | null;
+  } | null;
 }
 
 export interface PhSubCategoryGroup {

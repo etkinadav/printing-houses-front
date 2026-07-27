@@ -68,6 +68,12 @@
               class="home-catalog-product"
             >
               <span class="home-catalog-product-name">{{ getProductDisplayName(product) }}</span>
+              <img
+                *ngIf="product.catalogMockup?.previewUrl"
+                [src]="product.catalogMockup.previewUrl"
+                class="home-catalog-product-mockup"
+                alt=""
+              />
               <div
                 *ngIf="hasPrintingHouseInfo(product)"
                 class="home-catalog-product-ph"

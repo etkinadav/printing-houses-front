@@ -177,6 +177,14 @@
 
         <div class="product-create-save">
           <button
+            *ngIf="isEditMode"
+            mat-stroked-button
+            type="button"
+            class="tree-add-btn tree-add-btn--block rounded-pill"
+            (click)="onEditCatalogMockup()">
+            {{ 'management.product-create.edit-mockup' | translate }}
+          </button>
+          <button
             mat-raised-button
             color="primary"
             type="submit"

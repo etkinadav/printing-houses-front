@@ -21,10 +21,17 @@ export class PhCanvasService {
   constructor(private http: HttpClient) {}
 
   /** Find-or-create the single editing canvas for this user + product (+ house). */
-  getCurrent(productId: string, printingHouseId?: string): Observable<PhCanvasResponse> {
+  getCurrent(
+    productId: string,
+    printingHouseId?: string,
+    options?: { catalogMockup?: boolean },
+  ): Observable<PhCanvasResponse> {
     const params: Record<string, string> = { productId };
     if (printingHouseId?.trim()) {
       params['printingHouseId'] = printingHouseId.trim();
+    }
+    if (options?.catalogMockup) {
+      params['catalogMockup'] = '1';
     }
     return this.http.get<PhCanvasResponse>(`${BACKEND_URL}/current`, { params });
   }

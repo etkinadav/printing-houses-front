@@ -231,6 +231,15 @@
   word-break: break-word;
 }
 
+.home-catalog-product-mockup {
+  display: block;
+  width: 100%;
+  max-height: 7.5rem;
+  object-fit: contain;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.04);
+}
+
 .home-catalog-product-ph {
   display: flex;
   align-items: flex-start;

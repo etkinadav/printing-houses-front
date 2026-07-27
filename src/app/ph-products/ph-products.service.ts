@@ -48,6 +48,16 @@ export class PhProductsService {
     return this.http.put<{ message: string; product: PhProduct }>(`${BACKEND_URL}/${id}`, payload);
   }
 
+  updateCatalogMockup(
+    id: string,
+    payload: { canvasId: string; previewUrl: string },
+  ): Observable<{ message: string; product: PhProduct }> {
+    return this.http.put<{ message: string; product: PhProduct }>(
+      `${BACKEND_URL}/${id}/catalog-mockup`,
+      payload,
+    );
+  }
+
   deleteProduct(id: string): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(`${BACKEND_URL}/${id}`);
   }

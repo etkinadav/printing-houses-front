@@ -3095,6 +3095,19 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
     }
   }
 
+  onEditCatalogMockup(): void {
+    if (!this.isEditMode || !this.productId || !this.printingHouseId) {
+      return;
+    }
+    void this.router.navigate(['/print'], {
+      queryParams: {
+        printingHouseId: this.printingHouseId,
+        productId: this.productId,
+        mockupEdit: '1',
+      },
+    });
+  }
+
   onSave(): void {
     this.syncAllTreeExtraValidators();
     this.syncDynamicMaterialDimensionValidators();

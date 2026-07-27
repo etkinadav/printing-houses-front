@@ -1070,12 +1070,19 @@
           color="primary"
           type="button"
           class="text-white rounded-pill w-100 zx-small-btn"
+          [disabled]="savingCatalogMockup"
           (click)="onContinue()">
-          <b class="d-none d-md-inline">{{ 'ph-print.continue' | translate }}</b>
-          <span class="d-md-none">
-            <b>{{ 'choose-system.continue' | translate }}</b>
-            <span class="fw-normal"> (-{{ 'printing-table.nis' | translate }})</span>
-          </span>
+          <ng-container *ngIf="isCatalogMockupEditMode; else continueCta">
+            <mat-spinner *ngIf="savingCatalogMockup" diameter="18" class="d-inline-block"></mat-spinner>
+            <b *ngIf="!savingCatalogMockup">{{ 'ph-print.save-mockup' | translate }}</b>
+          </ng-container>
+          <ng-template #continueCta>
+            <b class="d-none d-md-inline">{{ 'ph-print.continue' | translate }}</b>
+            <span class="d-md-none">
+              <b>{{ 'choose-system.continue' | translate }}</b>
+              <span class="fw-normal"> (-{{ 'printing-table.nis' | translate }})</span>
+            </span>
+          </ng-template>
         </button>
       </div>
     </div>
