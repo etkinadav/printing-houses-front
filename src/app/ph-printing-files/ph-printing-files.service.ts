@@ -42,6 +42,11 @@ export interface PhPrintingFilesBulkSettingsResponse {
   updatedImageCount: number;
 }
 
+export interface PhPrintingFilesQueryOptions {
+  /** When true, list/delete only catalog-mockup files; otherwise only normal print files. */
+  catalogMockup?: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PhPrintingFilesService {
   constructor(private http: HttpClient) {}
@@ -49,14 +54,22 @@ export class PhPrintingFilesService {
   /**
    * List files for user + printing house. `productId` only selects which per-product
    * print settings are hydrated on each file — it does not filter the file list.
+   * `catalogMockup` splits catalog-mockup assets from customer print files.
    */
-  getMyFiles(printingHouseId?: string, productId?: string): Observable<PhPrintingFilesListResponse> {
+  getMyFiles(
+    printingHouseId?: string,
+    productId?: string,
+    options?: PhPrintingFilesQueryOptions,
+  ): Observable<PhPrintingFilesListResponse> {
     const params: Record<string, string> = {};
     if (printingHouseId?.trim()) {
       params['printingHouseId'] = printingHouseId.trim();
     }
     if (productId?.trim()) {
       params['productId'] = productId.trim();
+    }
+    if (options?.catalogMockup) {
+      params['catalogMockup'] = '1';
     }
     return this.http.get<PhPrintingFilesListResponse>(`${BACKEND_URL}/mine`, { params });
   }
@@ -78,6 +91,7 @@ export class PhPrintingFilesService {
     printSettings: PhPrintingFilePrintSettings,
     productId: string,
     printingHouseId?: string,
+    options?: PhPrintingFilesQueryOptions,
   ): Observable<PhPrintingFilesBulkSettingsResponse> {
     return this.http.put<PhPrintingFilesBulkSettingsResponse>(
       `${BACKEND_URL}/mine/settings-all`,
@@ -85,12 +99,20 @@ export class PhPrintingFilesService {
         printSettings,
         productId,
         printingHouseId: printingHouseId?.trim() || undefined,
+        ...(options?.catalogMockup ? { catalogMockup: '1' } : {}),
       },
     );
   }
 
-  deleteFile(fileId: string): Observable<PhPrintingFileDeleteResponse> {
-    return this.http.delete<PhPrintingFileDeleteResponse>(`${BACKEND_URL}/${fileId}`);
+  deleteFile(
+    fileId: string,
+    options?: PhPrintingFilesQueryOptions,
+  ): Observable<PhPrintingFileDeleteResponse> {
+    const params: Record<string, string> = {};
+    if (options?.catalogMockup) {
+      params['catalogMockup'] = '1';
+    }
+    return this.http.delete<PhPrintingFileDeleteResponse>(`${BACKEND_URL}/${fileId}`, { params });
   }
 
   deleteImage(
@@ -98,6 +120,7 @@ export class PhPrintingFilesService {
     imageId: string,
     productId?: string,
     printingHouseId?: string,
+    options?: PhPrintingFilesQueryOptions,
   ): Observable<PhPrintingFileImageDeleteResponse> {
     const params: Record<string, string> = {};
     if (productId?.trim()) {
@@ -106,16 +129,25 @@ export class PhPrintingFilesService {
     if (printingHouseId?.trim()) {
       params['printingHouseId'] = printingHouseId.trim();
     }
+    if (options?.catalogMockup) {
+      params['catalogMockup'] = '1';
+    }
     return this.http.delete<PhPrintingFileImageDeleteResponse>(
       `${BACKEND_URL}/${fileId}/images/${imageId}`,
       { params },
     );
   }
 
-  deleteAll(printingHouseId?: string): Observable<PhPrintingFilesDeleteAllResponse> {
+  deleteAll(
+    printingHouseId?: string,
+    options?: PhPrintingFilesQueryOptions,
+  ): Observable<PhPrintingFilesDeleteAllResponse> {
     const params: Record<string, string> = {};
     if (printingHouseId?.trim()) {
       params['printingHouseId'] = printingHouseId.trim();
+    }
+    if (options?.catalogMockup) {
+      params['catalogMockup'] = '1';
     }
     return this.http.delete<PhPrintingFilesDeleteAllResponse>(`${BACKEND_URL}/mine`, { params });
   }

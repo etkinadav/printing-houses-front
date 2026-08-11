@@ -428,6 +428,11 @@ export class PrintComponent implements OnInit, OnDestroy {
     return this.mockupViewActive && !!this.resolvedPrintMockup;
   }
 
+  /** Query options that split catalog-mockup files from normal print-order files. */
+  private get printingFilesQueryOptions(): { catalogMockup?: boolean } {
+    return this.isCatalogMockupEditMode ? { catalogMockup: true } : {};
+  }
+
   get previewMockupCompositeUrl(): string | null {
     return this.previewDuplexSide === 'back' ? this.backCompositeUrl : this.frontCompositeUrl;
   }
@@ -566,6 +571,11 @@ export class PrintComponent implements OnInit, OnDestroy {
       if (productChanged) {
         this.resetSettingsUiState();
         this.canvas = null;
+      }
+
+      if (modeChanged) {
+        this.files = [];
+        this.processingFiles = [];
       }
 
       this.loadPrintingHouse();
@@ -1303,7 +1313,9 @@ export class PrintComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.phPrintingFilesService.deleteFile(file._id).subscribe({
+    this.phPrintingFilesService
+      .deleteFile(file._id, this.printingFilesQueryOptions)
+      .subscribe({
       next: () => {
         this.removeFileFromLocalState(file._id);
         this.pruneCanvasPlacementsForFile(file._id);
@@ -1341,7 +1353,13 @@ export class PrintComponent implements OnInit, OnDestroy {
     }
 
     this.phPrintingFilesService
-      .deleteImage(file._id, image._id, this.productId, this.printingHouseId)
+      .deleteImage(
+        file._id,
+        image._id,
+        this.productId,
+        this.printingHouseId,
+        this.printingFilesQueryOptions,
+      )
       .subscribe({
         next: (response) => {
           if (response.deletedFileId) {
@@ -1384,7 +1402,9 @@ export class PrintComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.phPrintingFilesService.deleteAll(this.printingHouseId).subscribe({
+    this.phPrintingFilesService
+      .deleteAll(this.printingHouseId, this.printingFilesQueryOptions)
+      .subscribe({
       next: () => {
         this.files = [];
         this.processingFiles = [];
@@ -1826,7 +1846,11 @@ export class PrintComponent implements OnInit, OnDestroy {
       .pipe(
         startWith(0),
         switchMap(() =>
-          this.phPrintingFilesService.getMyFiles(this.printingHouseId, this.productId),
+          this.phPrintingFilesService.getMyFiles(
+            this.printingHouseId,
+            this.productId,
+            this.printingFilesQueryOptions,
+          ),
         ),
       )
       .subscribe({
@@ -2266,6 +2290,7 @@ export class PrintComponent implements OnInit, OnDestroy {
       .upload(PH_FILE_TYPE_PRINTING_FILE, file, {
         printingHouseId: this.printingHouseId,
         productId: this.productId,
+        catalogMockup: this.isCatalogMockupEditMode,
       })
       .subscribe({
         next: (httpEvent) => {
@@ -2284,7 +2309,11 @@ export class PrintComponent implements OnInit, OnDestroy {
 
           this.finishOneUpload(generation);
           this.phPrintingFilesService
-            .getMyFiles(this.printingHouseId, this.productId)
+            .getMyFiles(
+              this.printingHouseId,
+              this.productId,
+              this.printingFilesQueryOptions,
+            )
             .subscribe({
               next: (res) => this.applyFilesFromServer(res.files ?? []),
             });

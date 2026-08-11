@@ -14,6 +14,8 @@ export const PH_FILE_TYPE_PRINTING_FILE = 'printing-file';
 export interface PhFileUploadMeta {
   printingHouseId?: string;
   productId?: string;
+  /** When true, mark the printing-file as a catalog-mockup asset. */
+  catalogMockup?: boolean;
 }
 
 export interface PhUploadedFileRef {
@@ -45,6 +47,9 @@ export class PhFilesService {
     }
     if (meta?.productId?.trim()) {
       form.append('productId', meta.productId.trim());
+    }
+    if (meta?.catalogMockup) {
+      form.append('catalogMockup', '1');
     }
 
     return this.http.post<PhFileUploadResponse>(`${BACKEND_URL}/upload`, form, {

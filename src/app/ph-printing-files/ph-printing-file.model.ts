@@ -61,6 +61,8 @@ export interface PhPrintingFile {
   originalUrl: string;
   processing: boolean;
   processingError?: boolean;
+  /** Uploaded during catalog mockup edit — kept separate from customer print files. */
+  forCatalogMockup?: boolean;
   /** Per-page data: thumbnail, dimensions, DPI and resolved print settings. */
   images: PhPrintingFileImage[];
 }
