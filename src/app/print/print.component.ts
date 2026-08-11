@@ -2006,10 +2006,13 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.suppressSettingsPersist = true;
     try {
       if (this.isFixedProduct) {
-        const sizeIndex =
+        const rawSizeIndex =
           ps?.sizeIndex != null && Number.isFinite(Number(ps.sizeIndex))
             ? Number(ps.sizeIndex)
             : 0;
+        const sizeIndex = this.fixedSizes.length
+          ? Math.min(Math.max(0, Math.floor(rawSizeIndex)), this.fixedSizes.length - 1)
+          : 0;
         const materialIndex =
           ps?.materialIndex != null && Number.isFinite(Number(ps.materialIndex))
             ? Number(ps.materialIndex)

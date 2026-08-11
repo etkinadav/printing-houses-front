@@ -2800,7 +2800,9 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
       this.copyProductNameToSizeLabel(this.sizes.at(0));
     }
     const last = this.sizes.at(this.sizes.length - 1);
-    this.sizes.push(this.cloneSizeGroup(last));
+    const next = this.cloneSizeGroup(last);
+    this.cloneAllMockupStates(last, next);
+    this.sizes.push(next);
     this.syncSizeLabelValidators();
     this.syncMaterialHeaderLabelValidators();
     this.syncAllTreeExtraValidators();
@@ -2815,6 +2817,10 @@ export class ProductCreateComponent implements OnInit, OnDestroy, AfterViewInit 
 
   removeSize(index: number): void {
     if (this.sizes.length > 1) {
+      const removed = this.sizes.at(index);
+      if (removed) {
+        this.clearAllMockupStatesForGroup(removed);
+      }
       this.sizes.removeAt(index);
       this.syncSizeLabelValidators();
       this.syncMaterialHeaderLabelValidators();

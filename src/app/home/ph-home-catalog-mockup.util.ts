@@ -91,19 +91,23 @@ function resolveProductTree(
   const ps = settings ?? {};
 
   if (!isDynamic) {
-    const sizeIndex =
+    const rawSizeIndex =
       ps.sizeIndex != null && Number.isFinite(Number(ps.sizeIndex))
         ? Number(ps.sizeIndex)
         : 0;
-    const size: PhSize | null = fixedSizes[sizeIndex] ?? fixedSizes[0] ?? null;
+    const sizeIndex = fixedSizes.length
+      ? Math.min(Math.max(0, Math.floor(rawSizeIndex)), fixedSizes.length - 1)
+      : 0;
+    const size: PhSize | null = fixedSizes[sizeIndex] ?? null;
     const materials = size?.materials ?? [];
-    const materialIndex =
+    const rawMaterialIndex =
       ps.materialIndex != null && Number.isFinite(Number(ps.materialIndex))
         ? Number(ps.materialIndex)
         : 0;
-    const material =
-      materials[Math.min(Math.max(0, materialIndex), Math.max(0, materials.length - 1))] ??
-      null;
+    const materialIndex = materials.length
+      ? Math.min(Math.max(0, Math.floor(rawMaterialIndex)), materials.length - 1)
+      : 0;
+    const material = materials[materialIndex] ?? null;
     const colorIndex =
       ps.colorIndex != null && Number.isFinite(Number(ps.colorIndex))
         ? Number(ps.colorIndex)
