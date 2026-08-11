@@ -216,11 +216,20 @@
   border: 1px solid var(--zx-gray-25-pr, rgba(200, 200, 200, 0.45));
   border-radius: 10px;
   background: var(--zx-white, #fff);
+  cursor: pointer;
+}
+
+.home-catalog-product:hover {
+  border-color: var(--zx-gray-mid, #757575);
 }
 
 .home-catalog-nav-dark .home-catalog-product {
   border-color: rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.06);
+}
+
+.home-catalog-nav-dark .home-catalog-product:hover {
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .home-catalog-product-name {

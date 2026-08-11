@@ -66,6 +66,11 @@
             <li
               *ngFor="let product of subCategory.products"
               class="home-catalog-product"
+              role="link"
+              tabindex="0"
+              (click)="onProductClick(product)"
+              (keydown.enter)="onProductClick(product)"
+              (keydown.space)="$event.preventDefault(); onProductClick(product)"
             >
               <span class="home-catalog-product-name">{{ getProductDisplayName(product) }}</span>
               <app-ph-home-catalog-mockup

@@ -203,6 +203,31 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     );
   }
 
+  onProductClick(product: PhProduct): void {
+    const productId = product?._id?.trim();
+    const printingHouseId = this.resolvePrintingHouseId(product);
+    if (!productId || !printingHouseId) {
+      return;
+    }
+    void this.router.navigate(['/print'], {
+      queryParams: {
+        printingHouseId,
+        productId,
+      },
+    });
+  }
+
+  private resolvePrintingHouseId(product: PhProduct): string {
+    const ref = product.printingHouseId;
+    if (!ref) {
+      return '';
+    }
+    if (typeof ref === 'string') {
+      return ref.trim();
+    }
+    return (ref._id || '').trim();
+  }
+
   private resolvePrintingHouse(product: PhProduct): PhProductPrintingHouseSummary | null {
     const ref = product.printingHouseId;
     if (!ref || typeof ref === 'string') {

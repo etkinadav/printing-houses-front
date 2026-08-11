@@ -62,6 +62,7 @@ import {
   PhCanvasSide,
   PhCanvasSideName,
   PH_CANVAS_DRAG_MIME,
+  phCanvasCreatePlacementId,
   phCanvasNormalizeCanvasPlacements,
   phCanvasPlacementInstanceId,
   phCanvasProxiedImageUrl,
@@ -1838,8 +1839,88 @@ export class PrintComponent implements OnInit, OnDestroy {
     if (this.isSameFileListPollState(nextFiles, this.files)) {
       return;
     }
+
+    const previouslyProcessingIds = new Set(
+      this.files.filter((file) => this.isFileProcessing(file)).map((file) => file._id),
+    );
+
     this.files = nextFiles;
     this.processingFiles = nextFiles.filter((file) => this.isFileProcessing(file));
+
+    for (const file of nextFiles) {
+      if (!previouslyProcessingIds.has(file._id) || this.isFileProcessing(file)) {
+        continue;
+      }
+      this.autoAddFinishedFileToCanvas(file);
+    }
+  }
+
+  /** When a just-uploaded file finishes processing, place its pages on the active canvas side. */
+  private autoAddFinishedFileToCanvas(file: PhPrintingFile): void {
+    if (!this.canvas) {
+      return;
+    }
+
+    const images = this.getFileImages(file).filter((image) => !!image?._id);
+    if (!images.length) {
+      return;
+    }
+
+    const side = this.previewDuplexSide;
+    const existing = this.getSide(side)?.placements ?? [];
+    const toAdd = images.filter(
+      (image) =>
+        !existing.some(
+          (placement) => placement.fileId === file._id && placement.imageId === image._id,
+        ),
+    );
+    if (!toAdd.length) {
+      return;
+    }
+
+    // Prefer the live Fabric sheet for correct px sizing when available (single page).
+    // Multi-page (or mockup view) — batch onto the model to avoid concurrent sheet races.
+    if (this.printPreview && toAdd.length === 1) {
+      this.printPreview.addPageFromPayload(side, this.buildCanvasDragPayload(file, toAdd[0]));
+      return;
+    }
+
+    let nextZ = existing.reduce((max, p) => Math.max(max, p.zIndex), -1);
+    const placements: PhCanvasPlacement[] = [
+      ...existing,
+      ...toAdd.map((image) => {
+        nextZ += 1;
+        return {
+          _id: phCanvasCreatePlacementId(),
+          fileId: file._id,
+          imageId: image._id,
+          page: image.page ?? 1,
+          ...this.computeFallbackPlacementGeometry(image),
+          rotation: 0,
+          zIndex: nextZ,
+        };
+      }),
+    ];
+    this.onSheetPlacementsChange({ side, placements });
+  }
+
+  /** Cover-style geometry when batching without going through Fabric drop sizing. */
+  private computeFallbackPlacementGeometry(
+    image: PhPrintingFileImage,
+  ): Pick<PhCanvasPlacement, 'x' | 'y' | 'width' | 'height'> {
+    const sheetW = Math.max(0.01, this.previewBaseWidthCm + this.previewMarginCm * 2);
+    const sheetH = Math.max(0.01, this.previewBaseHeightCm + this.previewMarginCm * 2);
+    const imgW = Math.max(1, Number(image.imageWidth) || 1);
+    const imgH = Math.max(1, Number(image.imageHeight) || 1);
+    const scale = Math.max(sheetW / imgW, sheetH / imgH);
+    const displayW = imgW * scale;
+    const displayH = imgH * scale;
+    return {
+      x: (sheetW - displayW) / 2 / sheetW,
+      y: (sheetH - displayH) / 2 / sheetH,
+      width: displayW / sheetW,
+      height: displayH / sheetH,
+    };
   }
 
   private isSameFileListPollState(
