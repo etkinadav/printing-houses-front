@@ -1,4 +1,4 @@
-<div class="ph-home-catalog-mockup" *ngIf="hasCatalogCanvas || fallbackPreviewUrl">
+<div class="ph-home-catalog-mockup" *ngIf="canShow">
   <div *ngIf="loading" class="ph-home-catalog-mockup__loading" aria-busy="true">
     <mat-spinner diameter="22"></mat-spinner>
   </div>
@@ -22,8 +22,8 @@
   </app-ph-print-mockup-preview>
 
   <img
-    *ngIf="!loading && !view && fallbackPreviewUrl"
-    [src]="fallbackPreviewUrl"
+    *ngIf="!loading && !view && emptyMockupImageUrl"
+    [src]="emptyMockupImageUrl"
     class="ph-home-catalog-mockup__fallback"
     alt=""
   />

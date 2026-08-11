@@ -210,3 +210,44 @@ export async function buildHomeCatalogMockupViewModel(
     dynamicDimensionsActive: tree.dynamicDimensionsActive,
   };
 }
+
+/**
+ * Empty product mockup (no catalog design) — mockup photo only, no print composite.
+ */
+export function buildEmptyHomeCatalogMockupViewModel(
+  product: PhProduct,
+): PhHomeCatalogMockupViewModel | null {
+  const tree = resolveProductTree(product, undefined);
+  const mockup = resolveMockupForPrint(
+    tree.ctx,
+    tree.ui,
+    product.properties?.dynamic?.mockup,
+  );
+  if (!mockup?.url?.trim()) {
+    return null;
+  }
+
+  const corner = resolveSelectedCorner(tree.ctx, tree.ui);
+
+  return {
+    mockup,
+    compositeUrl: null,
+    baseWidthCm: tree.baseWidthCm,
+    baseHeightCm: tree.baseHeightCm,
+    cornerType: corner?.type ?? 'none',
+    cornerRadiusCm: Number.isFinite(Number(corner?.radius)) ? Number(corner?.radius) : 0,
+    // Keep fold layers off so the empty mockup is just the product photo.
+    foldingCount: 0,
+    foldingOffsetCm: 0,
+    sheetBackgroundStyles: tree.sheetBackgroundStyles,
+    dynamicDimensionsActive: tree.dynamicDimensionsActive,
+  };
+}
+
+/** True when the product has a mockup image that can be shown on the home catalog. */
+export function productHasHomeMockupImage(product: PhProduct | null | undefined): boolean {
+  if (!product) {
+    return false;
+  }
+  return !!buildEmptyHomeCatalogMockupViewModel(product);
+}

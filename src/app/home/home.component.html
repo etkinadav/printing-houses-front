@@ -74,7 +74,6 @@
             >
               <span class="home-catalog-product-name">{{ getProductDisplayName(product) }}</span>
               <app-ph-home-catalog-mockup
-                *ngIf="product.catalogMockup?.canvasId || product.catalogMockup?.previewUrl"
                 [product]="product"
               ></app-ph-home-catalog-mockup>
               <div

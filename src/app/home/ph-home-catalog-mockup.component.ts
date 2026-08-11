@@ -15,8 +15,10 @@ import { PhPrintingFile } from '../ph-printing-files/ph-printing-file.model';
 import { PhProduct } from '../ph-products/ph-product.model';
 import { PhProductsService } from '../ph-products/ph-products.service';
 import {
+  buildEmptyHomeCatalogMockupViewModel,
   buildHomeCatalogMockupViewModel,
   PhHomeCatalogMockupViewModel,
+  productHasHomeMockupImage,
 } from './ph-home-catalog-mockup.util';
 
 @Component({
@@ -30,7 +32,6 @@ export class PhHomeCatalogMockupComponent implements OnChanges, OnDestroy {
 
   view: PhHomeCatalogMockupViewModel | null = null;
   loading = false;
-  failed = false;
   isRTL = true;
   isDarkMode = false;
 
@@ -54,12 +55,17 @@ export class PhHomeCatalogMockupComponent implements OnChanges, OnDestroy {
     });
   }
 
-  get hasCatalogCanvas(): boolean {
-    return !!this.product?.catalogMockup?.canvasId;
+  get canShow(): boolean {
+    return (
+      !!this.product?.catalogMockup?.canvasId ||
+      !!this.product?.catalogMockup?.previewUrl?.trim() ||
+      productHasHomeMockupImage(this.product)
+    );
   }
 
-  get fallbackPreviewUrl(): string {
-    return this.product?.catalogMockup?.previewUrl?.trim() || '';
+  get emptyMockupImageUrl(): string {
+    const empty = this.product ? buildEmptyHomeCatalogMockupViewModel(this.product) : null;
+    return empty?.mockup?.url?.trim() || '';
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -78,12 +84,20 @@ export class PhHomeCatalogMockupComponent implements OnChanges, OnDestroy {
   private reload(): void {
     this.loadSub?.unsubscribe();
     this.view = null;
-    this.failed = false;
 
     const product = this.product;
     const productId = product?._id?.trim();
     const canvasId = product?.catalogMockup?.canvasId;
-    if (!product || !productId || !canvasId) {
+
+    if (!product || !productId) {
+      this.loading = false;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    // No catalog design — show the empty product mockup photo.
+    if (!canvasId) {
+      this.view = buildEmptyHomeCatalogMockupViewModel(product);
       this.loading = false;
       this.cdr.markForCheck();
       return;
@@ -104,8 +118,9 @@ export class PhHomeCatalogMockupComponent implements OnChanges, OnDestroy {
         if (token !== this.loadToken) {
           return;
         }
+        // Fall back to empty product mockup when catalog canvas can't be loaded.
+        this.view = buildEmptyHomeCatalogMockupViewModel(product);
         this.loading = false;
-        this.failed = true;
         this.cdr.markForCheck();
       },
     });
@@ -122,14 +137,12 @@ export class PhHomeCatalogMockupComponent implements OnChanges, OnDestroy {
       if (token !== this.loadToken) {
         return;
       }
-      this.view = view;
-      this.failed = !view;
+      this.view = view ?? buildEmptyHomeCatalogMockupViewModel(product);
     } catch {
       if (token !== this.loadToken) {
         return;
       }
-      this.view = null;
-      this.failed = true;
+      this.view = buildEmptyHomeCatalogMockupViewModel(product);
     } finally {
       if (token === this.loadToken) {
         this.loading = false;
