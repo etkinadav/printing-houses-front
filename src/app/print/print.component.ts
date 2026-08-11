@@ -1847,10 +1847,17 @@ export class PrintComponent implements OnInit, OnDestroy {
     this.files = nextFiles;
     this.processingFiles = nextFiles.filter((file) => this.isFileProcessing(file));
 
-    for (const file of nextFiles) {
-      if (!previouslyProcessingIds.has(file._id) || this.isFileProcessing(file)) {
-        continue;
-      }
+    const finished = nextFiles.filter(
+      (file) => previouslyProcessingIds.has(file._id) && !this.isFileProcessing(file),
+    );
+    if (!finished.length) {
+      return;
+    }
+
+    // Push updated `files` into the Fabric sheet before adding placements —
+    // otherwise resolveUrl() misses thumbnails and the layer exists without an image.
+    this.cdr.detectChanges();
+    for (const file of finished) {
       this.autoAddFinishedFileToCanvas(file);
     }
   }

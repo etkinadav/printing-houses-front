@@ -176,10 +176,13 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     }
     if (changes['placements']) {
       const incoming = this.placements ?? [];
-      if (this.placementsEquivalent(incoming, this.model)) {
-        return;
+      if (!this.placementsEquivalent(incoming, this.model)) {
+        this.model = this.clonePlacements(incoming);
+        void this.syncObjectsFromModel();
       }
-      this.model = this.clonePlacements(incoming);
+    }
+    // Thumbnails often arrive one tick after a placement was added — load missing images.
+    if (changes['files'] && this.canvas && this.model.length) {
       void this.syncObjectsFromModel();
     }
     if (changes['interactive'] && this.canvas) {
@@ -1817,6 +1820,9 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
 
   /** Add a new placement, sized to cover the sheet or at native px size, then persist. */
   private async addPlacement(payload: PhCanvasDragPayload): Promise<void> {
+    // Ensure thumbnail is resolvable even if parent @Input files is one CD tick behind.
+    this.patchFilesFromPayload(payload);
+
     const nextZ = this.model.reduce((max, p) => Math.max(max, p.zIndex), -1) + 1;
     const { sheetW, sheetH } = this.getSheetMetrics();
     const { nW, nH } = await this.resolveImagePixelSize(payload);
@@ -1839,6 +1845,53 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       this.selectPlacementObject(added);
     }
     this.emitChange();
+  }
+
+  /** Merge drag/auto-add payload image metadata into local files for resolveUrl(). */
+  private patchFilesFromPayload(payload: PhCanvasDragPayload): void {
+    const thumb = payload.thumbnailUrl?.trim();
+    if (!thumb || !payload.fileId || !payload.imageId) {
+      return;
+    }
+
+    const files = [...(this.files ?? [])];
+    const fileIndex = files.findIndex((f) => f._id === payload.fileId);
+    const baseFile: PhPrintingFile =
+      fileIndex >= 0
+        ? { ...files[fileIndex], images: [...(files[fileIndex].images ?? [])] }
+        : {
+            _id: payload.fileId,
+            created: '',
+            userID: '',
+            originalUrl: '',
+            processing: false,
+            images: [],
+          };
+
+    const images = [...(baseFile.images ?? [])];
+    const imageIndex = images.findIndex((im) => im._id === payload.imageId);
+    const nextImage = {
+      ...(imageIndex >= 0 ? images[imageIndex] : { _id: payload.imageId, page: payload.page ?? 1 }),
+      _id: payload.imageId,
+      page: payload.page ?? images[imageIndex]?.page ?? 1,
+      thumbnailUrl: thumb,
+      imageWidth: payload.imageWidth ?? images[imageIndex]?.imageWidth ?? null,
+      imageHeight: payload.imageHeight ?? images[imageIndex]?.imageHeight ?? null,
+      origImageDPI: payload.origImageDPI ?? images[imageIndex]?.origImageDPI ?? null,
+    };
+    if (imageIndex >= 0) {
+      images[imageIndex] = nextImage;
+    } else {
+      images.push(nextImage);
+    }
+    baseFile.images = images;
+
+    if (fileIndex >= 0) {
+      files[fileIndex] = baseFile;
+    } else {
+      files.push(baseFile);
+    }
+    this.files = files;
   }
 
   /** Remove the currently active object. */
