@@ -3,7 +3,6 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
-  HostListener,
   OnDestroy,
   OnInit,
   QueryList,
@@ -29,18 +28,28 @@ import {
   PhProductPrintingHouseSummary,
 } from '../ph-products/ph-product.model';
 
-const MOBILE_CATALOG_MAX_WIDTH_PX = 991;
-
 /** Default view: all of Israel. */
 const ISRAEL_CENTER: [number, number] = [35.0, 31.5];
 const ISRAEL_ZOOM = 6.75;
+const PRODUCTS_PAGE_SIZE = 12;
+
+const CATEGORY_ICONS: Array<{ match: RegExp; icon: string }> = [
+  { match: /נייר|מסמך|paper|document|ورق/i, icon: 'description' },
+  { match: /שלט|שילוט|sign|لافت/i, icon: 'storefront' },
+  { match: /תמונ|קנבס|photo|canvas|صور/i, icon: 'photo' },
+  { match: /מותג|מתנ|brand|منتج/i, icon: 'card_giftcard' },
+  { match: /טקסטיל|חולצ|textile|قماش/i, icon: 'checkroom' },
+  { match: /לייזר|laser|ليزر/i, icon: 'bolt' },
+  { match: /תלת|3d|ثلاث/i, icon: 'view_in_ar' },
+  { match: /cnc|כרסום/i, icon: 'precision_manufacturing' },
+];
 
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css'],
   host: {
-    class: 'fill-screen',
+    class: 'fill-screen-home',
   },
 })
 export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -49,20 +58,33 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   isRTL = true;
   isDarkMode = false;
+  loading = true;
+
   categoryGroups: PhCategoryGroup[] = [];
+  allProducts: PhProduct[] = [];
   mapPrintingHouses: PhPrintingHouseMapMarker[] = [];
-  activeCategoryIndex: number | null = null;
+
+  searchQuery = '';
+  selectedCategoryIndex: number | null = null;
+  selectedCity = '';
+  sortMode: 'name' | 'ph' = 'name';
+  resultsVisibleCount = PRODUCTS_PAGE_SIZE;
+
+  /** Soft filter UI (not all backed by product fields yet). */
+  maxDistanceKm = 50;
+  priceMin = '';
+  priceMax = '';
+  deliveryFilter: 'today' | '24h' | '3d' | 'any' = 'any';
 
   private map?: maplibregl.Map;
   private mapMarkers: maplibregl.Marker[] = [];
   private markerClickBindings: Array<{ el: HTMLElement; handler: (e: Event) => void }> = [];
   private mapResizeObserver?: ResizeObserver;
   private markerElsSub?: Subscription;
-  private hoverCloseTimer: ReturnType<typeof setTimeout> | null = null;
-  private panelHovered = false;
   private directionSub?: Subscription;
   private darkModeSub?: Subscription;
   private mapInitDone = false;
+  private rawCategories: PhCategory[] = [];
 
   constructor(
     private phProductsService: PhProductsService,
@@ -73,6 +95,71 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private router: Router,
   ) {}
+
+  get cityOptions(): string[] {
+    const cities = new Set<string>();
+    for (const product of this.allProducts) {
+      const city = this.getPrintingHouseCity(product);
+      if (city) {
+        cities.add(city);
+      }
+    }
+    return [...cities].sort((a, b) => a.localeCompare(b, 'he'));
+  }
+
+  get filteredProducts(): PhProduct[] {
+    const q = this.searchQuery.trim().toLowerCase();
+    let list = this.allProducts.slice();
+
+    if (this.selectedCategoryIndex != null) {
+      const group = this.categoryGroups[this.selectedCategoryIndex];
+      if (group) {
+        const ids = new Set(
+          group.subCategories.flatMap((sub) => sub.products.map((p) => p._id)),
+        );
+        list = list.filter((p) => ids.has(p._id));
+      }
+    }
+
+    if (q) {
+      list = list.filter((product) => {
+        const name = this.getProductDisplayName(product).toLowerCase();
+        const ph = this.getPrintingHouseName(product).toLowerCase();
+        const city = this.getPrintingHouseCity(product).toLowerCase();
+        return name.includes(q) || ph.includes(q) || city.includes(q);
+      });
+    }
+
+    if (this.selectedCity) {
+      list = list.filter(
+        (product) => this.getPrintingHouseCity(product) === this.selectedCity,
+      );
+    }
+
+    if (this.sortMode === 'ph') {
+      list.sort((a, b) =>
+        this.getPrintingHouseName(a).localeCompare(this.getPrintingHouseName(b), 'he'),
+      );
+    } else {
+      list.sort((a, b) =>
+        this.getProductDisplayName(a).localeCompare(this.getProductDisplayName(b), 'he'),
+      );
+    }
+
+    return list;
+  }
+
+  get visibleProducts(): PhProduct[] {
+    return this.filteredProducts.slice(0, this.resultsVisibleCount);
+  }
+
+  get hasMoreProducts(): boolean {
+    return this.resultsVisibleCount < this.filteredProducts.length;
+  }
+
+  get resultsCount(): number {
+    return this.filteredProducts.length;
+  }
 
   ngOnInit(): void {
     this.directionSub = this.directionService.direction$.subscribe((direction) => {
@@ -88,18 +175,28 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
       printingHouses: this.phPrintingHouseService.listForMap(),
     }).subscribe({
       next: ({ categories, products, printingHouses }) => {
-        this.categoryGroups = this.buildCategoryGroups(
-          categories.categories ?? [],
-          products.products ?? [],
+        this.rawCategories = categories.categories ?? [];
+        const productList = products.products ?? [];
+        this.allProducts = productList;
+        this.categoryGroups = this.buildCategoryGroups(this.rawCategories, productList).filter(
+          (group) => group.subCategories.some((sub) => sub.products.length > 0),
         );
         this.mapPrintingHouses = (printingHouses.printingHouses ?? []).filter((ph) =>
           this.hasValidLocation(ph),
         );
+        this.loading = false;
         this.cdr.detectChanges();
-        this.scheduleMapMarkersSync();
+        setTimeout(() => {
+          this.initMap();
+          this.setupMapResizeObserver();
+          this.scheduleMapMarkersSync();
+          this.map?.resize();
+        }, 0);
       },
       error: (error) => {
         console.error('ph-home', error);
+        this.loading = false;
+        this.cdr.markForCheck();
       },
     });
   }
@@ -117,52 +214,57 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.map = undefined;
     this.mapResizeObserver?.disconnect();
     this.markerElsSub?.unsubscribe();
-    this.clearHoverCloseTimer();
     this.directionSub?.unsubscribe();
     this.darkModeSub?.unsubscribe();
   }
 
-  @HostListener('document:click')
-  onDocumentClick(): void {
-    if (this.isMobileCatalogViewport()) {
-      this.activeCategoryIndex = null;
+  categoryIcon(categoryName: string): string {
+    for (const entry of CATEGORY_ICONS) {
+      if (entry.match.test(categoryName)) {
+        return entry.icon;
+      }
     }
+    return 'category';
   }
 
-  onCategoryClick(categoryIndex: number, event: Event): void {
-    event.stopPropagation();
-    if (!this.isMobileCatalogViewport()) {
-      return;
-    }
-    this.activeCategoryIndex =
-      this.activeCategoryIndex === categoryIndex ? null : categoryIndex;
+  onSearchInput(value: string): void {
+    this.searchQuery = value;
+    this.resultsVisibleCount = PRODUCTS_PAGE_SIZE;
   }
 
-  onCategoryMouseEnter(categoryIndex: number): void {
-    if (this.isMobileCatalogViewport()) {
-      return;
-    }
-    this.clearHoverCloseTimer();
-    this.activeCategoryIndex = categoryIndex;
+  onSelectCategory(index: number | null): void {
+    this.selectedCategoryIndex = index;
+    this.resultsVisibleCount = PRODUCTS_PAGE_SIZE;
   }
 
-  onNavMouseLeave(): void {
-    if (this.isMobileCatalogViewport()) {
-      return;
-    }
-    this.scheduleHoverClose();
+  onCityChange(city: string): void {
+    this.selectedCity = city;
+    this.resultsVisibleCount = PRODUCTS_PAGE_SIZE;
   }
 
-  onPanelMouseEnter(): void {
-    this.panelHovered = true;
-    this.clearHoverCloseTimer();
+  onSortChange(mode: 'name' | 'ph'): void {
+    this.sortMode = mode;
   }
 
-  onPanelMouseLeave(): void {
-    this.panelHovered = false;
-    if (!this.isMobileCatalogViewport()) {
-      this.activeCategoryIndex = null;
-    }
+  onClearFilters(): void {
+    this.searchQuery = '';
+    this.selectedCategoryIndex = null;
+    this.selectedCity = '';
+    this.maxDistanceKm = 50;
+    this.priceMin = '';
+    this.priceMax = '';
+    this.deliveryFilter = 'any';
+    this.sortMode = 'name';
+    this.resultsVisibleCount = PRODUCTS_PAGE_SIZE;
+  }
+
+  onShowMore(): void {
+    this.resultsVisibleCount += PRODUCTS_PAGE_SIZE;
+  }
+
+  onFocusMap(): void {
+    this.mapEl?.nativeElement?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    this.map?.resize();
   }
 
   phLogoUrl(ph: PhPrintingHouseMapMarker): string {
@@ -170,6 +272,13 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getProductDisplayName(product: PhProduct): string {
+    const lang = this.translateService.currentLang || 'he';
+    if (lang === 'en' && product.name_en?.trim()) {
+      return product.name_en.trim();
+    }
+    if (lang === 'ar' && product.name_ar?.trim()) {
+      return product.name_ar.trim();
+    }
     return product.name_he;
   }
 
@@ -215,6 +324,16 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
         productId,
       },
     });
+  }
+
+  onCompareClick(product: PhProduct, event: Event): void {
+    event.stopPropagation();
+    const printingHouseId = this.resolvePrintingHouseId(product);
+    if (!printingHouseId) {
+      this.onProductClick(product);
+      return;
+    }
+    void this.router.navigate(['/printing-house', printingHouseId]);
   }
 
   private resolvePrintingHouseId(product: PhProduct): string {
@@ -288,26 +407,6 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
       return label.ar;
     }
     return label.he;
-  }
-
-  private isMobileCatalogViewport(): boolean {
-    return typeof window !== 'undefined' && window.innerWidth <= MOBILE_CATALOG_MAX_WIDTH_PX;
-  }
-
-  private scheduleHoverClose(): void {
-    this.clearHoverCloseTimer();
-    this.hoverCloseTimer = setTimeout(() => {
-      if (!this.panelHovered) {
-        this.activeCategoryIndex = null;
-      }
-    }, 120);
-  }
-
-  private clearHoverCloseTimer(): void {
-    if (this.hoverCloseTimer != null) {
-      clearTimeout(this.hoverCloseTimer);
-      this.hoverCloseTimer = null;
-    }
   }
 
   private hasValidLocation(ph: PhPrintingHouseMapMarker): boolean {
@@ -416,7 +515,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     });
 
     if (this.mapMarkers.length > 0) {
-      map.fitBounds(bounds, { padding: 72, maxZoom: 11, duration: 0 });
+      map.fitBounds(bounds, { padding: 48, maxZoom: 11, duration: 0 });
     } else {
       map.jumpTo({ center: ISRAEL_CENTER, zoom: ISRAEL_ZOOM });
     }

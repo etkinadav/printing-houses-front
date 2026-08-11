@@ -1,7 +1,263 @@
-<div class="home-page">
-  <div class="home-map-screen">
-    <div #mapEl class="home-map"></div>
+<div
+  class="home-page"
+  [class.home-page--dark]="isDarkMode"
+  [attr.dir]="isRTL ? 'rtl' : 'ltr'"
+>
+  <section class="home-hero">
+    <h1 class="home-hero__title">{{ 'home.hero-title' | translate }}</h1>
+
+    <div class="home-hero__search-row">
+      <label class="home-search">
+        <mat-icon class="home-search__icon" aria-hidden="true">search</mat-icon>
+        <input
+          type="search"
+          class="home-search__input"
+          [value]="searchQuery"
+          (input)="onSearchInput($any($event.target).value)"
+          [placeholder]="'home.search-placeholder' | translate"
+        />
+      </label>
+
+      <div class="home-location">
+        <mat-icon aria-hidden="true">place</mat-icon>
+        <select
+          class="home-location__select"
+          [value]="selectedCity"
+          (change)="onCityChange($any($event.target).value)"
+        >
+          <option value="">{{ 'home.location-all' | translate }}</option>
+          <option *ngFor="let city of cityOptions" [value]="city">{{ city }}</option>
+        </select>
+      </div>
+
+      <button
+        mat-raised-button
+        type="button"
+        color="primary"
+        class="home-hero__map-btn text-white"
+        (click)="onFocusMap()"
+      >
+        <mat-icon>map</mat-icon>
+        {{ 'home.show-on-map' | translate }}
+      </button>
+    </div>
+
+    <div class="home-categories" *ngIf="categoryGroups.length">
+      <button
+        type="button"
+        class="home-category-chip"
+        [class.home-category-chip--active]="selectedCategoryIndex === null"
+        (click)="onSelectCategory(null)"
+      >
+        <span class="home-category-chip__icon"><mat-icon>apps</mat-icon></span>
+        <span class="home-category-chip__label">{{ 'home.all-categories' | translate }}</span>
+      </button>
+
+      <button
+        *ngFor="let category of categoryGroups; let i = index"
+        type="button"
+        class="home-category-chip"
+        [class.home-category-chip--active]="selectedCategoryIndex === i"
+        (click)="onSelectCategory(i)"
+      >
+        <span class="home-category-chip__icon">
+          <mat-icon>{{ categoryIcon(category.name) }}</mat-icon>
+        </span>
+        <span class="home-category-chip__label">{{ category.name }}</span>
+      </button>
+    </div>
+  </section>
+
+  <div *ngIf="loading" class="home-loading">
+    <mat-spinner diameter="40"></mat-spinner>
   </div>
+
+  <section *ngIf="!loading" class="home-main">
+    <aside class="home-filters">
+      <div class="home-filters__head">
+        <h2>{{ 'home.filters-title' | translate }}</h2>
+        <button type="button" class="home-filters__clear" (click)="onClearFilters()">
+          {{ 'home.clear-filters' | translate }}
+        </button>
+      </div>
+
+      <label class="home-filter-field">
+        <span class="home-filter-field__label">{{ 'home.filter-category' | translate }}</span>
+        <select
+          [value]="selectedCategoryIndex === null ? '' : selectedCategoryIndex"
+          (change)="onSelectCategory($any($event.target).value === '' ? null : +$any($event.target).value)"
+        >
+          <option value="">{{ 'home.all-categories' | translate }}</option>
+          <option *ngFor="let category of categoryGroups; let i = index" [value]="i">
+            {{ category.name }}
+          </option>
+        </select>
+      </label>
+
+      <label class="home-filter-field">
+        <span class="home-filter-field__label">{{ 'home.filter-city' | translate }}</span>
+        <select [value]="selectedCity" (change)="onCityChange($any($event.target).value)">
+          <option value="">{{ 'home.location-all' | translate }}</option>
+          <option *ngFor="let city of cityOptions" [value]="city">{{ city }}</option>
+        </select>
+      </label>
+
+      <div class="home-filter-field">
+        <span class="home-filter-field__label">
+          {{ 'home.filter-distance' | translate: { km: maxDistanceKm } }}
+        </span>
+        <input
+          type="range"
+          min="5"
+          max="100"
+          step="5"
+          [value]="maxDistanceKm"
+          (input)="maxDistanceKm = +$any($event.target).value"
+        />
+      </div>
+
+      <div class="home-filter-field home-filter-field--row">
+        <label>
+          <span class="home-filter-field__label">{{ 'home.filter-price-min' | translate }}</span>
+          <input type="number" min="0" [(ngModel)]="priceMin" [placeholder]="'home.filter-price-min' | translate" />
+        </label>
+        <label>
+          <span class="home-filter-field__label">{{ 'home.filter-price-max' | translate }}</span>
+          <input type="number" min="0" [(ngModel)]="priceMax" [placeholder]="'home.filter-price-max' | translate" />
+        </label>
+      </div>
+
+      <fieldset class="home-filter-field">
+        <legend class="home-filter-field__label">{{ 'home.filter-delivery' | translate }}</legend>
+        <label class="home-check">
+          <input type="radio" name="delivery" value="today" [(ngModel)]="deliveryFilter" />
+          {{ 'home.delivery-today' | translate }}
+        </label>
+        <label class="home-check">
+          <input type="radio" name="delivery" value="24h" [(ngModel)]="deliveryFilter" />
+          {{ 'home.delivery-24h' | translate }}
+        </label>
+        <label class="home-check">
+          <input type="radio" name="delivery" value="3d" [(ngModel)]="deliveryFilter" />
+          {{ 'home.delivery-3d' | translate }}
+        </label>
+        <label class="home-check">
+          <input type="radio" name="delivery" value="any" [(ngModel)]="deliveryFilter" />
+          {{ 'home.delivery-any' | translate }}
+        </label>
+      </fieldset>
+
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        class="home-filters__apply text-white"
+      >
+        {{ 'home.show-results' | translate: { count: resultsCount } }}
+      </button>
+    </aside>
+
+    <div class="home-results">
+      <div class="home-results__head">
+        <p class="home-results__count">
+          {{ 'home.products-found' | translate: { count: resultsCount } }}
+        </p>
+        <label class="home-results__sort">
+          <span>{{ 'home.sort-by' | translate }}</span>
+          <select [value]="sortMode" (change)="onSortChange($any($event.target).value)">
+            <option value="name">{{ 'home.sort-name' | translate }}</option>
+            <option value="ph">{{ 'home.sort-printing-house' | translate }}</option>
+          </select>
+        </label>
+      </div>
+
+      <div *ngIf="!visibleProducts.length" class="home-results__empty">
+        {{ 'home.no-products' | translate }}
+      </div>
+
+      <ul class="home-product-grid">
+        <li
+          *ngFor="let product of visibleProducts"
+          class="home-product-card"
+          role="link"
+          tabindex="0"
+          (click)="onProductClick(product)"
+          (keydown.enter)="onProductClick(product)"
+          (keydown.space)="$event.preventDefault(); onProductClick(product)"
+        >
+          <div class="home-product-card__media">
+            <app-ph-home-catalog-mockup [product]="product"></app-ph-home-catalog-mockup>
+          </div>
+
+          <div class="home-product-card__body">
+            <h3 class="home-product-card__title">{{ getProductDisplayName(product) }}</h3>
+
+            <div *ngIf="hasPrintingHouseInfo(product)" class="home-product-card__ph">
+              <app-ph-logo-crop
+                *ngIf="getPrintingHouseLogoUrl(product)"
+                [imageUrl]="getPrintingHouseLogoUrl(product)"
+                [logo]="getPrintingHouseLogo(product)"
+                size="1.75rem"
+              />
+              <div class="home-product-card__ph-text">
+                <span *ngIf="getPrintingHouseName(product)">{{ getPrintingHouseName(product) }}</span>
+                <span *ngIf="getPrintingHouseCity(product)" class="home-product-card__meta">
+                  {{ getPrintingHouseCity(product) }}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="home-product-card__compare"
+              (click)="onCompareClick(product, $event)"
+            >
+              {{ 'home.compare-options' | translate }}
+            </button>
+          </div>
+        </li>
+      </ul>
+
+      <button
+        *ngIf="hasMoreProducts"
+        mat-stroked-button
+        type="button"
+        class="home-results__more"
+        (click)="onShowMore()"
+      >
+        {{ 'home.show-more' | translate }}
+      </button>
+    </div>
+
+    <aside class="home-map-panel">
+      <div class="home-map-panel__frame">
+        <div #mapEl class="home-map"></div>
+      </div>
+    </aside>
+  </section>
+
+  <footer class="home-benefits">
+    <div class="home-benefit">
+      <mat-icon>inventory_2</mat-icon>
+      <span>{{ 'home.benefit-products' | translate }}</span>
+    </div>
+    <div class="home-benefit">
+      <mat-icon>compare_arrows</mat-icon>
+      <span>{{ 'home.benefit-compare' | translate }}</span>
+    </div>
+    <div class="home-benefit">
+      <mat-icon>schedule</mat-icon>
+      <span>{{ 'home.benefit-fast' | translate }}</span>
+    </div>
+    <div class="home-benefit">
+      <mat-icon>public</mat-icon>
+      <span>{{ 'home.benefit-nationwide' | translate }}</span>
+    </div>
+    <div class="home-benefit">
+      <mat-icon>verified_user</mat-icon>
+      <span>{{ 'home.benefit-secure' | translate }}</span>
+    </div>
+  </footer>
 
   <div class="home-map-markers-pool" aria-hidden="true">
     <div
@@ -23,87 +279,4 @@
       <div class="home-map-marker-pin"></div>
     </div>
   </div>
-
-  <nav
-    *ngIf="categoryGroups.length"
-    class="home-catalog-nav"
-    [class.home-catalog-nav-dark]="isDarkMode"
-    [attr.dir]="isRTL ? 'rtl' : 'ltr'"
-    (click)="$event.stopPropagation()"
-    (mouseleave)="onNavMouseLeave()"
-  >
-    <div class="home-catalog-nav-bar">
-      <div class="home-catalog-buttons">
-        <div
-          *ngFor="let category of categoryGroups; let categoryIndex = index"
-          class="home-catalog-category"
-          (mouseenter)="onCategoryMouseEnter(categoryIndex)"
-        >
-          <button
-            type="button"
-            class="home-catalog-category-btn"
-            [class.active]="activeCategoryIndex === categoryIndex"
-            (click)="onCategoryClick(categoryIndex, $event)"
-          >
-            {{ category.name }}
-          </button>
-        </div>
-      </div>
-
-      <div
-        *ngIf="activeCategoryIndex !== null && categoryGroups[activeCategoryIndex] as activeCategory"
-        class="home-catalog-panel"
-        [attr.dir]="isRTL ? 'rtl' : 'ltr'"
-        (mouseenter)="onPanelMouseEnter()"
-        (mouseleave)="onPanelMouseLeave()"
-      >
-        <div
-          *ngFor="let subCategory of activeCategory.subCategories"
-          class="home-catalog-subsection"
-        >
-          <h3 class="home-catalog-subtitle">{{ subCategory.name }}</h3>
-          <ul class="home-catalog-products">
-            <li
-              *ngFor="let product of subCategory.products"
-              class="home-catalog-product"
-              role="link"
-              tabindex="0"
-              (click)="onProductClick(product)"
-              (keydown.enter)="onProductClick(product)"
-              (keydown.space)="$event.preventDefault(); onProductClick(product)"
-            >
-              <span class="home-catalog-product-name">{{ getProductDisplayName(product) }}</span>
-              <app-ph-home-catalog-mockup
-                [product]="product"
-              ></app-ph-home-catalog-mockup>
-              <div
-                *ngIf="hasPrintingHouseInfo(product)"
-                class="home-catalog-product-ph"
-              >
-                <app-ph-logo-crop
-                  *ngIf="getPrintingHouseLogoUrl(product)"
-                  [imageUrl]="getPrintingHouseLogoUrl(product)"
-                  [logo]="getPrintingHouseLogo(product)"
-                  size="2.125rem"
-                />
-                <div
-                  *ngIf="getPrintingHouseName(product) || getPrintingHouseCity(product)"
-                  class="home-catalog-product-ph-text"
-                >
-                  <span
-                    *ngIf="getPrintingHouseName(product)"
-                    class="home-catalog-product-ph-name"
-                  >{{ getPrintingHouseName(product) }}</span>
-                  <span
-                    *ngIf="getPrintingHouseCity(product)"
-                    class="home-catalog-product-ph-city"
-                  >{{ getPrintingHouseCity(product) }}</span>
-                </div>
-              </div>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </nav>
 </div>
