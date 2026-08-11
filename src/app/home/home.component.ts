@@ -181,9 +181,10 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
         this.categoryGroups = this.buildCategoryGroups(this.rawCategories, productList).filter(
           (group) => group.subCategories.some((sub) => sub.products.length > 0),
         );
-        this.mapPrintingHouses = (printingHouses.printingHouses ?? []).filter((ph) =>
-          this.hasValidLocation(ph),
-        );
+        this.mapPrintingHouses = (printingHouses.printingHouses ?? [])
+          .filter((ph) => this.hasValidLocation(ph))
+          // Higher latitude behind lower latitude (north → south paint order).
+          .sort((a, b) => Number(b.location.lat) - Number(a.location.lat));
         this.loading = false;
         this.cdr.detectChanges();
         setTimeout(() => {
@@ -326,11 +327,11 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  onCompareClick(product: PhProduct, event: Event): void {
+  onPrintingHouseClick(product: PhProduct, event: Event): void {
     event.stopPropagation();
+    event.preventDefault();
     const printingHouseId = this.resolvePrintingHouseId(product);
     if (!printingHouseId) {
-      this.onProductClick(product);
       return;
     }
     void this.router.navigate(['/printing-house', printingHouseId]);
@@ -494,6 +495,8 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
       const lat = Number(ph.location.lat);
       const lon = Number(ph.location.lon);
       el.hidden = false;
+      // Lower latitude (south) gets a higher z-index so northern markers sit behind.
+      el.style.zIndex = String(Math.round((90 - lat) * 1000));
 
       const handler = (event: Event) => {
         event.stopPropagation();

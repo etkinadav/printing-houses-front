@@ -192,7 +192,12 @@
           <div class="home-product-card__body">
             <h3 class="home-product-card__title">{{ getProductDisplayName(product) }}</h3>
 
-            <div *ngIf="hasPrintingHouseInfo(product)" class="home-product-card__ph">
+            <button
+              *ngIf="hasPrintingHouseInfo(product)"
+              type="button"
+              class="home-product-card__ph"
+              (click)="onPrintingHouseClick(product, $event)"
+            >
               <app-ph-logo-crop
                 *ngIf="getPrintingHouseLogoUrl(product)"
                 [imageUrl]="getPrintingHouseLogoUrl(product)"
@@ -200,19 +205,14 @@
                 size="1.75rem"
               />
               <div class="home-product-card__ph-text">
-                <span *ngIf="getPrintingHouseName(product)">{{ getPrintingHouseName(product) }}</span>
+                <span *ngIf="getPrintingHouseName(product)" class="home-product-card__ph-name">
+                  {{ getPrintingHouseName(product) }}
+                </span>
                 <span *ngIf="getPrintingHouseCity(product)" class="home-product-card__meta">
                   {{ getPrintingHouseCity(product) }}
                 </span>
               </div>
-            </div>
-
-            <button
-              type="button"
-              class="home-product-card__compare"
-              (click)="onCompareClick(product, $event)"
-            >
-              {{ 'home.compare-options' | translate }}
+              <mat-icon class="home-product-card__ph-arrow" aria-hidden="true">chevron_left</mat-icon>
             </button>
           </div>
         </li>
@@ -235,29 +235,6 @@
       </div>
     </aside>
   </section>
-
-  <footer class="home-benefits">
-    <div class="home-benefit">
-      <mat-icon>inventory_2</mat-icon>
-      <span>{{ 'home.benefit-products' | translate }}</span>
-    </div>
-    <div class="home-benefit">
-      <mat-icon>compare_arrows</mat-icon>
-      <span>{{ 'home.benefit-compare' | translate }}</span>
-    </div>
-    <div class="home-benefit">
-      <mat-icon>schedule</mat-icon>
-      <span>{{ 'home.benefit-fast' | translate }}</span>
-    </div>
-    <div class="home-benefit">
-      <mat-icon>public</mat-icon>
-      <span>{{ 'home.benefit-nationwide' | translate }}</span>
-    </div>
-    <div class="home-benefit">
-      <mat-icon>verified_user</mat-icon>
-      <span>{{ 'home.benefit-secure' | translate }}</span>
-    </div>
-  </footer>
 
   <div class="home-map-markers-pool" aria-hidden="true">
     <div
