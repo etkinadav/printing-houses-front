@@ -8,12 +8,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { DirectionService } from '../../direction.service';
 import { PhProductsService } from '../../ph-products/ph-products.service';
 import { PhProduct } from '../../ph-products/ph-product.model';
-import {
-  buildProductSpecTree,
-  getColorPillTextColor,
-  getProductCategoryLine as formatProductCategoryLine,
-  ProductSpecNode,
-} from '../../ph-products/ph-product-spec.util';
+import { getProductCategoryLine as formatProductCategoryLine } from '../../ph-products/ph-product-spec.util';
 import { PhPrintingHouseService } from '../../ph-printing-house/ph-printing-house.service';
 import { PhPrintingHouse } from '../../ph-printing-house/ph-printing-house.model';
 import { buildLogoCropTransform } from '../../ph-printing-house/logo-crop.util';
@@ -233,18 +228,9 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
     });
   }
 
-  getProductSpec(product: PhProduct): ProductSpecNode[] {
-    const lang = this.translate.currentLang || 'he';
-    return buildProductSpecTree(product, (key, params) => this.translate.instant(key, params), lang);
-  }
-
   getProductCategoryLine(product: PhProduct): string {
     const lang = this.translate.currentLang || 'he';
     return formatProductCategoryLine(product, lang);
-  }
-
-  colorPillTextColor(hex: string): string {
-    return getColorPillTextColor(hex);
   }
 
   onDeleteProduct(product: PhProduct): void {

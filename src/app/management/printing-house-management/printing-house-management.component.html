@@ -84,8 +84,10 @@
               </p>
             </div>
 
-            <ng-container
-              *ngTemplateOutlet="productSpecTree; context: { nodes: getProductSpec(product) }"></ng-container>
+            <app-ph-home-catalog-mockup
+              class="ph-mgmt-products__mockup"
+              [product]="product"
+            ></app-ph-home-catalog-mockup>
 
             <button
               mat-raised-button
@@ -112,41 +114,3 @@
     </section>
   </ng-container>
 </div>
-
-<ng-template #productSpecTree let-nodes="nodes">
-  <ul *ngIf="nodes?.length" class="ph-spec-tree">
-    <li *ngFor="let node of nodes" class="ph-spec-tree__item">
-      <div
-        class="ph-spec-tree__row"
-        [class.ph-spec-tree__row--block]="node.colorPills?.length && !node.label"
-        [class.ph-spec-tree__row--color-own-line]="node.colorPills?.length === 1">
-        <span
-          *ngIf="node.label"
-          class="ph-spec-tree__label"
-          [class.ph-spec-tree__label--regular]="node.emphasis === false"
-          [class.ph-spec-tree__label--extra-setting]="node.isExtraSetting"
-          [class.ph-spec-tree__label--muted-bold]="node.isMutedBold">{{ node.label }}</span>
-        <span
-          *ngIf="node.detail"
-          class="ph-spec-tree__detail"
-          [class.ph-spec-tree__detail--bold]="node.detailBold">{{ node.detail }}</span>
-        <div *ngIf="node.colorPills?.length" class="ph-spec-color-pills">
-          <span
-            *ngFor="let pill of node.colorPills"
-            class="ph-spec-color-pill"
-            [class.ph-spec-color-pill--texture]="pill.textureUrl"
-            [style.background]="pill.textureUrl ? '#e8e8e8' : pill.hex"
-            [style.backgroundImage]="pill.textureUrl ? 'url(' + pill.textureUrl + ')' : null"
-            [style.color]="pill.textureUrl ? '#000000' : colorPillTextColor(pill.hex)">
-            {{ pill.name }}
-          </span>
-        </div>
-      </div>
-
-      <ng-container *ngIf="node.children?.length">
-        <ng-container
-          *ngTemplateOutlet="productSpecTree; context: { nodes: node.children }"></ng-container>
-      </ng-container>
-    </li>
-  </ul>
-</ng-template>

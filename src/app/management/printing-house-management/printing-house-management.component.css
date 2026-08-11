@@ -298,6 +298,13 @@
   word-break: break-word;
 }
 
+.ph-mgmt-products__mockup {
+  display: block;
+  width: 100%;
+  max-width: 18rem;
+  margin-inline: auto;
+}
+
 .ph-mgmt-products__continue-btn {
   --mdc-protected-button-container-color: var(--zx-green);
   --mdc-protected-button-label-text-color: #fff;
@@ -310,103 +317,6 @@
   font-weight: 600;
   justify-content: center;
   color: #fff !important;
-}
-
-.ph-spec-tree {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.ph-spec-tree .ph-spec-tree {
-  margin-top: 6px;
-  padding-inline-start: 16px;
-  border-inline-start: 2px solid rgba(85, 85, 85, 0.16);
-}
-
-.ph-spec-tree__item + .ph-spec-tree__item {
-  margin-top: 6px;
-}
-
-.ph-spec-tree__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 10px;
-  font-size: 0.8125rem;
-  line-height: 1.45;
-}
-
-.ph-spec-tree__row--block {
-  width: 100%;
-}
-
-.ph-spec-tree__row--color-own-line {
-  width: 100%;
-}
-
-.ph-spec-tree__item:has(> .ph-spec-tree__row--color-own-line) + .ph-spec-tree__item {
-  margin-top: 8px;
-}
-
-.ph-spec-tree__label {
-  font-weight: 600;
-  opacity: 0.88;
-}
-
-.ph-spec-tree__label--regular {
-  font-weight: 400;
-  opacity: 1;
-}
-
-.ph-spec-tree__label--extra-setting {
-  opacity: 0.75;
-}
-
-.ph-spec-tree__label--muted-bold {
-  font-weight: 600;
-  opacity: 0.75;
-}
-
-.ph-spec-tree__detail {
-  font-weight: 500;
-  word-break: break-word;
-}
-
-.ph-spec-tree__detail--bold {
-  font-weight: 600;
-  opacity: 0.88;
-}
-
-.ph-spec-color-pills {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-
-.ph-spec-color-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 400;
-  line-height: 1.25;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  white-space: nowrap;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ph-spec-color-pill--texture {
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  text-shadow: 0 0 4px rgba(255, 255, 255, 0.85);
 }
 
 @media only screen and (min-width: 992px) {
