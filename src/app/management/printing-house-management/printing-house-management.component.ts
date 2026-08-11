@@ -207,7 +207,8 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
     ]);
   }
 
-  onEditProduct(productId: string): void {
+  onEditProduct(productId: string, event?: Event): void {
+    event?.stopPropagation();
     if (!this.printingHouseId) return;
     void this.router.navigate([
       '/management/printing-house',
@@ -228,14 +229,26 @@ export class PrintingHouseManagementComponent implements OnInit, OnDestroy, Afte
     });
   }
 
+  getProductDisplayName(product: PhProduct): string {
+    const lang = this.translate.currentLang || 'he';
+    if (lang === 'en' && product.name_en?.trim()) {
+      return product.name_en.trim();
+    }
+    if (lang === 'ar' && product.name_ar?.trim()) {
+      return product.name_ar.trim();
+    }
+    return product.name_he;
+  }
+
   getProductCategoryLine(product: PhProduct): string {
     const lang = this.translate.currentLang || 'he';
     return formatProductCategoryLine(product, lang);
   }
 
-  onDeleteProduct(product: PhProduct): void {
+  onDeleteProduct(product: PhProduct, event?: Event): void {
+    event?.stopPropagation();
     const msg = this.translate.instant('management.printing-house.delete-product-confirm', {
-      name: product.name_he,
+      name: this.getProductDisplayName(product),
     });
     if (!confirm(msg)) return;
 
