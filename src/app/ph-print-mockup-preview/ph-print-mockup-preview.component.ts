@@ -501,14 +501,14 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     );
   }
 
-  /** Stretch texture to the warp canvas like the print image (object-fit: fill). */
+  /** Cover texture like the print image (object-fit: cover). */
   get sheetFillStyles(): Record<string, string> {
     const styles = { ...this.sheetBackgroundStyles };
     if (styles['backgroundImage']) {
       return {
         ...styles,
-        backgroundSize: '100% 100%',
-        backgroundPosition: '0 0',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
       };
     }
     return styles;
@@ -767,11 +767,14 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
 
     this.imageMeasureRetryCount = 0;
 
+    // Cover the mockup *print slot* (not the abstract sheet layout). The composite
+    // has the canvas/sheet aspect; the slot often differs — cropping against the
+    // sheet made extensions zero and object-fit:fill then stretched the image.
     const crop = computeMockupCoverCrop(
       imageDims.widthPx,
       imageDims.heightPx,
-      layout.sheetWidthPx,
-      layout.sheetHeightPx,
+      slotW,
+      slotH,
     );
     if (!crop) {
       this.cropGuideSvg = null;
@@ -826,8 +829,8 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     }
 
     this.refreshPrintImageWarp(
-      layout.sheetWidthPx,
-      layout.sheetHeightPx,
+      slotW,
+      slotH,
       slotW,
       slotH,
       imageDims,

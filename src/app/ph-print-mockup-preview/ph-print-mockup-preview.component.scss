@@ -343,7 +343,10 @@
 
   height: 100%;
 
-  object-fit: fill;
+  /* Cover the print slot / expanded crop canvas without distorting sheet aspect. */
+  object-fit: cover;
+
+  object-position: center;
 
   user-select: none;
 
