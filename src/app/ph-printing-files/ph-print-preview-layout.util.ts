@@ -397,6 +397,32 @@ export function computePreviewFoldPanelBoundariesPx(
   baseWidthPx: number,
   baseWidthCm: number,
 ): number[] {
+  const ranges = computePreviewFoldPanelRangesPx(
+    foldCount,
+    offsetCm,
+    baseWidthPx,
+    baseWidthCm,
+  );
+  if (!ranges.length) {
+    return [];
+  }
+  // Continuous list for callers that only need ordered edge positions.
+  // Note: with offset > 0 consecutive pairs from this list are NOT panel spans —
+  // use computePreviewFoldPanelRangesPx for actual panel [left, right] ranges.
+  const panelBounds = [ranges[0].leftPx];
+  for (const range of ranges) {
+    panelBounds.push(range.rightPx);
+  }
+  return panelBounds;
+}
+
+/** Inclusive panel spans across the base sheet (offset gaps omitted). */
+export function computePreviewFoldPanelRangesPx(
+  foldCount: number | undefined,
+  offsetCm: number | undefined,
+  baseWidthPx: number,
+  baseWidthCm: number,
+): Array<{ leftPx: number; rightPx: number }> {
   const all = computePreviewFoldBoundariesPx(
     foldCount,
     offsetCm,
@@ -409,15 +435,20 @@ export function computePreviewFoldPanelBoundariesPx(
 
   const offsetCmVal = Math.max(0, Number(offsetCm) || 0);
   if (offsetCmVal <= 0) {
-    return all;
+    const ranges: Array<{ leftPx: number; rightPx: number }> = [];
+    for (let index = 0; index < all.length - 1; index += 1) {
+      ranges.push({ leftPx: all[index], rightPx: all[index + 1] });
+    }
+    return ranges;
   }
 
-  const panelBounds = [all[0]];
-  for (let index = 1; index < all.length - 1; index += 2) {
-    panelBounds.push(all[index]);
+  // With offset: all = [0, endP0, startP1, endP1, startP2, ..., W]
+  // Panel i occupies all[2i] .. all[2i+1].
+  const ranges: Array<{ leftPx: number; rightPx: number }> = [];
+  for (let index = 0; index + 1 < all.length; index += 2) {
+    ranges.push({ leftPx: all[index], rightPx: all[index + 1] });
   }
-  panelBounds.push(all[all.length - 1]);
-  return panelBounds;
+  return ranges;
 }
 
 /** Snap fold guide x to half-pixels for consistent 1px stroke rendering. */

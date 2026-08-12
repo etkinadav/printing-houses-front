@@ -5,7 +5,7 @@ import {
   resolveMockupFoldingFromProduct,
 } from '../management/product-create/mockup-folding.util';
 import { PhMockup, PhMockupPrintArea } from '../ph-products/ph-product.model';
-import { computePreviewFoldPanelBoundariesPx } from './ph-print-preview-layout.util';
+import { computePreviewFoldPanelRangesPx } from './ph-print-preview-layout.util';
 import {
   buildRectToQuadBilinearWarpSlices,
   buildRectToQuadWarpTransformLenient,
@@ -37,11 +37,16 @@ export interface PhPrintMockupFoldPanelView {
   index: number;
   /** Panel boundary in slot-local px (matches dashed fold guides). */
   clipPath: string;
-  /** Preview strip for this panel within the slot (slot-local px). */
+  /**
+   * Strip origin in slot-local px (may be negative when the panel starts in the
+   * left cover-crop extension). Crop uses canvas coords via stripCanvasLeftPx.
+   */
   stripLeftPx: number;
   stripTopPx: number;
   stripWidthPx: number;
   stripHeightPx: number;
+  /** Absolute X on the cover canvas where this panel strip begins. */
+  stripCanvasLeftPx: number;
   /** Shift full canvas image to this panel's preview strip (canvas px). */
   imageMarginLeftPx: number;
   imageMarginTopPx: number;
@@ -276,14 +281,14 @@ export function buildPrintMockupFoldingModel(
 
   const sortedPairs = sortPairsByTopX(sourcePairs, overlay, slotWidthPx, slotHeightPx);
 
-  const sheetPanelBounds = computePreviewFoldPanelBoundariesPx(
+  const sheetPanelRanges = computePreviewFoldPanelRangesPx(
     safeProductCount,
     foldingOffsetCm,
     baseWidthPx,
     baseWidthCm,
   );
   const mockupPanelCount = safeProductCount + 1;
-  if (sheetPanelBounds.length !== mockupPanelCount + 1) {
+  if (sheetPanelRanges.length !== mockupPanelCount) {
     return null;
   }
 
@@ -310,6 +315,11 @@ export function buildPrintMockupFoldingModel(
     return null;
   }
 
+  // Cover canvas is the composite stretched to cover the slot (with pads). Sheet
+  // fractions must be mapped in canvas space — not slotWidth — or folds drift
+  // when there is horizontal cover crop.
+  const contentW = imageLayout.canvasWidthPx;
+
   const panels: PhPrintMockupFoldPanelView[] = [];
   for (let index = 0; index < mockupPanelCount; index += 1) {
     const dstTL = topEdgeSlot[index];
@@ -317,14 +327,17 @@ export function buildPrintMockupFoldingModel(
     const dstBR = bottomEdgeSlot[index + 1];
     const dstBL = bottomEdgeSlot[index];
 
-    const leftFrac = baseWidthPx > 0 ? sheetPanelBounds[index] / baseWidthPx : 0;
-    const rightFrac = baseWidthPx > 0 ? sheetPanelBounds[index + 1] / baseWidthPx : 0;
-    const stripLeftPx = leftFrac * imageLayout.slotWidthPx;
+    const range = sheetPanelRanges[index];
+    const leftFrac = baseWidthPx > 0 ? range.leftPx / baseWidthPx : 0;
+    const rightFrac = baseWidthPx > 0 ? range.rightPx / baseWidthPx : 0;
+    const leftCanvasPx = leftFrac * contentW;
+    const rightCanvasPx = rightFrac * contentW;
+    const stripLeftPx = leftCanvasPx - ox;
     const stripTopPx = 0;
-    const stripWidthPx = (rightFrac - leftFrac) * imageLayout.slotWidthPx;
+    const stripWidthPx = Math.max(0, rightCanvasPx - leftCanvasPx);
     const stripHeightPx = imageLayout.slotHeightPx;
 
-    const imageMarginLeftPx = -(ox + stripLeftPx);
+    const imageMarginLeftPx = -leftCanvasPx;
     const imageMarginTopPx = -oy;
 
     const slices = buildRectToQuadBilinearWarpSlices(
@@ -351,6 +364,7 @@ export function buildPrintMockupFoldingModel(
       stripTopPx,
       stripWidthPx,
       stripHeightPx,
+      stripCanvasLeftPx: leftCanvasPx,
       imageMarginLeftPx,
       imageMarginTopPx,
       slices,
