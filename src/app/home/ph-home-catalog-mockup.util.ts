@@ -87,7 +87,8 @@ function resolveProductTree(
 } {
   const fixedSizes = product.properties?.fixed?.sizes ?? [];
   const dynamic = product.properties?.dynamic;
-  const isDynamic = !!dynamic && fixedSizes.length === 0;
+  // Match print-table: flexability flag wins (not "has dynamic blob / no sizes").
+  const isDynamic = product.properties?.dimensionsFlexability === 'dynamic';
   const ps = settings ?? {};
 
   if (!isDynamic) {
@@ -125,23 +126,38 @@ function resolveProductTree(
   }
 
   const materials = dynamic?.materials ?? [];
-  const materialIndex =
+  const rawMaterialIndex =
     ps.materialIndex != null && Number.isFinite(Number(ps.materialIndex))
       ? Number(ps.materialIndex)
       : 0;
-  const material =
-    materials[Math.min(Math.max(0, materialIndex), Math.max(0, materials.length - 1))] ?? null;
+  const materialIndex = materials.length
+    ? Math.min(Math.max(0, Math.floor(rawMaterialIndex)), materials.length - 1)
+    : 0;
+  const material = (materials[materialIndex] ?? null) as PhDynamicMaterial | null;
   const colorIndex =
     ps.colorIndex != null && Number.isFinite(Number(ps.colorIndex))
       ? Number(ps.colorIndex)
       : 0;
   const color = pickColor(material, colorIndex);
   const ctx = buildExtraSettingsContext(null, material, color, dynamic ?? null);
+
+  // Same mapping as print.component: widthCm ← defaultHeight, lengthCm ← defaultLength.
+  const widthCm = Number(ps.widthCm);
+  const lengthCm = Number(ps.lengthCm);
+  const baseWidthCm =
+    Number.isFinite(widthCm) && widthCm > 0
+      ? widthCm
+      : Number(material?.defaultHeight ?? 0);
+  const baseHeightCm =
+    Number.isFinite(lengthCm) && lengthCm > 0
+      ? lengthCm
+      : Number(material?.defaultLength ?? 0);
+
   return {
     ctx,
     ui: syncExtraUiStateFromSaved(ctx, ps),
-    baseWidthCm: Number(ps.widthCm ?? (material as PhDynamicMaterial | null)?.defaultHeight ?? 0),
-    baseHeightCm: Number(ps.lengthCm ?? (material as PhDynamicMaterial | null)?.defaultLength ?? 0),
+    baseWidthCm,
+    baseHeightCm,
     dynamicDimensionsActive: true,
     sheetBackgroundStyles: colorSwatchStyles(color),
   };

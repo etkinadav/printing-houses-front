@@ -13,24 +13,39 @@
   <div *ngIf="mockupUrl && printOverlay" class="ph-print-mockup-frame-wrap">
     <div #mockupFrame class="ph-print-mockup-frame">
       <ng-container *ngIf="dynamicDimensionsActive && dynamicAspectSplit; else singleMockupBg">
-        <div class="ph-print-mockup-aspect-split-images">
-          <img
-            class="ph-print-mockup-bg ph-print-mockup-bg--aspect-split"
-            [src]="mockupUrl"
-            alt=""
-            draggable="false"
-            [style.clip-path]="aspectSplitTopClipPath"
-            [style.transform]="aspectSplitTopTransform"
-            (load)="onMockupImageLoad()"
-            (error)="onMockupImageLoad()" />
-          <img
-            class="ph-print-mockup-bg ph-print-mockup-bg--aspect-split ph-print-mockup-bg--aspect-split-overlay"
-            [src]="mockupUrl"
-            alt=""
-            draggable="false"
-            [style.clip-path]="aspectSplitBottomClipPath"
-            [style.transform]="aspectSplitBottomTransform"
-            aria-hidden="true" />
+        <div
+          class="ph-print-mockup-aspect-split-viewport"
+          [style.width.px]="aspectSplitViewportWidthPx"
+          [style.height.px]="aspectSplitViewportHeightPx"
+        >
+          <div
+            class="ph-print-mockup-aspect-split-images"
+            [style.width.px]="mockupImageWidthPx"
+            [style.height.px]="mockupImageHeightPx"
+            [style.transform]="aspectSplitContentOffsetTransform"
+          >
+            <img
+              class="ph-print-mockup-bg ph-print-mockup-bg--aspect-split"
+              [src]="mockupUrl"
+              alt=""
+              draggable="false"
+              [style.width.px]="mockupImageWidthPx"
+              [style.height.px]="mockupImageHeightPx"
+              [style.clip-path]="aspectSplitTopClipPath"
+              [style.transform]="aspectSplitTopTransform"
+              (load)="onMockupImageLoad()"
+              (error)="onMockupImageLoad()"
+            />
+            <img
+              class="ph-print-mockup-bg ph-print-mockup-bg--aspect-split ph-print-mockup-bg--aspect-split-overlay"
+              [src]="mockupUrl"
+              alt=""
+              draggable="false"
+              [style.clip-path]="aspectSplitBottomClipPath"
+              [style.transform]="aspectSplitBottomTransform"
+              aria-hidden="true"
+            />
+          </div>
         </div>
       </ng-container>
 

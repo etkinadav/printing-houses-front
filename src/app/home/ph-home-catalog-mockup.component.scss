@@ -28,6 +28,35 @@
   height: 100%;
 }
 
+/* Catalog cards are small — constrain like the host, not like the print-table viewport.
+   Do NOT style the aspect-split overlay: it must stay 100%×100% of the base image or
+   the two halves misalign vertically/horizontally. */
+.ph-home-catalog-mockup__preview ::ng-deep .ph-print-mockup-host,
+.ph-home-catalog-mockup__preview ::ng-deep .ph-print-mockup-frame-wrap {
+  width: 100%;
+  height: 100%;
+}
+
+.ph-home-catalog-mockup__preview ::ng-deep .ph-print-mockup-frame {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.ph-home-catalog-mockup__preview
+  ::ng-deep
+  .ph-print-mockup-bg:not(.ph-print-mockup-bg--aspect-split-overlay) {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Overlay must exactly match the base mockup image box (aspect-split alignment). */
+.ph-home-catalog-mockup__preview ::ng-deep .ph-print-mockup-bg--aspect-split-overlay {
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  height: 100%;
+}
+
 .ph-home-catalog-mockup__fallback {
   display: block;
   width: 100%;

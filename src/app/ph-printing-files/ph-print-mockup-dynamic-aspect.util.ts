@@ -183,6 +183,58 @@ export function buildDynamicMockupAdjustedPrintRectNorm(
   };
 }
 
+/**
+ * After aspect-split pieces are rejoined, empty bands remain in the original
+ * image layout box. Map a point from that full-image space into the collapsed
+ * visual box (bands removed) so slots/percentage layout match the rejoined photo.
+ */
+export function mapNormPointToCollapsedAspectLayout(
+  split: DynamicMockupAspectSplit,
+  point: DynamicMockupNormPoint,
+): DynamicMockupNormPoint {
+  const bandHalfNorm = split.lineCenterNorm - split.bandLineNearNorm;
+  const span = Math.max(1e-6, 1 - 2 * bandHalfNorm);
+  if (split.lineOrientation === 'horizontal') {
+    return {
+      x: point.x,
+      y: (point.y - bandHalfNorm) / span,
+    };
+  }
+  return {
+    x: (point.x - bandHalfNorm) / span,
+    y: point.y,
+  };
+}
+
+/** Map an axis-aligned rect from full mockup space into the collapsed rejoined layout. */
+export function mapPrintRectToCollapsedAspectLayout(
+  split: DynamicMockupAspectSplit,
+  rect: DynamicMockupPrintRectNorm,
+): DynamicMockupPrintRectNorm {
+  const bandHalfNorm = split.lineCenterNorm - split.bandLineNearNorm;
+  const span = Math.max(1e-6, 1 - 2 * bandHalfNorm);
+  if (split.lineOrientation === 'horizontal') {
+    return {
+      x: rect.x,
+      y: (rect.y - bandHalfNorm) / span,
+      width: rect.width,
+      height: rect.height / span,
+    };
+  }
+  return {
+    x: (rect.x - bandHalfNorm) / span,
+    y: rect.y,
+    width: rect.width / span,
+    height: rect.height,
+  };
+}
+
+/** Collapsed layout size as a fraction of the full mockup image box. */
+export function collapsedAspectLayoutSpanNorm(split: DynamicMockupAspectSplit): number {
+  const bandHalfNorm = split.lineCenterNorm - split.bandLineNearNorm;
+  return Math.max(1e-6, 1 - 2 * bandHalfNorm);
+}
+
 function shiftPointForDynamicAspectSplit(
   split: DynamicMockupAspectSplit,
   point: DynamicMockupNormPoint,

@@ -136,40 +136,40 @@
 
 
 
-.ph-print-mockup-aspect-split-images {
-
+.ph-print-mockup-aspect-split-viewport {
   position: relative;
-
-  display: inline-block;
-
+  overflow: hidden;
   line-height: 0;
-
+  flex-shrink: 0;
 }
 
-
+.ph-print-mockup-aspect-split-images {
+  position: relative;
+  display: block;
+  line-height: 0;
+  transform-origin: top left;
+  will-change: transform;
+}
 
 .ph-print-mockup-bg--aspect-split {
-
   display: block;
-
   transform-origin: top left;
-
+  max-width: none;
+  max-height: none;
+  width: auto;
+  height: auto;
 }
 
-
-
 .ph-print-mockup-bg--aspect-split-overlay {
-
   position: absolute;
-
   left: 0;
-
   top: 0;
-
   width: 100%;
-
   height: 100%;
-
+  /* Must not inherit the viewport max-height from .ph-print-mockup-bg — that
+     breaks alignment of the two aspect-split halves inside small catalog cards. */
+  max-width: none;
+  max-height: none;
 }
 
 

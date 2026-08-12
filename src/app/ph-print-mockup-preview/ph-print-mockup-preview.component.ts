@@ -44,9 +44,12 @@ import {
   buildDynamicMockupAdjustedPrintRectNorm,
   buildDynamicMockupAdjustedQuadCorners,
   buildDynamicMockupAdjustedQuadOverlay,
+  collapsedAspectLayoutSpanNorm,
   computeDynamicMockupAspectSplit,
   DynamicMockupAspectSplit,
   DynamicMockupPrintRectNorm,
+  mapNormPointToCollapsedAspectLayout,
+  mapPrintRectToCollapsedAspectLayout,
 } from '../ph-printing-files/ph-print-mockup-dynamic-aspect.util';
 import { phCanvasProxiedImageUrl } from '../ph-canvas/ph-canvas.model';
 
@@ -410,6 +413,50 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     return `translateX(-${shiftNorm * 100}%)`;
   }
 
+  /** Full mockup image size before collapsing empty aspect-split bands. */
+  get aspectSplitBandHalfNorm(): number {
+    const split = this.dynamicAspectSplit;
+    if (!split) {
+      return 0;
+    }
+    return split.lineCenterNorm - split.bandLineNearNorm;
+  }
+
+  get aspectSplitViewportWidthPx(): number {
+    const split = this.dynamicAspectSplit;
+    if (!split || this.mockupImageWidthPx <= 0) {
+      return this.mockupImageWidthPx;
+    }
+    if (split.lineOrientation === 'horizontal') {
+      return this.mockupImageWidthPx;
+    }
+    return this.mockupImageWidthPx * collapsedAspectLayoutSpanNorm(split);
+  }
+
+  get aspectSplitViewportHeightPx(): number {
+    const split = this.dynamicAspectSplit;
+    if (!split || this.mockupImageHeightPx <= 0) {
+      return this.mockupImageHeightPx;
+    }
+    if (split.lineOrientation === 'vertical') {
+      return this.mockupImageHeightPx;
+    }
+    return this.mockupImageHeightPx * collapsedAspectLayoutSpanNorm(split);
+  }
+
+  /** Shift full-size rejoined content so empty bands fall outside the viewport. */
+  get aspectSplitContentOffsetTransform(): string | null {
+    const split = this.dynamicAspectSplit;
+    if (!split) {
+      return null;
+    }
+    const band = this.aspectSplitBandHalfNorm;
+    if (split.lineOrientation === 'horizontal') {
+      return `translateY(${-band * this.mockupImageHeightPx}px)`;
+    }
+    return `translateX(${-band * this.mockupImageWidthPx}px)`;
+  }
+
   /** Adjusted axis-aligned print area after dynamic aspect band removal. */
   get dynamicAspectAdjustedPrintRect(): DynamicMockupPrintRectNorm | null {
     const split = this.dynamicAspectSplit;
@@ -417,10 +464,12 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     if (!this.dynamicDimensionsActive || !split || !printRect || !this.rectOverlay) {
       return null;
     }
-    return buildDynamicMockupAdjustedPrintRectNorm(split, printRect);
+    const adjusted = buildDynamicMockupAdjustedPrintRectNorm(split, printRect);
+    // Remap into collapsed viewport space (empty bands removed from layout).
+    return mapPrintRectToCollapsedAspectLayout(split, adjusted);
   }
 
-  /** Adjusted quad print outline (viewBox 0 0 100 100). */
+  /** Adjusted quad print outline (viewBox 0 0 100 100) in collapsed layout space. */
   get dynamicAspectAdjustedQuadPoints(): string | null {
     const split = this.dynamicAspectSplit;
     const quad = this.quadOverlay;
@@ -428,11 +477,17 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       return null;
     }
     const corners = buildDynamicMockupAdjustedQuadCorners(split, quad);
+    const collapsed = {
+      nw: mapNormPointToCollapsedAspectLayout(split, corners.nw),
+      ne: mapNormPointToCollapsedAspectLayout(split, corners.ne),
+      sw: mapNormPointToCollapsedAspectLayout(split, corners.sw),
+      se: mapNormPointToCollapsedAspectLayout(split, corners.se),
+    };
     const fmt = (p: { x: number; y: number }) => `${p.x * 100},${p.y * 100}`;
-    return `${fmt(corners.nw)} ${fmt(corners.ne)} ${fmt(corners.se)} ${fmt(corners.sw)}`;
+    return `${fmt(collapsed.nw)} ${fmt(collapsed.ne)} ${fmt(collapsed.se)} ${fmt(collapsed.sw)}`;
   }
 
-  /** Print slot rect — original or dynamically aspect-adjusted. */
+  /** Print slot rect — original or dynamically aspect-adjusted (collapsed layout). */
   get activePrintSlotRect(): DynamicMockupPrintRectNorm | null {
     if (this.dynamicAspectAdjustedPrintRect) {
       return this.dynamicAspectAdjustedPrintRect;
@@ -448,7 +503,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     };
   }
 
-  /** Print slot quad — original or dynamically aspect-adjusted. */
+  /** Print slot quad — original or dynamically aspect-adjusted (collapsed layout). */
   get activeQuadForPrintSlot(): (MockupPrintOverlayQuad & { kind: 'quad' }) | null {
     const quad = this.quadOverlay;
     if (!quad) {
@@ -456,7 +511,46 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     }
     const split = this.dynamicAspectSplit;
     if (this.dynamicDimensionsActive && split) {
-      return { kind: 'quad', ...buildDynamicMockupAdjustedQuadOverlay(split, quad) };
+      const adjusted = buildDynamicMockupAdjustedQuadOverlay(split, quad);
+      const collapsedCorners = {
+        nw: mapNormPointToCollapsedAspectLayout(split, adjusted.nw),
+        ne: mapNormPointToCollapsedAspectLayout(split, adjusted.ne),
+        sw: mapNormPointToCollapsedAspectLayout(split, adjusted.sw),
+        se: mapNormPointToCollapsedAspectLayout(split, adjusted.se),
+      };
+      const xs = [
+        collapsedCorners.nw.x,
+        collapsedCorners.ne.x,
+        collapsedCorners.sw.x,
+        collapsedCorners.se.x,
+      ];
+      const ys = [
+        collapsedCorners.nw.y,
+        collapsedCorners.ne.y,
+        collapsedCorners.sw.y,
+        collapsedCorners.se.y,
+      ];
+      const x = Math.min(...xs);
+      const y = Math.min(...ys);
+      const box = {
+        x,
+        y,
+        width: Math.max(...xs) - x,
+        height: Math.max(...ys) - y,
+      };
+      const toLocal = (point: { x: number; y: number }) => {
+        const lx = box.width > 0 ? ((point.x - box.x) / box.width) * 100 : 0;
+        const ly = box.height > 0 ? ((point.y - box.y) / box.height) * 100 : 0;
+        return `${lx}% ${ly}%`;
+      };
+      return {
+        kind: 'quad',
+        ...collapsedCorners,
+        box,
+        clipPath: `polygon(${[collapsedCorners.nw, collapsedCorners.ne, collapsedCorners.se, collapsedCorners.sw]
+          .map(toLocal)
+          .join(', ')})`,
+      };
     }
     return quad;
   }
@@ -601,8 +695,10 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     const host = this.hostRef.nativeElement;
     const printSlot = this.printSlots?.first?.nativeElement;
     const mockupImg = this.mockupFrame?.nativeElement?.querySelector(
-      '.ph-print-mockup-bg',
+      '.ph-print-mockup-bg:not(.ph-print-mockup-bg--aspect-split-overlay)',
     ) as HTMLImageElement | null;
+
+    const previousSplit = this.dynamicAspectSplit;
 
     if (mockupImg && mockupImg.clientWidth > 0 && mockupImg.clientHeight > 0) {
       this.mockupImageWidthPx = mockupImg.clientWidth;
@@ -612,15 +708,34 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
       this.mockupImageHeightPx = 0;
     }
 
-    this.refreshDynamicAspectSplit();
+    // Aspect-split math is aspect-ratio based — prefer intrinsic image size so
+    // catalog card CSS constraints cannot skew the band relative to print-table.
+    const aspectWidthPx =
+      mockupImg && mockupImg.naturalWidth > 0
+        ? mockupImg.naturalWidth
+        : this.mockupImageWidthPx;
+    const aspectHeightPx =
+      mockupImg && mockupImg.naturalHeight > 0
+        ? mockupImg.naturalHeight
+        : this.mockupImageHeightPx;
+    this.refreshDynamicAspectSplit(aspectWidthPx, aspectHeightPx);
 
     const overlayBox = this.activePrintOverlayBox;
     let nextSlotW = 0;
     let nextSlotH = 0;
 
-    if (overlayBox && this.mockupImageWidthPx > 0 && this.mockupImageHeightPx > 0) {
-      nextSlotW = overlayBox.width * this.mockupImageWidthPx;
-      nextSlotH = overlayBox.height * this.mockupImageHeightPx;
+    // Slot % is relative to the visible frame. With aspect-split that frame is the
+    // collapsed viewport (empty bands clipped out), not the full mockup image box.
+    const layoutWidthPx = this.dynamicAspectSplit
+      ? this.aspectSplitViewportWidthPx
+      : this.mockupImageWidthPx;
+    const layoutHeightPx = this.dynamicAspectSplit
+      ? this.aspectSplitViewportHeightPx
+      : this.mockupImageHeightPx;
+
+    if (overlayBox && layoutWidthPx > 0 && layoutHeightPx > 0) {
+      nextSlotW = overlayBox.width * layoutWidthPx;
+      nextSlotH = overlayBox.height * layoutHeightPx;
     } else {
       nextSlotW = printSlot?.clientWidth ?? 0;
       nextSlotH = printSlot?.clientHeight ?? 0;
@@ -654,23 +769,34 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     this.printSlotHeightPx = Math.round(nextSlotH);
     this.refreshCropGuides();
     this.cdr.detectChanges();
+
+    // Switching into/out of aspect-split changes the DOM; remeasure next frame.
+    const splitChanged = !!previousSplit !== !!this.dynamicAspectSplit;
+    if (splitChanged && this.measureRetryCount === 0) {
+      requestAnimationFrame(() => this.scheduleMeasureRefresh());
+    }
   }
 
-  private refreshDynamicAspectSplit(): void {
+  private refreshDynamicAspectSplit(aspectWidthPx?: number, aspectHeightPx?: number): void {
     const printRect = this.dynamicPrintRectNorm;
     if (!this.dynamicDimensionsActive || !printRect) {
       this.dynamicAspectSplit = null;
       return;
     }
-    if (this.mockupImageWidthPx <= 0 || this.mockupImageHeightPx <= 0) {
+    const widthPx = aspectWidthPx ?? this.mockupImageWidthPx;
+    const heightPx = aspectHeightPx ?? this.mockupImageHeightPx;
+    if (widthPx <= 0 || heightPx <= 0) {
+      if (this.baseWidthCm <= 0 || this.baseHeightCm <= 0) {
+        this.dynamicAspectSplit = null;
+      }
       return;
     }
     this.dynamicAspectSplit = computeDynamicMockupAspectSplit(
       printRect,
       this.baseWidthCm,
       this.baseHeightCm,
-      this.mockupImageWidthPx,
-      this.mockupImageHeightPx,
+      widthPx,
+      heightPx,
     );
   }
 
