@@ -78,6 +78,11 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   @Input() isDarkMode = false;
   /** Free-form product dimensions — apply mockup/print aspect correction. */
   @Input() dynamicDimensionsActive = false;
+  /**
+   * Show crop/fold/print-area guide overlays (catalog mockup editing).
+   * Hidden during normal order creation and on public catalog cards.
+   */
+  @Input() showLayoutGuides = false;
 
   readonly mockupCanvasPrintOpacity = MOCKUP_CANVAS_PRINT_OPACITY;
 

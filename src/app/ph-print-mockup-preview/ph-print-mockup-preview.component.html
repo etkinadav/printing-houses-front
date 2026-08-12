@@ -219,7 +219,7 @@
       isFill: false
     }"></ng-container>
   </div>
-  <ng-container *ngIf="foldingModel as folding">
+  <ng-container *ngIf="showLayoutGuides && foldingModel as folding">
     <svg
       *ngIf="!showFoldedPrintLayers"
       class="ph-print-mockup-folding-overlay"
@@ -248,6 +248,7 @@
         [attr.y2]="pairLine.y2" />
     </svg>
   </ng-container>
+  <ng-container *ngIf="showLayoutGuides">
   <svg
     *ngIf="cropGuideSvg as guide; else simplePrintAreaGuide"
     class="ph-print-mockup-print-area-guide"
@@ -414,6 +415,7 @@
         vector-effect="non-scaling-stroke" />
     </svg>
   </ng-template>
+  </ng-container>
   </div>
 </ng-template>
 
