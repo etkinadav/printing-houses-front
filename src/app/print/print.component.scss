@@ -999,6 +999,8 @@
 }
 
 .zx-p-preview-container #preview-container {
+  position: relative;
+  z-index: 1;
   overflow: visible;
 }
 
@@ -1006,7 +1008,7 @@
   flex-shrink: 0;
   padding-top: 12px;
   padding-bottom: 8px;
-  z-index: 2;
+  z-index: 20;
 }
 
 .ph-print-duplex-side-toggle ::ng-deep mat-button-toggle.mat-button-toggle-checked:not(.mat-button-toggle-disabled) {
@@ -1024,7 +1026,8 @@
   bottom: 8px;
   left: 8px;
   transition: opacity 250ms;
-  z-index: 3;
+  z-index: 20;
+  pointer-events: auto;
 }
 
 @media only screen and (min-width: 992px) {
