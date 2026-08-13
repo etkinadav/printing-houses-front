@@ -63,6 +63,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   categoryGroups: PhCategoryGroup[] = [];
   allProducts: PhProduct[] = [];
   mapPrintingHouses: PhPrintingHouseMapMarker[] = [];
+  private allMapPrintingHouses: PhPrintingHouseMapMarker[] = [];
 
   searchQuery = '';
   selectedCategoryIndex: number | null = null;
@@ -75,6 +76,8 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   priceMin = '';
   priceMax = '';
   deliveryFilter: 'today' | '24h' | '3d' | 'any' = 'any';
+  /** Enlarged map + single-column product list. */
+  mapExpanded = false;
 
   private map?: maplibregl.Map;
   private mapMarkers: maplibregl.Marker[] = [];
@@ -181,10 +184,11 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
         this.categoryGroups = this.buildCategoryGroups(this.rawCategories, productList).filter(
           (group) => group.subCategories.some((sub) => sub.products.length > 0),
         );
-        this.mapPrintingHouses = (printingHouses.printingHouses ?? [])
+        this.allMapPrintingHouses = (printingHouses.printingHouses ?? [])
           .filter((ph) => this.hasValidLocation(ph))
           // Higher latitude behind lower latitude (north → south paint order).
           .sort((a, b) => Number(b.location.lat) - Number(a.location.lat));
+        this.refreshVisibleMapHouses();
         this.loading = false;
         this.cdr.detectChanges();
         setTimeout(() => {
@@ -236,6 +240,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   onSelectCategory(index: number | null): void {
     this.selectedCategoryIndex = index;
     this.resultsVisibleCount = PRODUCTS_PAGE_SIZE;
+    this.refreshVisibleMapHouses(true);
   }
 
   onCityChange(city: string): void {
@@ -257,15 +262,33 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.deliveryFilter = 'any';
     this.sortMode = 'name';
     this.resultsVisibleCount = PRODUCTS_PAGE_SIZE;
+    this.refreshVisibleMapHouses(true);
   }
 
   onShowMore(): void {
     this.resultsVisibleCount += PRODUCTS_PAGE_SIZE;
   }
 
-  onFocusMap(): void {
-    this.mapEl?.nativeElement?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    this.map?.resize();
+  onToggleMapView(): void {
+    this.setMapExpanded(!this.mapExpanded);
+  }
+
+  onCloseMapView(): void {
+    this.setMapExpanded(false);
+  }
+
+  private setMapExpanded(expanded: boolean): void {
+    if (this.mapExpanded === expanded) {
+      return;
+    }
+    this.mapExpanded = expanded;
+    this.cdr.detectChanges();
+    requestAnimationFrame(() => {
+      this.map?.resize();
+      if (this.mapExpanded) {
+        this.mapEl?.nativeElement?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
   }
 
   phLogoUrl(ph: PhPrintingHouseMapMarker): string {
@@ -335,6 +358,41 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     void this.router.navigate(['/printing-house', printingHouseId]);
+  }
+
+  /** Map markers: PHs with ≥1 product; if a category is selected, only PHs in that category. */
+  private refreshVisibleMapHouses(syncMarkers = false): void {
+    const houseIds = this.printingHouseIdsForMap();
+    this.mapPrintingHouses = this.allMapPrintingHouses.filter((ph) => houseIds.has(ph._id));
+    if (syncMarkers) {
+      this.cdr.detectChanges();
+      this.scheduleMapMarkersSync();
+    }
+  }
+
+  private printingHouseIdsForMap(): Set<string> {
+    const ids = new Set<string>();
+    for (const product of this.productsForMapHouses()) {
+      const houseId = this.resolvePrintingHouseId(product);
+      if (houseId) {
+        ids.add(houseId);
+      }
+    }
+    return ids;
+  }
+
+  private productsForMapHouses(): PhProduct[] {
+    if (this.selectedCategoryIndex == null) {
+      return this.allProducts;
+    }
+    const group = this.categoryGroups[this.selectedCategoryIndex];
+    if (!group) {
+      return this.allProducts;
+    }
+    const productIds = new Set(
+      group.subCategories.flatMap((sub) => sub.products.map((p) => p._id)),
+    );
+    return this.allProducts.filter((product) => productIds.has(product._id));
   }
 
   private resolvePrintingHouseId(product: PhProduct): string {

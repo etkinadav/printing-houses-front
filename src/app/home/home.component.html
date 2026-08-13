@@ -23,7 +23,7 @@
         <select
           class="home-location__select"
           [value]="selectedCity"
-          (change)="onCityChange($any($event.target).value)"
+          (change)="onCityChange($any($event.target).value); $any($event.target).blur()"
         >
           <option value="">{{ 'home.location-all' | translate }}</option>
           <option *ngFor="let city of cityOptions" [value]="city">{{ city }}</option>
@@ -35,10 +35,10 @@
         type="button"
         color="primary"
         class="home-hero__map-btn text-white"
-        (click)="onFocusMap()"
+        (click)="onToggleMapView()"
       >
-        <mat-icon>map</mat-icon>
-        {{ 'home.show-on-map' | translate }}
+        <mat-icon>{{ mapExpanded ? 'view_list' : 'map' }}</mat-icon>
+        {{ (mapExpanded ? 'home.show-list' : 'home.show-on-map') | translate }}
       </button>
     </div>
 
@@ -72,7 +72,7 @@
     <mat-spinner diameter="40"></mat-spinner>
   </div>
 
-  <section *ngIf="!loading" class="home-main">
+  <section *ngIf="!loading" class="home-main" [class.home-main--map-expanded]="mapExpanded">
     <aside class="home-filters">
       <div class="home-filters__head">
         <h2>{{ 'home.filters-title' | translate }}</h2>
@@ -85,7 +85,7 @@
         <span class="home-filter-field__label">{{ 'home.filter-category' | translate }}</span>
         <select
           [value]="selectedCategoryIndex === null ? '' : selectedCategoryIndex"
-          (change)="onSelectCategory($any($event.target).value === '' ? null : +$any($event.target).value)"
+          (change)="onSelectCategory($any($event.target).value === '' ? null : +$any($event.target).value); $any($event.target).blur()"
         >
           <option value="">{{ 'home.all-categories' | translate }}</option>
           <option *ngFor="let category of categoryGroups; let i = index" [value]="i">
@@ -96,7 +96,7 @@
 
       <label class="home-filter-field">
         <span class="home-filter-field__label">{{ 'home.filter-city' | translate }}</span>
-        <select [value]="selectedCity" (change)="onCityChange($any($event.target).value)">
+        <select [value]="selectedCity" (change)="onCityChange($any($event.target).value); $any($event.target).blur()">
           <option value="">{{ 'home.location-all' | translate }}</option>
           <option *ngFor="let city of cityOptions" [value]="city">{{ city }}</option>
         </select>
@@ -231,6 +231,15 @@
 
     <aside class="home-map-panel">
       <div class="home-map-panel__frame">
+        <button
+          *ngIf="mapExpanded"
+          type="button"
+          class="home-map-panel__close"
+          (click)="onCloseMapView()"
+          [attr.aria-label]="'home.close-map' | translate"
+        >
+          <mat-icon aria-hidden="true">close</mat-icon>
+        </button>
         <div #mapEl class="home-map"></div>
       </div>
     </aside>
