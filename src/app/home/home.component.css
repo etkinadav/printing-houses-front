@@ -34,7 +34,7 @@
   width: 100%;
   flex: 1 0 auto;
   min-height: calc(var(--vh, 1vh) * 100);
-  padding: 1.25rem 1.5rem 0;
+  padding: 1.25rem 1.5rem 2rem;
   background: inherit;
   color: var(--zx-dark, #262626);
 }
@@ -718,7 +718,7 @@
 
 @media (max-width: 760px) {
   .home-page {
-    padding: 1rem 0.85rem 0;
+    padding: 1rem 0.85rem 1.5rem;
   }
 
   .home-main,
