@@ -13,7 +13,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { Canvas, FabricImage, FabricObject } from 'fabric';
+import { Canvas, Control, FabricImage, FabricObject, controlsUtils } from 'fabric';
 
 import { PhPrintingFile } from '../ph-printing-files/ph-printing-file.model';
 import { PhCanvasInteractionService } from './ph-canvas-interaction.service';
@@ -39,6 +39,72 @@ const PERSIST_DEBOUNCE_MS = 0;
 /** Length (px) of each green L-bracket arm at the image corners. */
 const FOCUS_CORNER_ARM_PX = 10;
 const FOCUS_CORNER_STROKE_PX = 2;
+/** Hit target for corner + edge-mid resize handles. */
+const FOCUS_CONTROL_SIZE_PX = 18;
+/** Floating rotate/delete toolbar — keep in sync with .ph-canvas-hover-actions SCSS. */
+const HOVER_ACTIONS_WIDTH_PX = 78;
+const HOVER_ACTIONS_HEIGHT_PX = 40;
+const HOVER_ACTIONS_GAP_PX = 8;
+const HOVER_ACTIONS_VIEW_PAD_PX = 8;
+
+/**
+ * Edge midpoints: scale on the dragged axis, then copy to the other axis (1:1).
+ * Do not use scalingEqually here — that path assumes a corner and jumps on first move.
+ */
+function scaleUniformFromEdge(axis: 'x' | 'y'): typeof controlsUtils.scalingX {
+  const scaleAxis = axis === 'x' ? controlsUtils.scalingX : controlsUtils.scalingY;
+  return (eventData, transform, x, y) => {
+    const changed = scaleAxis(eventData, transform, x, y);
+    const target = transform.target;
+    if (axis === 'x') {
+      const next = Math.abs(target.scaleX ?? 1);
+      const sign = Math.sign(target.scaleY || 1) || 1;
+      if (Math.abs(target.scaleY ?? 1) !== next) {
+        target.set('scaleY', next * sign);
+        return true;
+      }
+    } else {
+      const next = Math.abs(target.scaleY ?? 1);
+      const sign = Math.sign(target.scaleX || 1) || 1;
+      if (Math.abs(target.scaleX ?? 1) !== next) {
+        target.set('scaleX', next * sign);
+        return true;
+      }
+    }
+    return changed;
+  };
+}
+
+const UNIFORM_EDGE_CONTROLS: Record<'mt' | 'mb' | 'ml' | 'mr', Control> = {
+  mt: new Control({
+    x: 0,
+    y: -0.5,
+    actionHandler: scaleUniformFromEdge('y'),
+    cursorStyleHandler: controlsUtils.scaleCursorStyleHandler,
+    actionName: 'scaling',
+  }),
+  mb: new Control({
+    x: 0,
+    y: 0.5,
+    actionHandler: scaleUniformFromEdge('y'),
+    cursorStyleHandler: controlsUtils.scaleCursorStyleHandler,
+    actionName: 'scaling',
+  }),
+  ml: new Control({
+    x: -0.5,
+    y: 0,
+    actionHandler: scaleUniformFromEdge('x'),
+    cursorStyleHandler: controlsUtils.scaleCursorStyleHandler,
+    actionName: 'scaling',
+  }),
+  mr: new Control({
+    x: 0.5,
+    y: 0,
+    actionHandler: scaleUniformFromEdge('x'),
+    cursorStyleHandler: controlsUtils.scaleCursorStyleHandler,
+    actionName: 'scaling',
+  }),
+};
 const PLACEMENT_EPS = 0.0001;
 /** Extra canvas margin so selected images and corner brackets can draw outside the sheet. */
 const OVERFLOW_PAD_PX = 120;
@@ -73,8 +139,8 @@ type PhHoverActionsState = {
 
 /**
  * Interactive Fabric.js sheet for one canvas side. Renders placed page-images,
- * accepts dropped pages, supports corner-only proportional resize/rotate, and
- * emits normalized placements. Sits between the background and chrome layers.
+ * accepts dropped pages, supports proportional resize from corners and edge
+ * midpoints (plus rotate), and emits normalized placements.
  */
 @Component({
   selector: 'app-ph-canvas-sheet',
@@ -451,8 +517,10 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     const rect = img.getBoundingRect();
     const next: PhHoverActionsState = {
       visible: true,
-      leftPx: rect.left + rect.width / 2,
-      topPx: rect.top,
+      ...this.clampHoverActionsPosition(
+        rect.left + rect.width / 2,
+        rect.top - HOVER_ACTIONS_HEIGHT_PX - HOVER_ACTIONS_GAP_PX,
+      ),
       instanceId: this.placementKey(placement),
     };
     if (
@@ -467,6 +535,29 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       this.hoverActions = next;
       this.cdr.detectChanges();
     });
+  }
+
+  /**
+   * Keep the rotate/delete toolbar inside the printable sheet.
+   * If it would sit above the sheet (dim gutter), pin it to the sheet top.
+   */
+  private clampHoverActionsPosition(
+    leftPx: number,
+    topPx: number,
+  ): { leftPx: number; topPx: number } {
+    const { pad, sheetW, sheetH } = this.getSheetMetrics();
+    const inset = HOVER_ACTIONS_VIEW_PAD_PX;
+    const minLeft = pad + inset + HOVER_ACTIONS_WIDTH_PX / 2;
+    const maxLeft = pad + sheetW - inset - HOVER_ACTIONS_WIDTH_PX / 2;
+    const minTop = pad + inset;
+    const maxTop = pad + sheetH - inset - HOVER_ACTIONS_HEIGHT_PX;
+
+    const clampedLeft =
+      maxLeft >= minLeft ? Math.min(Math.max(leftPx, minLeft), maxLeft) : pad + sheetW / 2;
+    const clampedTop =
+      maxTop >= minTop ? Math.min(Math.max(topPx, minTop), maxTop) : minTop;
+
+    return { leftPx: clampedLeft, topPx: clampedTop };
   }
 
   private clearHoverActions(): void {
@@ -1371,7 +1462,32 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     this.drawLCornerBracket(ctx, coords.br, coords.bl, coords.tr);
     this.drawLCornerBracket(ctx, coords.bl, coords.br, coords.tl);
 
+    this.drawEdgeMidHandle(ctx, this.midpoint(coords.tl, coords.tr), this.unitVector(coords.tl, coords.tr));
+    this.drawEdgeMidHandle(ctx, this.midpoint(coords.bl, coords.br), this.unitVector(coords.bl, coords.br));
+    this.drawEdgeMidHandle(ctx, this.midpoint(coords.tl, coords.bl), this.unitVector(coords.tl, coords.bl));
+    this.drawEdgeMidHandle(ctx, this.midpoint(coords.tr, coords.br), this.unitVector(coords.tr, coords.br));
+
     ctx.restore();
+  }
+
+  /** Short bar at the edge midpoint — same stroke as the corner brackets. */
+  private drawEdgeMidHandle(
+    ctx: CanvasRenderingContext2D,
+    mid: { x: number; y: number },
+    along: { x: number; y: number },
+  ): void {
+    const arm = FOCUS_CORNER_ARM_PX;
+    ctx.beginPath();
+    ctx.moveTo(mid.x - along.x * arm, mid.y - along.y * arm);
+    ctx.lineTo(mid.x + along.x * arm, mid.y + along.y * arm);
+    ctx.stroke();
+  }
+
+  private midpoint(
+    a: { x: number; y: number },
+    b: { x: number; y: number },
+  ): { x: number; y: number } {
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
   }
 
   /** L-shaped bracket at `corner`, arms extending `FOCUS_CORNER_ARM_PX` toward adjacent corners. */
@@ -1416,6 +1532,12 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
     obj.hasControls = this.interactive && focused;
     obj.hasBorders = false;
     obj.lockScalingFlip = true;
+    obj.cornerSize = FOCUS_CONTROL_SIZE_PX;
+    obj.touchCornerSize = FOCUS_CONTROL_SIZE_PX + 8;
+    obj.controls = {
+      ...obj.controls,
+      ...UNIFORM_EDGE_CONTROLS,
+    };
     obj.set({
       borderColor: 'transparent',
       cornerColor: 'transparent',
@@ -1423,10 +1545,10 @@ export class PhCanvasSheetComponent implements AfterViewInit, OnChanges, OnDestr
       transparentCorners: true,
     });
     obj.setControlsVisibility({
-      mt: false,
-      mb: false,
-      ml: false,
-      mr: false,
+      mt: focused,
+      mb: focused,
+      ml: focused,
+      mr: focused,
       tl: focused,
       tr: focused,
       bl: focused,

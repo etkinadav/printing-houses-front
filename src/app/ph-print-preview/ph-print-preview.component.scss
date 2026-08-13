@@ -541,11 +541,12 @@ $ph-preview-dim-side-label-offset-px: 15px;
 .ph-print-preview-image-layer--canvas {
   overflow: visible !important;
   clip-path: none !important;
+  z-index: 12;
 }
 
 /** Duplex margin chrome (white corners + strips) must stay under the interactive canvas. */
 .ph-print-preview-image-layer--canvas.ph-print-preview-image-layer--bleed {
-  z-index: 3;
+  z-index: 12;
 }
 
 .ph-print-preview-image-bg {
@@ -601,7 +602,7 @@ $ph-preview-dim-side-label-offset-px: 15px;
 
 .ph-print-preview-canvas-sheet {
   position: absolute;
-  z-index: 1;
+  z-index: 12;
   overflow: visible;
 }
 
