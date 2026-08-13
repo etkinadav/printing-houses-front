@@ -73,14 +73,25 @@
   </div>
 
   <section *ngIf="!loading" class="home-main" [class.home-main--map-expanded]="mapExpanded">
-    <aside class="home-filters">
+    <div class="home-main__catalog">
+    <aside class="home-filters" [class.home-filters--open]="filtersOpen">
       <div class="home-filters__head">
-        <h2>{{ 'home.filters-title' | translate }}</h2>
+        <button
+          type="button"
+          class="home-filters__toggle"
+          (click)="onToggleFilters()"
+          [attr.aria-expanded]="filtersOpen"
+          [attr.aria-controls]="'home-filters-body'"
+        >
+          <span class="home-filters__title">{{ 'home.filters-title' | translate }}</span>
+          <mat-icon class="home-filters__chevron" aria-hidden="true">expand_more</mat-icon>
+        </button>
         <button type="button" class="home-filters__clear" (click)="onClearFilters()">
           {{ 'home.clear-filters' | translate }}
         </button>
       </div>
 
+      <div id="home-filters-body" class="home-filters__body">
       <label class="home-filter-field">
         <span class="home-filter-field__label">{{ 'home.filter-category' | translate }}</span>
         <select
@@ -152,9 +163,11 @@
         color="primary"
         type="button"
         class="home-filters__apply text-white"
+        (click)="onApplyFilters()"
       >
         {{ 'home.show-results' | translate: { count: resultsCount } }}
       </button>
+      </div>
     </aside>
 
     <div class="home-results">
@@ -227,6 +240,7 @@
       >
         {{ 'home.show-more' | translate }}
       </button>
+    </div>
     </div>
 
     <aside class="home-map-panel">

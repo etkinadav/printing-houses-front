@@ -3,6 +3,7 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
+  HostListener,
   Input,
   OnChanges,
   OnDestroy,
@@ -134,6 +135,14 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     private hostRef: ElementRef<HTMLElement>,
     private cdr: ChangeDetectorRef,
   ) {}
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    if (!this.dynamicDimensionsActive) {
+      return;
+    }
+    this.scheduleMeasureRefresh();
+  }
 
   ngAfterViewInit(): void {
     this.syncPrintImageDimensions();
@@ -776,26 +785,33 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     ) as HTMLImageElement | null;
 
     const previousSplit = this.dynamicAspectSplit;
+    const naturalW = mockupImg?.naturalWidth || 0;
+    const naturalH = mockupImg?.naturalHeight || 0;
 
-    if (mockupImg && mockupImg.clientWidth > 0 && mockupImg.clientHeight > 0) {
+    // Aspect-split math is aspect-ratio based — prefer intrinsic image size so
+    // catalog card CSS constraints cannot skew the band relative to print-table.
+    const aspectWidthPx = naturalW > 0 ? naturalW : this.mockupImageWidthPx;
+    const aspectHeightPx = naturalH > 0 ? naturalH : this.mockupImageHeightPx;
+    this.refreshDynamicAspectSplit(aspectWidthPx, aspectHeightPx);
+
+    if (
+      this.dynamicDimensionsActive &&
+      this.dynamicAspectSplit &&
+      naturalW > 0 &&
+      naturalH > 0 &&
+      host.clientWidth > 0 &&
+      host.clientHeight > 0
+    ) {
+      // Aspect-split locks image size in px — refit to the host on every resize
+      // so catalog cards re-render when the screen/grid width changes.
+      this.fitMockupImageToHost(naturalW, naturalH, host.clientWidth, host.clientHeight);
+    } else if (mockupImg && mockupImg.clientWidth > 0 && mockupImg.clientHeight > 0) {
       this.mockupImageWidthPx = mockupImg.clientWidth;
       this.mockupImageHeightPx = mockupImg.clientHeight;
     } else if (this.mockupImageWidthPx <= 0 || this.mockupImageHeightPx <= 0) {
       this.mockupImageWidthPx = 0;
       this.mockupImageHeightPx = 0;
     }
-
-    // Aspect-split math is aspect-ratio based — prefer intrinsic image size so
-    // catalog card CSS constraints cannot skew the band relative to print-table.
-    const aspectWidthPx =
-      mockupImg && mockupImg.naturalWidth > 0
-        ? mockupImg.naturalWidth
-        : this.mockupImageWidthPx;
-    const aspectHeightPx =
-      mockupImg && mockupImg.naturalHeight > 0
-        ? mockupImg.naturalHeight
-        : this.mockupImageHeightPx;
-    this.refreshDynamicAspectSplit(aspectWidthPx, aspectHeightPx);
 
     const overlayBox = this.activePrintOverlayBox;
     let nextSlotW = 0;
@@ -852,6 +868,25 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     if (splitChanged && this.measureRetryCount === 0) {
       requestAnimationFrame(() => this.scheduleMeasureRefresh());
     }
+  }
+
+  /** Scale the full mockup image so the collapsed aspect-split viewport fits the host. */
+  private fitMockupImageToHost(
+    naturalW: number,
+    naturalH: number,
+    hostW: number,
+    hostH: number,
+  ): void {
+    const split = this.dynamicAspectSplit;
+    const span = split ? collapsedAspectLayoutSpanNorm(split) : 1;
+    const layoutW = split?.lineOrientation === 'vertical' ? naturalW * span : naturalW;
+    const layoutH = split?.lineOrientation === 'horizontal' ? naturalH * span : naturalH;
+    if (layoutW <= 0 || layoutH <= 0) {
+      return;
+    }
+    const scale = Math.min(hostW / layoutW, hostH / layoutH);
+    this.mockupImageWidthPx = Math.max(1, naturalW * scale);
+    this.mockupImageHeightPx = Math.max(1, naturalH * scale);
   }
 
   private refreshDynamicAspectSplit(aspectWidthPx?: number, aspectHeightPx?: number): void {

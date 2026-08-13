@@ -50,6 +50,7 @@ const CATEGORY_ICONS: Array<{ match: RegExp; icon: string }> = [
   styleUrls: ['./home.component.css'],
   host: {
     class: 'fill-screen-home',
+    '[class.home-page--dark]': 'isDarkMode',
   },
 })
 export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -78,6 +79,8 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   deliveryFilter: 'today' | '24h' | '3d' | 'any' = 'any';
   /** Enlarged map + single-column product list. */
   mapExpanded = false;
+  /** Mobile filter panel — collapsed by default when filters sit above products. */
+  filtersOpen = false;
 
   private map?: maplibregl.Map;
   private mapMarkers: maplibregl.Marker[] = [];
@@ -250,6 +253,14 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onSortChange(mode: 'name' | 'ph'): void {
     this.sortMode = mode;
+  }
+
+  onToggleFilters(): void {
+    this.filtersOpen = !this.filtersOpen;
+  }
+
+  onApplyFilters(): void {
+    this.filtersOpen = false;
   }
 
   onClearFilters(): void {
