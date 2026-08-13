@@ -52,6 +52,11 @@ import {
   mapPrintRectToCollapsedAspectLayout,
 } from '../ph-printing-files/ph-print-mockup-dynamic-aspect.util';
 import { phCanvasProxiedImageUrl } from '../ph-canvas/ph-canvas.model';
+import {
+  mockupBodyTintKey,
+  shouldTintMockupBody,
+  tintMockupPng,
+} from '../ph-printing-files/ph-print-mockup-body-tint.util';
 
 /** Canvas-composite print opacity in mockup (0.8 = 20% transparent). */
 export const MOCKUP_CANVAS_PRINT_OPACITY = 0.8;
@@ -92,6 +97,8 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   @ViewChild('mockupFrame') mockupFrame?: ElementRef<HTMLElement>;
 
   mockupUrl = '';
+  /** Mockup PNG after product color/texture recolor (opaque pixels only). */
+  tintedMockupUrl = '';
   printOverlay: MockupPrintOverlay | null = null;
   rectOverlay: (MockupPrintOverlayRect & { kind: 'rect' }) | null = null;
   quadOverlay: (MockupPrintOverlayQuad & { kind: 'quad' }) | null = null;
@@ -119,6 +126,9 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   private resolvedImageWidthPx = 0;
   private resolvedImageHeightPx = 0;
   private printImageProbe?: HTMLImageElement;
+  private tintToken = 0;
+  private lastTintKey = '';
+  private tintFailed = false;
 
   constructor(
     private hostRef: ElementRef<HTMLElement>,
@@ -162,8 +172,16 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
           ? this.printOverlay
           : null;
       this.mockupLoading = !!this.mockupUrl;
+      this.tintedMockupUrl = '';
+      this.lastTintKey = '';
+      this.tintFailed = false;
       this.refreshMockupSimpleSlotOutline();
       this.scheduleMeasureRefresh();
+      this.queueMockupBodyTint();
+    }
+
+    if (changes['sheetBackgroundStyles'] && !changes['mockup']) {
+      this.queueMockupBodyTint();
     }
 
     if (
@@ -190,11 +208,63 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   }
 
   ngOnDestroy(): void {
+    this.tintToken += 1;
     this.resizeObserver?.disconnect();
     if (this.measureRetryTimer) {
       clearTimeout(this.measureRetryTimer);
     }
     this.printImageProbe = undefined;
+  }
+
+  /** Displayed mockup: tinted PNG when a product color/texture is selected. */
+  get displayMockupUrl(): string {
+    if (this.tintedMockupUrl) {
+      return this.tintedMockupUrl;
+    }
+    if (!this.needsMockupBodyTint || this.tintFailed) {
+      return this.mockupUrl;
+    }
+    return '';
+  }
+
+  get needsMockupBodyTint(): boolean {
+    return shouldTintMockupBody(this.sheetBackgroundStyles);
+  }
+
+  private queueMockupBodyTint(): void {
+    const key = mockupBodyTintKey(this.mockupUrl, this.sheetBackgroundStyles);
+    if (key === this.lastTintKey && (this.tintedMockupUrl || this.tintFailed || !this.needsMockupBodyTint)) {
+      return;
+    }
+    this.lastTintKey = key;
+    const token = ++this.tintToken;
+    void this.rebuildMockupBodyTint(token);
+  }
+
+  private async rebuildMockupBodyTint(token: number): Promise<void> {
+    if (!this.mockupUrl || !shouldTintMockupBody(this.sheetBackgroundStyles)) {
+      this.tintedMockupUrl = '';
+      this.tintFailed = false;
+      return;
+    }
+
+    try {
+      const url = await tintMockupPng(this.mockupUrl, this.sheetBackgroundStyles);
+      if (token !== this.tintToken) {
+        return;
+      }
+      this.tintedMockupUrl = url;
+      this.tintFailed = false;
+      this.cdr.detectChanges();
+      this.scheduleMeasureRefresh();
+    } catch {
+      if (token !== this.tintToken) {
+        return;
+      }
+      this.tintedMockupUrl = '';
+      this.tintFailed = true;
+      this.cdr.detectChanges();
+    }
   }
 
   /**
@@ -233,7 +303,7 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
     while (Date.now() - started < timeoutMs) {
       const frame = this.mockupFrame?.nativeElement;
       const sized = !!frame && frame.clientWidth >= 2 && frame.clientHeight >= 2;
-      if (!this.mockupLoading && sized && this.mockupUrl && this.printOverlay) {
+      if (!this.mockupLoading && sized && this.displayMockupUrl && this.printOverlay) {
         // Allow fold-strip / warp measure to settle after composite arrives.
         await new Promise<void>((resolve) => setTimeout(resolve, 120));
         return;
@@ -569,7 +639,9 @@ export class PhPrintMockupPreviewComponent implements AfterViewInit, OnChanges, 
   }
 
   get showSheetFillLayer(): boolean {
-    return !!(this.cropGuideSvg && this.printSlotClipPathCss);
+    // Product color/texture tints the mockup PNG itself — not a rectangle
+    // behind the print slot.
+    return false;
   }
 
   get showAxisAlignedSheetFillLayer(): boolean {

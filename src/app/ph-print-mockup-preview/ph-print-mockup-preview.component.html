@@ -19,6 +19,7 @@
           [style.height.px]="aspectSplitViewportHeightPx"
         >
           <div
+            *ngIf="displayMockupUrl"
             class="ph-print-mockup-aspect-split-images"
             [style.width.px]="mockupImageWidthPx"
             [style.height.px]="mockupImageHeightPx"
@@ -26,7 +27,7 @@
           >
             <img
               class="ph-print-mockup-bg ph-print-mockup-bg--aspect-split"
-              [src]="mockupUrl"
+              [src]="displayMockupUrl"
               alt=""
               draggable="false"
               [style.width.px]="mockupImageWidthPx"
@@ -38,7 +39,7 @@
             />
             <img
               class="ph-print-mockup-bg ph-print-mockup-bg--aspect-split ph-print-mockup-bg--aspect-split-overlay"
-              [src]="mockupUrl"
+              [src]="displayMockupUrl"
               alt=""
               draggable="false"
               [style.clip-path]="aspectSplitBottomClipPath"
@@ -51,8 +52,9 @@
 
       <ng-template #singleMockupBg>
         <img
+          *ngIf="displayMockupUrl"
           class="ph-print-mockup-bg"
-          [src]="mockupUrl"
+          [src]="displayMockupUrl"
           alt=""
           draggable="false"
           (load)="onMockupImageLoad()"
